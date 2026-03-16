@@ -8,7 +8,7 @@ import {
   ChevronDown, Trash2, Eye, EyeOff,
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, Radio, MessageSquare, MessageCircle, Wifi, Pin, PinOff,
-  ShieldCheck, Lock, Unlock, Paperclip,
+  ShieldCheck, Lock, Unlock, Paperclip, Pencil,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import LiveBroadcast from '@/components/LiveBroadcast';
