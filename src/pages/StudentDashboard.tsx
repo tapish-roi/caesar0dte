@@ -7,7 +7,7 @@ import {
   TrendingUp, BookOpen, Users, Video, Film, FileText,
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
-  User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff,
+  User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
@@ -618,7 +618,7 @@ export default function StudentDashboard() {
   const typeIcon = (type: string) => {
     if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-blue-500" />;
     if (type === 'resource') return <FileText className="w-3.5 h-3.5 text-amber-500" />;
-    if (type === 'live') return <Wifi className="w-3.5 h-3.5 text-destructive" />;
+    if (type === 'live') return <Radio className="w-3.5 h-3.5 text-destructive" />;
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
 
@@ -1025,10 +1025,11 @@ export default function StudentDashboard() {
                                       {lesson.title}
                                     </span>
                                     {lesson.lesson_type === 'live' && (
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold flex items-center gap-1 shrink-0">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-destructive" />לייב
-                                      </span>
-                                    )}
+                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
+                                         <Radio className="w-2.5 h-2.5" />
+                                         הוקלט בלייב
+                                       </span>
+                                     )}
                                     {lesson.duration_minutes && (
                                       <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
                                     )}
