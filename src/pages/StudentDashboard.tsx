@@ -1154,7 +1154,7 @@ export default function StudentDashboard() {
 // ─── StudentPostCard ──────────────────────────────────────────────────────────
 function StudentPostCard({
   post, fetchComments, expanded, onToggleComments,
-  commentText, onCommentChange, onAddComment,
+  commentText, onCommentChange, onAddComment, onJoinLive,
   postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
 }: {
   post: PostItem;
@@ -1164,6 +1164,7 @@ function StudentPostCard({
   commentText: string;
   onCommentChange: (v: string) => void;
   onAddComment: () => void;
+  onJoinLive: () => void;
   postTypeLabel: Record<string, string>;
   postTypeIcon: (t: string) => React.ReactNode;
   postTypeBg: Record<string, string>;
@@ -1217,6 +1218,16 @@ function StudentPostCard({
               : <img src={post.media_url} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
             }
           </div>
+        )}
+
+        {pType === 'live' && (
+          <button
+            onClick={onJoinLive}
+            className="mt-3 flex items-center gap-2 h-9 px-4 bg-destructive text-destructive-foreground rounded-xl text-xs font-bold hover:opacity-90 transition-all"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-destructive-foreground animate-pulse" />
+            הצטרף ללייב
+          </button>
         )}
 
         <button
