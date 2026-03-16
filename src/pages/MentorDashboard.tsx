@@ -1403,11 +1403,12 @@ export default function MentorDashboard() {
 
 // ─── LessonRow ────────────────────────────────────────────────────────────────
 function LessonRow({
-  lesson, onTogglePublish, onDelete, typeIcon, typeLabel,
+  lesson, onTogglePublish, onDelete, onEdit, typeIcon, typeLabel,
 }: {
   lesson: Lesson;
   onTogglePublish: () => void;
   onDelete: () => void;
+  onEdit: () => void;
   typeIcon: (t: string) => React.ReactNode;
   typeLabel: (t: string) => string;
 }) {
@@ -1437,6 +1438,13 @@ function LessonRow({
       {lesson.duration_minutes && (
         <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
       )}
+      <button
+        onClick={onEdit}
+        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+        title="ערוך שיעור"
+      >
+        <Pencil className="w-3.5 h-3.5" />
+      </button>
       <button
         onClick={onTogglePublish}
         className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
