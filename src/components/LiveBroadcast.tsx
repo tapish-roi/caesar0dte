@@ -227,7 +227,8 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
     // ICE candidates
     pc.onicecandidate = async (e) => {
       if (!e.candidate) return;
-      await supabase.from('live_signals').insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('live_signals') as any).insert({
         session_id: sessId,
         from_user_id: mentorId,
         to_user_id: viewerId,
@@ -246,7 +247,8 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
     // Create and send offer
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    await supabase.from('live_signals').insert({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('live_signals') as any).insert({
       session_id: sessId,
       from_user_id: mentorId,
       to_user_id: viewerId,

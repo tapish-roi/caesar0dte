@@ -106,11 +106,12 @@ export default function LiveViewer({ sessionId, mentorId, userId, sessionTitle, 
           if (sig.to_user_id !== userId) return;
 
           if (sig.signal_type === 'offer' && sig.from_user_id === mentorId) {
-            await pc.setRemoteDescription(new RTCSessionDescription(sig.payload as RTCSessionDescriptionInit));
+            await pc.setRemoteDescription(new RTCSessionDescription(sig.payload as unknown as RTCSessionDescriptionInit));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
 
-            await supabase.from('live_signals').insert({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (supabase.from('live_signals') as any).insert({
               session_id: sessionId,
               from_user_id: userId,
               to_user_id: mentorId,
@@ -119,7 +120,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, sessionTitle, 
             });
           } else if (sig.signal_type === 'ice-candidate') {
             if (sig.payload.candidate) {
-              await pc.addIceCandidate(new RTCIceCandidate(sig.payload as RTCIceCandidateInit));
+              await pc.addIceCandidate(new RTCIceCandidate(sig.payload as unknown as RTCIceCandidateInit));
             }
           }
         })
@@ -130,7 +131,8 @@ export default function LiveViewer({ sessionId, mentorId, userId, sessionTitle, 
       // ICE from viewer side
       pc.onicecandidate = async (e) => {
         if (cancelled || !e.candidate) return;
-        await supabase.from('live_signals').insert({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase.from('live_signals') as any).insert({
           session_id: sessionId,
           from_user_id: userId,
           to_user_id: mentorId,
@@ -140,7 +142,8 @@ export default function LiveViewer({ sessionId, mentorId, userId, sessionTitle, 
       };
 
       // Signal "join" to mentor
-      await supabase.from('live_signals').insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('live_signals') as any).insert({
         session_id: sessionId,
         from_user_id: userId,
         to_user_id: mentorId,
