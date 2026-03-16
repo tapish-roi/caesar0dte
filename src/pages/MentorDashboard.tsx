@@ -10,6 +10,7 @@ import {
   Image, Radio, MessageSquare, MessageCircle, Wifi, Pin, PinOff,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import LiveBroadcast from '@/components/LiveBroadcast';
 
 type SidebarTab = 'lessons' | 'community' | 'students';
 type PostType = 'discussion' | 'media' | 'live';
