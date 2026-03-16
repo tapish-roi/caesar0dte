@@ -384,12 +384,14 @@ export default function MentorDashboard() {
   const typeIcon = (type: string) => {
     if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-primary" />;
     if (type === 'presentation') return <FileText className="w-3.5 h-3.5 text-accent" />;
+    if (type === 'live') return <Radio className="w-3.5 h-3.5 text-destructive" />;
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
 
   const typeLabel = (type: string) => {
     if (type === 'zoom_recording') return 'הקלטת זום';
     if (type === 'presentation') return 'מצגת';
+    if (type === 'live') return 'לייב מוקלט';
     return 'שיעור מוקלט';
   };
 
@@ -1124,12 +1126,20 @@ function LessonRow({ lesson, onTogglePublish, onDelete, typeIcon, typeLabel }: {
   typeIcon: (t: string) => React.ReactNode;
   typeLabel: (t: string) => string;
 }) {
+  const isLive = lesson.lesson_type === 'live';
   return (
     <div className="flex items-center gap-3 px-6 py-3 hover:bg-muted/30 transition-colors group">
       <div className="flex items-center gap-2 flex-1 min-w-0">
         {typeIcon(lesson.lesson_type)}
         <span className="text-sm text-foreground truncate">{lesson.title}</span>
-        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">{typeLabel(lesson.lesson_type)}</span>
+        <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 ${
+          isLive
+            ? 'bg-destructive/10 text-destructive font-medium'
+            : 'bg-muted text-muted-foreground'
+        }`}>
+          {isLive && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
+          {typeLabel(lesson.lesson_type)}
+        </span>
         {lesson.duration_minutes && <span className="text-xs text-muted-foreground tabular shrink-0">{lesson.duration_minutes} דק'</span>}
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

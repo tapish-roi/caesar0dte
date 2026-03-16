@@ -618,6 +618,7 @@ export default function StudentDashboard() {
   const typeIcon = (type: string) => {
     if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-blue-500" />;
     if (type === 'resource') return <FileText className="w-3.5 h-3.5 text-amber-500" />;
+    if (type === 'live') return <Wifi className="w-3.5 h-3.5 text-destructive" />;
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
 
@@ -1012,7 +1013,7 @@ export default function StudentDashboard() {
                               {catLessons.map((lesson) => {
                                 const prog = getProgress(lesson.id);
                                 return (
-                                  <div
+                                   <div
                                     key={lesson.id}
                                     onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
                                     className={`flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${selectedLesson === lesson.id ? 'bg-accent/5' : ''}`}
@@ -1023,6 +1024,11 @@ export default function StudentDashboard() {
                                     <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
                                       {lesson.title}
                                     </span>
+                                    {lesson.lesson_type === 'live' && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold flex items-center gap-1 shrink-0">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-destructive" />לייב
+                                      </span>
+                                    )}
                                     {lesson.duration_minutes && (
                                       <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
                                     )}
@@ -1212,7 +1218,19 @@ function StudentPostCard({
 
         <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
-        {post.media_url && (
+        {/* Live ended with recording */}
+        {pType === 'live' && post.media_url && post.media_type === 'video' && (
+          <div className="mt-3 rounded-xl overflow-hidden border border-border">
+            <div className="px-3 py-1.5 bg-muted/50 border-b border-border flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
+              <span className="text-xs text-muted-foreground font-medium">הקלטת הלייב</span>
+            </div>
+            <video src={post.media_url} className="w-full max-h-72 object-contain bg-black rounded-b-xl" controls />
+          </div>
+        )}
+
+        {/* Non-live media */}
+        {pType !== 'live' && post.media_url && (
           <div className="mt-3 rounded-xl overflow-hidden">
             {post.media_type === 'video'
               ? <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" controls />
@@ -1221,7 +1239,8 @@ function StudentPostCard({
           </div>
         )}
 
-        {pType === 'live' && (
+        {/* Join live — only if active (no recording yet) */}
+        {pType === 'live' && !post.media_url && !post.content.includes('(הסתיים)') && (
           <button
             onClick={onJoinLive}
             className="mt-3 flex items-center gap-2 h-9 px-4 bg-destructive text-destructive-foreground rounded-xl text-xs font-bold hover:opacity-90 transition-all"
