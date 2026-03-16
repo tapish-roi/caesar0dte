@@ -20,54 +20,70 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
 });
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string): Promise<void> => {
-    try {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-      setRole((data?.role as AppRole) ?? null);
-    } catch {
-      setRole(null);
+  const fetchRole = async (userId: string, metadataRole?: string): Promise<void> => {
+    // First attempt
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+
+    if (data?.role) {
+      setRole(data.role as AppRole);
+      return;
     }
+
+    // Retry after 800ms — trigger may not have committed yet
+    await sleep(800);
+    const { data: data2 } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+
+    if (data2?.role) {
+      setRole(data2.role as AppRole);
+      return;
+    }
+
+    // Final fallback: use role from user_metadata (set at signup)
+    if (metadataRole === 'mentor' || metadataRole === 'student') {
+      setRole(metadataRole as AppRole);
+      return;
+    }
+
+    setRole(null);
   };
 
   useEffect(() => {
-    let initialized = false;
-
-    // Set up auth state listener BEFORE getting session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+        try {
+          setSession(session);
+          setUser(session?.user ?? null);
 
-        if (session?.user) {
-          await fetchRole(session.user.id);
-        } else {
-          setRole(null);
-        }
-
-        // Always release loading
-        if (!initialized) {
-          initialized = true;
-          setLoading(false);
-        } else {
+          if (session?.user) {
+            const metadataRole = session.user.user_metadata?.role as string | undefined;
+            await fetchRole(session.user.id, metadataRole);
+          } else {
+            setRole(null);
+          }
+        } finally {
           setLoading(false);
         }
       }
     );
 
-    // Fallback: ensure loading clears even if onAuthStateChange is slow
-    const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 5000);
+    // Safety fallback
+    const timeout = setTimeout(() => setLoading(false), 6000);
 
     return () => {
       subscription.unsubscribe();
