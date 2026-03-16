@@ -213,10 +213,10 @@ function LandingScreen({
                   </p>
                   <div className="space-y-2">
                     {invites.map((inv) => (
-                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
-                        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                          <span className="text-xs font-bold text-amber-700">{inv.mentorName[0]?.toUpperCase()}</span>
-                        </div>
+                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-muted/60 border border-border rounded-xl">
+                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                           <span className="text-xs font-bold text-primary">{inv.mentorName[0]?.toUpperCase()}</span>
+                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-foreground truncate">{inv.mentorName}</p>
                           <p className="text-xs text-muted-foreground">הזמין אותך לקהילה שלו</p>
