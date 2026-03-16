@@ -26,62 +26,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [role, setRole] = useState<AppRole>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string, user?: User) => {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .single();
-
-    if (data?.role) {
-      setRole(data.role as AppRole);
-      return;
-    }
-
-    // If no role found yet, try to create from metadata (handles signup race condition)
-    const metaRole = user?.user_metadata?.role as AppRole;
-    if (metaRole === 'mentor' || metaRole === 'student') {
-      const { data: inserted } = await supabase
+  const fetchRole = async (userId: string, userObj?: User): Promise<void> => {
+    try {
+      const { data } = await supabase
         .from('user_roles')
-        .insert({ user_id: userId, role: metaRole })
         .select('role')
+        .eq('user_id', userId)
         .single();
-      setRole((inserted?.role as AppRole) ?? null);
-    } else {
+
+      if (data?.role) {
+        setRole(data.role as AppRole);
+        return;
+      }
+
+      // If no role found, try to create from metadata (handles signup timing)
+      const metaRole = userObj?.user_metadata?.role as string | undefined;
+      if (metaRole === 'mentor' || metaRole === 'student') {
+        const { data: inserted } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: metaRole })
+          .select('role')
+          .single();
+        setRole((inserted?.role as AppRole) ?? null);
+      } else {
+        setRole(null);
+      }
+    } catch {
+      // Silently fail — role stays null, user will see auth page
       setRole(null);
     }
   };
 
   useEffect(() => {
+    let initialized = false;
+
     // Set up auth state listener BEFORE getting session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+
         if (session?.user) {
           await fetchRole(session.user.id, session.user);
         } else {
           setRole(null);
         }
-        setLoading(false);
+
+        // Always release loading
+        if (!initialized) {
+          initialized = true;
+          setLoading(false);
+        } else {
+          setLoading(false);
+        }
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRole(session.user.id, session.user);
-      } else {
-        setLoading(false);
-      }
-    });
+    // Fallback: ensure loading clears even if onAuthStateChange is slow
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setRole(null);
+    setUser(null);
+    setSession(null);
   };
 
   return (
