@@ -76,15 +76,22 @@ export default function MentorDashboard() {
   });
 
   // Fetch community members
-  const { data: members = [] } = useQuery({
+  const { data: members = [] } = useQuery<{ student_id: string; joined_at: string; profiles: { full_name: string; email: string } | null }[]>({
     queryKey: ['members', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('community_members')
-        .select('student_id, joined_at, profiles!community_members_student_id_fkey(full_name, email)')
+        .select('student_id, joined_at')
         .eq('mentor_id', user!.id);
       if (error) throw error;
-      return data;
+      // Enrich with profile data
+      const enriched = await Promise.all(
+        (data ?? []).map(async (m) => {
+          const { data: profile } = await supabase.from('profiles').select('full_name, email').eq('user_id', m.student_id).single();
+          return { ...m, profiles: profile };
+        })
+      );
+      return enriched;
     },
     enabled: !!user && activeTab === 'community',
   });
