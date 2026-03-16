@@ -677,7 +677,6 @@ export default function StudentDashboard() {
           {([
             { key: 'lessons', label: 'שיעורים', icon: BookOpen },
             { key: 'community', label: 'קהילה', icon: Users },
-            { key: 'profile', label: 'הפרופיל שלי', icon: User },
           ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -694,21 +693,200 @@ export default function StudentDashboard() {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 px-2 py-2">
-            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold overflow-hidden">
+        {/* ── Bottom user chip (opens profile popover) ── */}
+        <div className="p-3 border-t border-sidebar-border relative" ref={profilePopoverRef}>
+          <button
+            onClick={() => setProfileOpen(v => !v)}
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-sidebar-accent transition-all group"
+          >
+            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold overflow-hidden shrink-0">
               {profile?.avatar_url
                 ? <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                 : user?.email?.[0]?.toUpperCase()
               }
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 text-right">
               <div className="text-xs font-medium text-foreground truncate">{profile?.full_name || user?.email}</div>
+              <div className="text-[10px] text-muted-foreground">הגדרות פרופיל</div>
             </div>
-            <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors">
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+            <Settings className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+          </button>
+
+          {/* Profile Popover */}
+          <AnimatePresence>
+            {profileOpen && (
+              <>
+                {/* Backdrop */}
+                <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute bottom-full mb-2 right-2 left-2 z-50 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+                  style={{ maxHeight: '80vh', overflowY: 'auto' }}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-4 border-b border-border">
+                    <button onClick={() => setProfileOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                    <span className="text-sm font-semibold text-foreground">הפרופיל שלי</span>
+                    <div className="w-4" />
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                    {/* Avatar row */}
+                    <div className="flex items-center gap-3">
+                      <div className="relative shrink-0">
+                        <div className="w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center overflow-hidden">
+                          {profile?.avatar_url
+                            ? <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                            : <User className="w-6 h-6 text-accent/40" />
+                          }
+                        </div>
+                        <button
+                          onClick={() => avatarInputRef.current?.click()}
+                          disabled={isAvatarUploading}
+                          className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-50 shadow-md"
+                        >
+                          {isAvatarUploading
+                            ? <div className="w-2.5 h-2.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                            : <Camera className="w-3 h-3" />
+                          }
+                        </button>
+                        <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
+                          onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{profile?.full_name || 'תלמיד'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                      </div>
+                    </div>
+
+                    {/* Personal details */}
+                    <div className="space-y-2.5">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">פרטים אישיים</p>
+
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">שם מלא</label>
+                        <div className="relative">
+                          <User className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                          <input
+                            value={profileForm.full_name}
+                            onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))}
+                            placeholder="השם שלך"
+                            className="w-full h-9 pr-9 pl-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">מספר טלפון</label>
+                        <div className="relative">
+                          <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                          <input
+                            value={profileForm.phone}
+                            onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))}
+                            placeholder="050-0000000"
+                            type="tel"
+                            className="w-full h-9 pr-9 pl-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-muted-foreground mb-1">אימייל</label>
+                        <div className="relative">
+                          <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                          <input
+                            value={user?.email ?? ''}
+                            disabled
+                            className="w-full h-9 pr-9 pl-3 bg-muted ring-1 ring-border rounded-lg text-xs text-muted-foreground cursor-not-allowed text-right"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => saveProfile.mutate()}
+                        disabled={saveProfile.isPending || !profileForm.full_name.trim()}
+                        className="w-full h-9 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                      >
+                        {saveProfile.isPending ? 'שומר...' : 'שמור פרטים'}
+                      </button>
+                    </div>
+
+                    {/* Password change */}
+                    <div className="space-y-2.5 pt-1 border-t border-border">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-1">שינוי סיסמה</p>
+                      <div className="relative">
+                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={e => setNewPassword(e.target.value)}
+                          placeholder="סיסמה חדשה (6+ תווים)"
+                          className="w-full h-9 pr-9 pl-9 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(v => !v)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => savePassword.mutate()}
+                        disabled={savePassword.isPending || newPassword.length < 6}
+                        className="w-full h-9 bg-secondary text-secondary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                      >
+                        {savePassword.isPending ? 'מעדכן...' : 'עדכן סיסמה'}
+                      </button>
+                    </div>
+
+                    {/* Notification preferences */}
+                    <div className="space-y-2.5 pt-1 border-t border-border">
+                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-1">התראות ועדכונים</p>
+                      <div className="flex items-center justify-between py-1">
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-xs text-foreground">SMS / נייד</span>
+                        </div>
+                        <Switch
+                          checked={profile?.notify_sms ?? false}
+                          onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: val, notify_email: profile?.notify_email ?? false })}
+                          disabled={saveNotifications.isPending}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between py-1">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-xs text-foreground">אימייל</span>
+                        </div>
+                        <Switch
+                          checked={profile?.notify_email ?? false}
+                          onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: profile?.notify_sms ?? false, notify_email: val })}
+                          disabled={saveNotifications.isPending}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sign out */}
+                    <div className="pt-1 border-t border-border">
+                      <button
+                        onClick={signOut}
+                        className="w-full flex items-center justify-center gap-2 h-9 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-all"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        התנתק
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </aside>
 
