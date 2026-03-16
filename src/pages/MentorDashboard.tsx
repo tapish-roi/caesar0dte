@@ -966,6 +966,17 @@ export default function MentorDashboard() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Live Broadcast Modal */}
+      <AnimatePresence>
+        {showLiveBroadcast && (
+          <LiveBroadcast
+            mentorId={user!.id}
+            onClose={() => { setShowLiveBroadcast(false); qc.invalidateQueries({ queryKey: ['community_posts'] }); }}
+            onPostCreated={() => qc.invalidateQueries({ queryKey: ['community_posts'] })}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
