@@ -384,12 +384,14 @@ export default function MentorDashboard() {
   const typeIcon = (type: string) => {
     if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-primary" />;
     if (type === 'presentation') return <FileText className="w-3.5 h-3.5 text-accent" />;
+    if (type === 'live') return <Radio className="w-3.5 h-3.5 text-destructive" />;
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
 
   const typeLabel = (type: string) => {
     if (type === 'zoom_recording') return 'הקלטת זום';
     if (type === 'presentation') return 'מצגת';
+    if (type === 'live') return 'לייב מוקלט';
     return 'שיעור מוקלט';
   };
 
