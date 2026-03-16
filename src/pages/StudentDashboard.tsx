@@ -986,12 +986,18 @@ export default function StudentDashboard() {
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
             <motion.div key="lessons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8">
-              <div className="mb-8">
-                <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {lessons.length} שיעורים זמינים · {progress.filter(p => p.completed).length} הושלמו
-                </p>
+              <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {filteredLessons.length} שיעורים זמינים · {progress.filter(p => p.completed).length} הושלמו
+                    {lessonDateRange?.from && <span className="mr-2 text-primary font-medium">· מסונן לפי תאריך</span>}
+                  </p>
+                </div>
+                {/* Date range filter */}
+                <DateRangeFilter range={lessonDateRange} onChange={setLessonDateRange} />
               </div>
+
 
               <AnimatePresence>
                 {selectedLessonData && (
