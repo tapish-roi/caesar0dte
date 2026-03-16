@@ -428,14 +428,29 @@ export default function StudentDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lessons')
-        .select('id, title, description, lesson_type, video_url, category_id, duration_minutes')
+        .select('id, title, description, lesson_type, video_url, category_id, duration_minutes, attachment_url, attachment_name')
         .eq('mentor_id', mentorId!)
         .eq('is_published', true)
         .order('position');
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as LessonItem[];
     },
     enabled: !!mentorId,
+  });
+
+  // Category access grants for this student
+  const { data: categoryAccess = [] } = useQuery<{ category_id: string }[]>({
+    queryKey: ['student-category-access', user?.id, mentorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('student_category_access')
+        .select('category_id')
+        .eq('student_id', user!.id)
+        .eq('mentor_id', mentorId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user && !!mentorId,
   });
 
   const { data: progress = [] } = useQuery<ProgressItem[]>({
