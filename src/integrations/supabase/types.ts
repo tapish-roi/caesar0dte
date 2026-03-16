@@ -300,6 +300,7 @@ export type Database = {
           ended_at: string | null
           id: string
           mentor_id: string
+          recording_url: string | null
           started_at: string
           status: string
           title: string
@@ -309,6 +310,7 @@ export type Database = {
           ended_at?: string | null
           id?: string
           mentor_id: string
+          recording_url?: string | null
           started_at?: string
           status?: string
           title?: string
@@ -318,6 +320,7 @@ export type Database = {
           ended_at?: string | null
           id?: string
           mentor_id?: string
+          recording_url?: string | null
           started_at?: string
           status?: string
           title?: string
