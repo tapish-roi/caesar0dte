@@ -743,8 +743,8 @@ export default function MentorDashboard() {
                   <div className="space-y-2">
                     {invites.map((inv: { id: string; contact: string; created_at: string }) => (
                       <div key={inv.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/30 transition-colors group">
-                        <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
-                          <Send className="w-3.5 h-3.5 text-amber-500" />
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Send className="w-3.5 h-3.5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className="text-sm text-foreground">{inv.contact}</span>
