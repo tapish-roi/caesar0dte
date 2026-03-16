@@ -28,21 +28,20 @@ export default function AuthPage() {
           email,
           password,
           options: {
-            data: { full_name: fullName },
+            // Store role in metadata — AuthContext will create user_roles row on SIGNED_IN
+            data: { full_name: fullName, role: tab },
             emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
         if (data.user) {
-          // Insert role
-          await supabase.from('user_roles').insert({ user_id: data.user.id, role: tab });
-          // Update profile with phone if provided
+          // Update profile with phone if provided (session is active with auto-confirm)
           if (phone) {
             await supabase.from('profiles').update({ phone }).eq('user_id', data.user.id);
           }
           toast({
-            title: 'חשבון נוצר בהצלחה',
-            description: 'אנא בדוק את האימייל שלך לאישור החשבון.',
+            title: 'חשבון נוצר בהצלחה! 🎉',
+            description: tab === 'mentor' ? 'ברוך הבא, מנטור! הנך מועבר לממשק הניהול.' : 'ברוך הבא! הנך מועבר לדף הלמידה שלך.',
           });
         }
       } else {
@@ -58,15 +57,23 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
-      {/* Background subtle grid */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
-          backgroundSize: '48px 48px',
-        }}
-      />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-bg">
+      {/* Soft radial gradient blobs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.12]"
+          style={{ background: 'radial-gradient(circle, hsl(160 84% 39%) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full opacity-[0.07]"
+          style={{ background: 'radial-gradient(circle, hsl(222 47% 40%) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] opacity-[0.05]"
+          style={{ background: 'radial-gradient(ellipse, hsl(160 84% 39%) 0%, transparent 60%)' }}
+        />
+      </div>
+
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -229,7 +236,7 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-slate-800 active:bg-slate-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
               >
                 {loading ? '...' : mode === 'login' ? 'כניסה' : 'צור חשבון'}
               </button>

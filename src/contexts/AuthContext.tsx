@@ -26,13 +26,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [role, setRole] = useState<AppRole>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string) => {
+  const fetchRole = async (userId: string, user?: User) => {
     const { data } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
       .single();
-    setRole((data?.role as AppRole) ?? null);
+
+    if (data?.role) {
+      setRole(data.role as AppRole);
+      return;
+    }
+
+    // If no role found yet, try to create from metadata (handles signup race condition)
+    const metaRole = user?.user_metadata?.role as AppRole;
+    if (metaRole === 'mentor' || metaRole === 'student') {
+      const { data: inserted } = await supabase
+        .from('user_roles')
+        .insert({ user_id: userId, role: metaRole })
+        .select('role')
+        .single();
+      setRole((inserted?.role as AppRole) ?? null);
+    } else {
+      setRole(null);
+    }
   };
 
   useEffect(() => {
@@ -42,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          await fetchRole(session.user.id);
+          await fetchRole(session.user.id, session.user);
         } else {
           setRole(null);
         }
@@ -54,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id);
+        fetchRole(session.user.id, session.user);
       } else {
         setLoading(false);
       }
