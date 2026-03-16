@@ -327,12 +327,18 @@ export default function StudentDashboard() {
   // ── Queries ──────────────────────────────────────────────────────────────────
 
   const { data: invites = [], isLoading: invitesLoading } = useQuery<InviteItem[]>({
-    queryKey: ['student-invites', user?.id],
+    queryKey: ['student-invites', user?.id, user?.email],
     queryFn: async () => {
+      // Match by student_id OR by contact email/phone (fallback for existing users)
+      const orFilter = [
+        `student_id.eq.${user!.id}`,
+        user?.email ? `contact.eq.${user.email}` : null,
+      ].filter(Boolean).join(',');
+
       const { data, error } = await supabase
         .from('community_invites')
         .select('id, mentor_id, contact, status')
-        .eq('student_id', user!.id)
+        .or(orFilter)
         .eq('status', 'pending');
       if (error) throw error;
       const enriched = await Promise.all(
