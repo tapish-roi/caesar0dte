@@ -981,7 +981,8 @@ export default function MentorDashboard() {
         {showLiveBroadcast && (
           <LiveBroadcast
             mentorId={user!.id}
-            onClose={() => { setShowLiveBroadcast(false); qc.invalidateQueries({ queryKey: ['community_posts'] }); }}
+            mentorName={mentorProfile?.full_name || user?.email || 'מנטור'}
+            onClose={() => { setShowLiveBroadcast(false); qc.invalidateQueries({ queryKey: ['community_posts'] }); qc.invalidateQueries({ queryKey: ['lessons'] }); }}
             onPostCreated={() => qc.invalidateQueries({ queryKey: ['community_posts'] })}
           />
         )}
