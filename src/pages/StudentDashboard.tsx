@@ -618,6 +618,7 @@ export default function StudentDashboard() {
   const typeIcon = (type: string) => {
     if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-blue-500" />;
     if (type === 'resource') return <FileText className="w-3.5 h-3.5 text-amber-500" />;
+    if (type === 'live') return <Wifi className="w-3.5 h-3.5 text-destructive" />;
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
 
