@@ -80,6 +80,7 @@ export default function MentorDashboard() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [removeConfirm, setRemoveConfirm] = useState<{ studentId: string; name: string } | null>(null);
+  const [showLiveBroadcast, setShowLiveBroadcast] = useState(false);
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
