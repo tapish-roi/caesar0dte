@@ -527,8 +527,33 @@ export default function StudentDashboard() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['student-profile'] });
       toast({ title: 'הפרופיל עודכן!' });
+      setProfileOpen(false);
     },
     onError: () => toast({ title: 'שגיאה בשמירת הפרופיל', variant: 'destructive' }),
+  });
+
+  const savePassword = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'הסיסמה עודכנה בהצלחה!' });
+      setNewPassword('');
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון הסיסמה', variant: 'destructive' }),
+  });
+
+  const saveNotifications = useMutation({
+    mutationFn: async (prefs: { notify_sms: boolean; notify_email: boolean }) => {
+      const { error } = await supabase.from('profiles').update(prefs).eq('user_id', user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['student-profile'] });
+      toast({ title: 'ההעדפות נשמרו!' });
+    },
+    onError: () => toast({ title: 'שגיאה בשמירת ההעדפות', variant: 'destructive' }),
   });
 
   const uploadAvatar = async (file: File) => {
