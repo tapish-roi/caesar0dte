@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          await fetchRole(session.user.id, session.user);
+          await fetchRole(session.user.id);
         } else {
           setRole(null);
         }
