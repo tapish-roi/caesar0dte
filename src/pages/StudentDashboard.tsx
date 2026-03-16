@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import LiveViewer from '@/components/LiveViewer';
 
 type SidebarTab = 'lessons' | 'community';
 type PostType = 'discussion' | 'media' | 'live';
