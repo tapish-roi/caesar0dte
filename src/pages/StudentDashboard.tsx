@@ -1137,11 +1137,12 @@ export default function StudentDashboard() {
 
       {/* Live Viewer Modal */}
       <AnimatePresence>
-        {activeLiveSession && (
+      {activeLiveSession && (
           <LiveViewer
             sessionId={activeLiveSession.id}
             mentorId={activeLiveSession.mentor_id}
             userId={user!.id}
+            userName={profile?.full_name || user?.email || 'תלמיד'}
             sessionTitle={activeLiveSession.title}
             onClose={() => setActiveLiveSession(null)}
           />
