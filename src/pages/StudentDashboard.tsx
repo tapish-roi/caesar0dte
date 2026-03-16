@@ -616,8 +616,8 @@ export default function StudentDashboard() {
   const selectedLessonData = lessons.find(l => l.id === selectedLesson);
 
   const typeIcon = (type: string) => {
-    if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-blue-500" />;
-    if (type === 'resource') return <FileText className="w-3.5 h-3.5 text-amber-500" />;
+    if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-primary" />;
+    if (type === 'resource') return <FileText className="w-3.5 h-3.5 text-muted-foreground" />;
     if (type === 'live') return <Radio className="w-3.5 h-3.5 text-destructive" />;
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
