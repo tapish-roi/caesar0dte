@@ -38,6 +38,8 @@ interface LessonItem {
   video_url: string | null;
   category_id: string | null;
   duration_minutes: number | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
 }
 
 interface CategoryItem {
