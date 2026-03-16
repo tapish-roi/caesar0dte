@@ -2,6 +2,8 @@
  * LiveBroadcast — Mentor-side live streaming component.
  * Features: screen share, microphone selection, viewer management,
  *           live chat panel, notify students on go-live,
+ *           MediaRecorder to capture the stream,
+ *           auto-upload recording + update community post with video on end,
  *           save recording as lesson after ending.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -11,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   Monitor, Wifi, MicOff, Mic, X, Users, Radio,
   MonitorPlay, Maximize2, ChevronDown, MessageSquare, Send,
-  BookOpen, Check,
+  BookOpen, Check, Upload,
 } from 'lucide-react';
 
 const ICE_SERVERS = [
@@ -60,8 +62,13 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
   const [chatInput, setChatInput] = useState('');
   const [isSendingMsg, setIsSendingMsg] = useState(false);
 
+  // Recording state
+  const [isUploadingRecording, setIsUploadingRecording] = useState(false);
+  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+
   // Save as lesson dialog
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [saveLessonForm, setSaveLessonForm] = useState({
     title: '',
@@ -77,6 +84,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const sessionIdRef = useRef<string | null>(null);
   const postIdRef = useRef<string | null>(null);
+  const liveTitleRef = useRef<string>('');
   const signalChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const chatChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -107,6 +115,11 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  // Keep liveTitleRef in sync
+  useEffect(() => {
+    liveTitleRef.current = liveTitle;
+  }, [liveTitle]);
 
   // ── Pick screen/window ──
   const pickScreen = useCallback(async (type: 'screen' | 'window') => {
@@ -165,6 +178,61 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
     audio?.getAudioTracks().forEach(t => tracks.push(t));
     return new MediaStream(tracks);
   }
+
+  // ── Start MediaRecorder ──
+  const startRecording = useCallback((stream: MediaStream) => {
+    recordedChunksRef.current = [];
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+      ? 'video/webm;codecs=vp9,opus'
+      : MediaRecorder.isTypeSupported('video/webm')
+      ? 'video/webm'
+      : '';
+
+    try {
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+      };
+      recorder.start(1000); // collect every 1s
+      mediaRecorderRef.current = recorder;
+    } catch {
+      // Recording not supported — silent fail, live still works
+    }
+  }, []);
+
+  // ── Upload recording & update community post ──
+  const uploadAndSaveRecording = useCallback(async (pId: string, sessId: string, title: string) => {
+    if (recordedChunksRef.current.length === 0) return null;
+    setIsUploadingRecording(true);
+    try {
+      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+      const path = `live-recordings/${mentorId}/${sessId}.webm`;
+      const { data, error } = await supabase.storage
+        .from('lesson-assets')
+        .upload(path, blob, { upsert: true, contentType: 'video/webm' });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+
+      // Update community post with video
+      await supabase.from('community_posts').update({
+        content: title + ' (הוקלט)',
+        post_type: 'live',
+        media_url: publicUrl,
+        media_type: 'video',
+      }).eq('id', pId);
+
+      // Update live_session with recording url
+      await supabase.from('live_sessions').update({ recording_url: publicUrl }).eq('id', sessId);
+
+      setRecordingUrl(publicUrl);
+      return publicUrl;
+    } catch {
+      toast({ title: 'שגיאה בשמירת ההקלטה', description: 'הלייב הסתיים אך ההקלטה לא נשמרה', variant: 'destructive' });
+      return null;
+    } finally {
+      setIsUploadingRecording(false);
+    }
+  }, [mentorId, toast]);
 
   // ── Handle new viewer joining ──
   const handleViewerJoin = useCallback(async (viewerId: string, sessId: string) => {
@@ -237,7 +305,10 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
       postIdRef.current = post.id;
       onPostCreated?.(post.id);
 
-      // 3. Subscribe to signals
+      // 3. Start recording
+      startRecording(localStream);
+
+      // 4. Subscribe to signals
       const channel = supabase
         .channel(`live-${session.id}`)
         .on('postgres_changes', {
@@ -268,7 +339,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
 
       signalChannelRef.current = channel;
 
-      // 4. Subscribe to chat
+      // 5. Subscribe to chat
       const chatCh = supabase
         .channel(`live-chat-mentor-${session.id}`)
         .on('postgres_changes', {
@@ -282,7 +353,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
         .subscribe();
       chatChannelRef.current = chatCh;
 
-      // 5. Notify students (best-effort)
+      // 6. Notify students (best-effort)
       supabase.functions.invoke('notify-live', {
         body: { session_id: session.id, mentor_id: mentorId, title },
       }).catch(() => {});
@@ -294,7 +365,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
     } finally {
       setIsStarting(false);
     }
-  }, [localStream, shareMode, liveTitle, mentorId, onPostCreated, handleViewerJoin, toast]);
+  }, [localStream, shareMode, liveTitle, mentorId, onPostCreated, handleViewerJoin, startRecording, toast]);
 
   // ── Send chat message ──
   const sendMessage = useCallback(async () => {
@@ -321,6 +392,12 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
   const endLive = useCallback(async () => {
     const sessId = sessionIdRef.current;
     const pId = postIdRef.current;
+    const title = liveTitleRef.current.trim() || 'לייב סשן';
+
+    // Stop recorder first to get all chunks
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
 
     peersRef.current.forEach(pc => pc.close());
     peersRef.current.clear();
@@ -334,17 +411,25 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
       await supabase.from('live_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', sessId);
     }
 
-    // Update post to show ended state
+    // Update post to show ended state (video will be added after upload)
     if (pId) {
       await supabase.from('community_posts').update({
-        content: (liveTitle.trim() || 'לייב סשן') + ' (הסתיים)',
+        content: title + ' (הסתיים)',
         post_type: 'live',
       }).eq('id', pId);
     }
 
-    toast({ title: 'הלייב הסתיים' });
     setStep('ended');
-  }, [localStream, liveTitle, toast]);
+
+    // Upload recording after a brief delay to ensure recorder flushed
+    if (pId && sessId) {
+      setTimeout(async () => {
+        await uploadAndSaveRecording(pId, sessId, title);
+      }, 500);
+    }
+
+    toast({ title: 'הלייב הסתיים — מעלה הקלטה...' });
+  }, [localStream, uploadAndSaveRecording, toast]);
 
   // ── Save as lesson ──
   const saveAsLesson = useCallback(async () => {
@@ -359,6 +444,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
         category_id: saveLessonForm.categoryId || null,
         is_published: false,
         position: 0,
+        video_url: recordingUrl || null,
       });
       if (error) throw error;
       setLessonSaved(true);
@@ -368,7 +454,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
     } finally {
       setIsSavingLesson(false);
     }
-  }, [saveLessonForm, mentorId, toast]);
+  }, [saveLessonForm, mentorId, recordingUrl, toast]);
 
   // ── Cleanup on unmount ──
   useEffect(() => {
@@ -409,6 +495,18 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
               <>
                 <BookOpen className="w-4 h-4 text-primary" />
                 <span className="text-sm font-semibold text-foreground">הלייב הסתיים</span>
+                {isUploadingRecording && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    מעלה הקלטה...
+                  </span>
+                )}
+                {recordingUrl && !isUploadingRecording && (
+                  <span className="text-xs text-emerald-600 flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    הקלטה נשמרה
+                  </span>
+                )}
               </>
             ) : (
               <>
@@ -544,6 +642,13 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
               </div>
             </div>
 
+            <div className="bg-muted/40 border border-border rounded-xl p-3 flex items-start gap-2.5">
+              <Upload className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                הלייב <strong className="text-foreground">יוקלט אוטומטית</strong> ויישמר כסרטון בפוסט הקהילה בסיום. ניתן גם להוסיפו לשיעורים.
+              </p>
+            </div>
+
             <button
               onClick={goLive}
               disabled={!localStream || !shareMode || isStarting}
@@ -571,6 +676,11 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                 <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-foreground/50 rounded-full text-background text-xs">
                   <Users className="w-3 h-3" />
                   {viewerCount} צופים
+                </div>
+                {/* Recording indicator */}
+                <div className="absolute bottom-3 right-3 flex items-center gap-1.5 px-2 py-1 bg-foreground/50 rounded-full text-background text-[10px]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                  מוקלט
                 </div>
               </div>
               <div className="flex items-center gap-3 px-5 py-3 border-t border-border shrink-0 bg-card flex-wrap">
@@ -666,13 +776,34 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
         {/* ── ENDED STEP — Save as lesson ── */}
         {step === 'ended' && (
           <div className="p-6 space-y-5 overflow-y-auto">
+            {/* Recording status */}
             <div className="text-center py-2">
               <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
-                <Radio className="w-6 h-6 text-muted-foreground" />
+                {isUploadingRecording
+                  ? <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  : recordingUrl
+                  ? <Check className="w-6 h-6 text-emerald-600" />
+                  : <Radio className="w-6 h-6 text-muted-foreground" />
+                }
               </div>
               <h3 className="text-base font-bold text-foreground mb-1">הלייב הסתיים בהצלחה</h3>
-              <p className="text-sm text-muted-foreground">הפוסט נשאר בקהילה עם סימון "הסתיים"</p>
+              {isUploadingRecording && (
+                <p className="text-sm text-muted-foreground">מעלה את ההקלטה לקהילה...</p>
+              )}
+              {recordingUrl && !isUploadingRecording && (
+                <p className="text-sm text-emerald-600 font-medium">ההקלטה נשמרה בפוסט הקהילה! 🎉</p>
+              )}
+              {!isUploadingRecording && !recordingUrl && (
+                <p className="text-sm text-muted-foreground">הפוסט נשאר בקהילה עם סימון "הסתיים"</p>
+              )}
             </div>
+
+            {/* Video preview if recording done */}
+            {recordingUrl && (
+              <div className="rounded-xl overflow-hidden border border-border">
+                <video src={recordingUrl} controls className="w-full max-h-48 object-contain bg-black" />
+              </div>
+            )}
 
             {!lessonSaved ? (
               <div className="bg-muted/40 border border-border rounded-xl p-5 space-y-4">
@@ -680,7 +811,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                   <BookOpen className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold text-foreground">שמור את הלייב כשיעור</span>
                 </div>
-                <p className="text-xs text-muted-foreground">ניתן לתעד את הסשן כשיעור לייב תחת הקטגוריות שלך</p>
+                <p className="text-xs text-muted-foreground">ניתן לתעד את הסשן כשיעור לייב תחת הקטגוריות שלך{recordingUrl ? ' — יכלול את הסרטון המוקלט' : ''}</p>
 
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">שם השיעור</label>
@@ -722,10 +853,10 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                 <div className="flex gap-2">
                   <button
                     onClick={saveAsLesson}
-                    disabled={!saveLessonForm.title.trim() || isSavingLesson}
+                    disabled={!saveLessonForm.title.trim() || isSavingLesson || isUploadingRecording}
                     className="flex-1 h-9 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-50"
                   >
-                    {isSavingLesson ? 'שומר...' : 'שמור כשיעור לייב'}
+                    {isSavingLesson ? 'שומר...' : isUploadingRecording ? 'ממתין להקלטה...' : 'שמור כשיעור לייב'}
                   </button>
                   <button
                     onClick={onClose}
