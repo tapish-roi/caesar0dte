@@ -43,14 +43,30 @@ function AppRoutes() {
     );
   }
 
+  // User is authenticated but role hasn't loaded yet — keep showing spinner
+  if (!role) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center mx-auto animate-pulse">
+            <svg className="w-5 h-5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="22,7 13.5,15.5 8.5,10.5 2,17" />
+              <polyline points="16,7 22,7 22,13" />
+            </svg>
+          </div>
+          <p className="text-sm text-muted-foreground">טוען פרופיל...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Routes>
       <Route
         path="/"
         element={
           role === 'mentor' ? <MentorDashboard /> :
-          role === 'student' ? <StudentDashboard /> :
-          <AuthPage />
+          <StudentDashboard />
         }
       />
       <Route path="/auth" element={<Navigate to="/" replace />} />
