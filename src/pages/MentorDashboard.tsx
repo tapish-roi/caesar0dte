@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp, LayoutGrid, BookOpen, Users, Plus, Video, FileText,
   ChevronDown, Trash2, Eye, EyeOff,
-  LogOut, Send, X, Check, Film, Upload, Presentation, GraduationCap
+  LogOut, Send, X, Check, Film, Upload, GraduationCap
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
