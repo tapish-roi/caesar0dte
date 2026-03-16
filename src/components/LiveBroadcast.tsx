@@ -322,8 +322,8 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
           <div className="flex items-center gap-2.5">
             {step === 'live' ? (
               <>
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-sm font-bold text-red-500 uppercase tracking-wider">LIVE</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
+                <span className="text-sm font-bold text-destructive uppercase tracking-wider">LIVE</span>
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Users className="w-3.5 h-3.5" />{viewerCount}
                 </span>
@@ -391,7 +391,7 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
 
               {/* Preview */}
               {localStream && (
-                <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video relative">
+                <div className="rounded-xl overflow-hidden bg-foreground/5 border border-border aspect-video relative">
                   <video
                     ref={previewRef}
                     autoPlay
@@ -399,7 +399,7 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
                     playsInline
                     className="w-full h-full object-contain"
                   />
-                  <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/50 rounded-full text-[10px] text-white flex items-center gap-1">
+                  <div className="absolute top-2 right-2 px-2 py-0.5 bg-foreground/60 rounded-full text-[10px] text-background flex items-center gap-1">
                     <Monitor className="w-3 h-3" />
                     תצוגה מקדימה
                   </div>
@@ -466,10 +466,10 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
               <button
                 onClick={goLive}
                 disabled={!localStream || !shareMode || isStarting}
-                className="w-full h-12 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40"
+                className="w-full h-12 bg-destructive text-destructive-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 hover:opacity-90"
               >
                 {isStarting ? (
-                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />מכין לייב...</>
+                  <><div className="w-4 h-4 border-2 border-destructive-foreground border-t-transparent rounded-full animate-spin" />מכין לייב...</>
                 ) : (
                   <><Wifi className="w-4 h-4" />התחל לייב</>
                 )}
@@ -481,7 +481,7 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
           {step === 'live' && (
             <>
               {/* Live preview */}
-              <div className="rounded-xl overflow-hidden bg-slate-900 aspect-video relative">
+              <div className="rounded-xl overflow-hidden bg-foreground/5 border border-border aspect-video relative">
                 <video
                   ref={previewRef}
                   autoPlay
@@ -489,11 +489,11 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
                   playsInline
                   className="w-full h-full object-contain"
                 />
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 bg-red-500 rounded-full text-white text-xs font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 bg-destructive rounded-full text-destructive-foreground text-xs font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-destructive-foreground animate-pulse" />
                   LIVE
                 </div>
-                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-black/50 rounded-full text-white text-xs">
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-foreground/50 rounded-full text-background text-xs">
                   <Users className="w-3 h-3" />
                   {viewerCount} צופים
                 </div>
