@@ -330,7 +330,7 @@ export default function MentorDashboard() {
     return { url: publicUrl, name: file.name };
   };
 
-
+  const togglePublish = useMutation({
     mutationFn: async ({ id, is_published }: { id: string; is_published: boolean }) => {
       const { error } = await supabase.from('lessons').update({ is_published: !is_published }).eq('id', id);
       if (error) throw error;
