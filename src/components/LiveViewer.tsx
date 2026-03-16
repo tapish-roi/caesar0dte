@@ -236,7 +236,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, sessionTitle, 
         </div>
 
         {/* Video */}
-        <div className="bg-slate-950 aspect-video relative flex items-center justify-center">
+        <div className="bg-foreground/5 aspect-video relative flex items-center justify-center">
           <video
             ref={remoteVideoRef}
             autoPlay
@@ -245,10 +245,10 @@ export default function LiveViewer({ sessionId, mentorId, userId, sessionTitle, 
           />
 
           {!hasRemoteStream && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-400">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
               {status === 'connecting' ? (
                 <>
-                  <div className="w-8 h-8 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
                   <span className="text-sm">ממתין לשידור...</span>
                 </>
               ) : status === 'disconnected' || status === 'failed' ? (
