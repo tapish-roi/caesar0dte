@@ -1168,11 +1168,7 @@ export default function StudentDashboard() {
 }
 
 // ─── StudentPostCard ──────────────────────────────────────────────────────────
-function StudentPostCard({
-  post, fetchComments, expanded, onToggleComments,
-  commentText, onCommentChange, onAddComment, onJoinLive,
-  postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
-}: {
+const StudentPostCard = React.forwardRef<HTMLDivElement, {
   post: PostItem;
   fetchComments: (id: string) => Promise<PostComment[]>;
   expanded: boolean;
@@ -1187,7 +1183,11 @@ function StudentPostCard({
   postTypeColor: Record<string, string>;
   formatDate: (s: string) => string;
   queryClient: ReturnType<typeof useQueryClient>;
-}) {
+}>(({
+  post, fetchComments, expanded, onToggleComments,
+  commentText, onCommentChange, onAddComment, onJoinLive,
+  postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
+}, ref) => {
   const { data: comments = [], isLoading: commentsLoading } = useQuery<PostComment[]>({
     queryKey: ['student-comments', post.id],
     queryFn: () => fetchComments(post.id),
