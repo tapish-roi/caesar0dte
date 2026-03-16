@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp, BookOpen, Users, Video, Film, FileText,
-  LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare
+  LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
+  MessageCircle, Send, Image, Radio, Wifi, Pin,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type SidebarTab = 'lessons' | 'community';
+type PostType = 'discussion' | 'media' | 'live';
 
 interface InviteItem {
   id: string;
@@ -48,9 +50,22 @@ interface ProgressItem {
 interface PostItem {
   id: string;
   content: string;
+  post_type: string;
+  media_url: string | null;
+  media_type: string | null;
+  is_pinned: boolean;
   created_at: string;
   mentor_id: string;
   mentorName: string;
+}
+
+interface PostComment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  profiles?: { full_name: string } | null;
 }
 
 export default function StudentDashboard() {
@@ -60,8 +75,10 @@ export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
 
-  // Fetch pending invites for current student
+  // Fetch pending invites
   const { data: invites = [] } = useQuery<InviteItem[]>({
     queryKey: ['student-invites', user?.id],
     queryFn: async () => {
@@ -105,7 +122,7 @@ export default function StudentDashboard() {
   const mentorId = memberships[0]?.mentor_id;
   const mentorName = memberships[0]?.mentorName;
 
-  // Fetch categories for mentor
+  // Fetch categories
   const { data: categories = [] } = useQuery<CategoryItem[]>({
     queryKey: ['student-categories', mentorId],
     queryFn: async () => {
@@ -120,7 +137,7 @@ export default function StudentDashboard() {
     enabled: !!mentorId,
   });
 
-  // Fetch published lessons for mentor
+  // Fetch published lessons
   const { data: lessons = [] } = useQuery<LessonItem[]>({
     queryKey: ['student-lessons', mentorId],
     queryFn: async () => {
@@ -150,14 +167,15 @@ export default function StudentDashboard() {
     enabled: !!user,
   });
 
-  // Fetch community posts
+  // Fetch community posts (pinned first, then newest)
   const { data: posts = [] } = useQuery<PostItem[]>({
-    queryKey: ['posts', mentorId],
+    queryKey: ['student-posts', mentorId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('community_posts')
-        .select('id, content, created_at, mentor_id')
+        .select('id, content, post_type, media_url, media_type, is_pinned, created_at, mentor_id')
         .eq('mentor_id', mentorId!)
+        .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
       if (error) throw error;
       const enriched = await Promise.all(
@@ -166,10 +184,54 @@ export default function StudentDashboard() {
           return { ...p, mentorName: profile?.full_name ?? 'מנטור' };
         })
       );
-      return enriched;
+      return enriched as PostItem[];
     },
     enabled: !!mentorId && activeTab === 'community',
   });
+
+  // Fetch comments for a post
+  const fetchComments = async (postId: string): Promise<PostComment[]> => {
+    const { data, error } = await supabase
+      .from('community_post_comments')
+      .select('*')
+      .eq('post_id', postId)
+      .order('created_at');
+    if (error) throw error;
+    const enriched = await Promise.all(
+      (data ?? []).map(async (c) => {
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('user_id', c.author_id).single();
+        return { ...c, profiles: profile };
+      })
+    );
+    return enriched;
+  };
+
+  // Realtime: subscribe to new posts + comments
+  useEffect(() => {
+    if (!mentorId || activeTab !== 'community') return;
+
+    const channel = supabase
+      .channel(`community-${mentorId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'community_posts',
+        filter: `mentor_id=eq.${mentorId}`,
+      }, () => {
+        qc.invalidateQueries({ queryKey: ['student-posts', mentorId] });
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'community_post_comments',
+      }, (payload) => {
+        const postId = (payload.new as { post_id?: string })?.post_id || (payload.old as { post_id?: string })?.post_id;
+        if (postId) qc.invalidateQueries({ queryKey: ['student-comments', postId] });
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [mentorId, activeTab, qc]);
 
   // Accept invite
   const acceptInvite = useMutation({
@@ -192,6 +254,23 @@ export default function StudentDashboard() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['student-invites'] }),
   });
 
+  // Add comment
+  const addComment = useMutation({
+    mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
+      const { error } = await supabase.from('community_post_comments').insert({
+        post_id: postId,
+        author_id: user!.id,
+        content,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_, { postId }) => {
+      qc.invalidateQueries({ queryKey: ['student-comments', postId] });
+      setCommentTexts(prev => ({ ...prev, [postId]: '' }));
+    },
+    onError: () => toast({ title: 'שגיאה בשליחת תגובה', variant: 'destructive' }),
+  });
+
   const toggleCat = (id: string) => {
     setExpandedCats(prev => {
       const next = new Set(prev);
@@ -200,9 +279,15 @@ export default function StudentDashboard() {
     });
   };
 
-  const getProgress = (lessonId: string) =>
-    progress.find((p) => p.lesson_id === lessonId);
+  const toggleComments = (postId: string) => {
+    setExpandedComments(prev => {
+      const next = new Set(prev);
+      next.has(postId) ? next.delete(postId) : next.add(postId);
+      return next;
+    });
+  };
 
+  const getProgress = (lessonId: string) => progress.find((p) => p.lesson_id === lessonId);
   const selectedLessonData = lessons.find((l) => l.id === selectedLesson);
 
   const typeIcon = (type: string) => {
@@ -211,9 +296,24 @@ export default function StudentDashboard() {
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
 
+  const postTypeLabel: Record<string, string> = { discussion: 'דיון', media: 'מדיה', live: 'לייב' };
+  const postTypeBg: Record<string, string> = {
+    discussion: 'bg-blue-500/10', media: 'bg-emerald-500/10', live: 'bg-red-500/10',
+  };
+  const postTypeColor: Record<string, string> = {
+    discussion: 'text-blue-500', media: 'text-emerald-500', live: 'text-red-500',
+  };
+  const postTypeIcon = (type: string) => {
+    if (type === 'live') return <Wifi className="w-3.5 h-3.5" />;
+    if (type === 'media') return <Image className="w-3.5 h-3.5" />;
+    return <MessageCircle className="w-3.5 h-3.5" />;
+  };
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
-      {/* Right Sidebar */}
+      {/* Sidebar */}
       <aside className="w-64 bg-sidebar border-l border-sidebar-border flex flex-col shrink-0 h-full">
         <div className="p-5 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
@@ -262,7 +362,7 @@ export default function StudentDashboard() {
             <div className="flex-1 min-w-0">
               <div className="text-xs font-medium text-foreground truncate">{user?.email}</div>
             </div>
-            <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors" title="התנתק">
+            <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -284,8 +384,7 @@ export default function StudentDashboard() {
                 <div key={inv.id} className="flex items-center gap-4 px-8 py-3">
                   <Bell className="w-4 h-4 text-amber-600 shrink-0" />
                   <p className="text-sm text-amber-800 flex-1">
-                    <span className="font-semibold">{inv.mentorName}</span>{' '}
-                    הוזמנת להצטרף לקהילת {inv.mentorName}
+                    <span className="font-semibold">{inv.mentorName}</span> הוזמנת להצטרף לקהילת {inv.mentorName}
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -308,14 +407,9 @@ export default function StudentDashboard() {
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
+          {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
-            <motion.div
-              key="lessons"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="p-8"
-            >
+            <motion.div key="lessons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8">
               {!mentorId ? (
                 <div className="flex flex-col items-center justify-center py-24 text-center">
                   <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
@@ -335,7 +429,6 @@ export default function StudentDashboard() {
                     </p>
                   </div>
 
-                  {/* Selected lesson viewer */}
                   <AnimatePresence>
                     {selectedLessonData && (
                       <motion.div
@@ -346,16 +439,16 @@ export default function StudentDashboard() {
                       >
                         <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
                           {selectedLessonData.video_url ? (
-                            <iframe
-                              src={selectedLessonData.video_url.replace('watch?v=', 'embed/')}
+                            <video
+                              src={selectedLessonData.video_url}
                               className="w-full h-full"
-                              allowFullScreen
+                              controls
                               title={selectedLessonData.title}
                             />
                           ) : (
                             <div className="text-center text-slate-500">
                               <Video className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                              <p className="text-sm">אין קישור וידאו</p>
+                              <p className="text-sm">אין קובץ וידאו</p>
                             </div>
                           )}
                         </div>
@@ -375,56 +468,39 @@ export default function StudentDashboard() {
                     )}
                   </AnimatePresence>
 
-                  {/* Course content */}
                   <div className="space-y-3">
                     {categories.map((cat) => {
                       const catLessons = lessons.filter((l) => l.category_id === cat.id);
                       if (catLessons.length === 0) return null;
                       const isExpanded = expandedCats.has(cat.id);
                       const completedCount = catLessons.filter((l) => getProgress(l.id)?.completed).length;
-
                       return (
                         <div key={cat.id} className="bg-card rounded-xl card-shadow overflow-hidden">
                           <div
-                            className="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                            className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                             onClick={() => toggleCat(cat.id)}
                           >
-                            <ChevronDown
-                              className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`}
-                            />
+                            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
                             <span className="font-semibold text-foreground flex-1">{cat.title}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {completedCount}/{catLessons.length} הושלמו
-                            </span>
+                            <span className="text-xs text-muted-foreground">{completedCount}/{catLessons.length} הושלמו</span>
                             {completedCount === catLessons.length && catLessons.length > 0 && (
                               <CheckCircle2 className="w-4 h-4 text-accent" />
                             )}
                           </div>
                           <AnimatePresence>
                             {isExpanded && (
-                              <motion.div
-                                initial={{ height: 0 }}
-                                animate={{ height: 'auto' }}
-                                exit={{ height: 0 }}
-                                className="overflow-hidden"
-                              >
+                              <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                                 <div className="border-t border-border">
                                   {catLessons.map((lesson) => {
                                     const prog = getProgress(lesson.id);
                                     return (
-                                      <motion.div
+                                      <div
                                         key={lesson.id}
-                                        whileHover={{ backgroundColor: '#f8fafc' }}
                                         onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
-                                        className={`flex items-center gap-3 px-6 py-3 cursor-pointer transition-colors ${
-                                          selectedLesson === lesson.id ? 'bg-accent/5' : ''
-                                        }`}
+                                        className={`flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${selectedLesson === lesson.id ? 'bg-accent/5' : ''}`}
                                       >
                                         <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
-                                          {prog?.completed
-                                            ? <CheckCircle2 className="w-5 h-5 text-accent" />
-                                            : typeIcon(lesson.lesson_type)
-                                          }
+                                          {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : typeIcon(lesson.lesson_type)}
                                         </div>
                                         <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
                                           {lesson.title}
@@ -434,13 +510,10 @@ export default function StudentDashboard() {
                                         )}
                                         {prog && !prog.completed && prog.progress_percent > 0 && (
                                           <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
-                                            <div
-                                              className="h-full bg-accent rounded-full"
-                                              style={{ width: `${prog.progress_percent}%` }}
-                                            />
+                                            <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
                                           </div>
                                         )}
-                                      </motion.div>
+                                      </div>
                                     );
                                   })}
                                 </div>
@@ -451,7 +524,6 @@ export default function StudentDashboard() {
                       );
                     })}
 
-                    {/* Uncategorized lessons */}
                     {lessons.filter((l) => !l.category_id).map((lesson) => {
                       const prog = getProgress(lesson.id);
                       return (
@@ -475,7 +547,7 @@ export default function StudentDashboard() {
                       <div className="text-center py-16 text-muted-foreground">
                         <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
                         <p className="font-medium">עדיין אין תכנים</p>
-                        <p className="text-sm mt-1">עדיין אין תכנים בקטגוריה זו. המנטור שלך יעלה תכנים בקרוב.</p>
+                        <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
                       </div>
                     )}
                   </div>
@@ -484,17 +556,14 @@ export default function StudentDashboard() {
             </motion.div>
           )}
 
+          {/* ──────── COMMUNITY ──────── */}
           {activeTab === 'community' && (
-            <motion.div
-              key="community"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="p-8 max-w-2xl"
-            >
-              <div className="mb-8">
+            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-2xl">
+              <div className="mb-6">
                 <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
-                <p className="text-sm text-muted-foreground mt-1">עדכונים מהמנטור שלך</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {mentorName ? `עדכונים מ${mentorName}` : 'עדכונים מהמנטור שלך'}
+                </p>
               </div>
 
               {!mentorId ? (
@@ -511,25 +580,25 @@ export default function StudentDashboard() {
               ) : (
                 <div className="space-y-4">
                   {posts.map((post) => (
-                    <motion.div
+                    <StudentPostCard
                       key={post.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-card rounded-xl card-shadow p-5"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-                          {post.mentorName[0]?.toUpperCase() ?? 'M'}
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">{post.mentorName}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(post.created_at).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-sm text-foreground leading-relaxed">{post.content}</p>
-                    </motion.div>
+                      post={post}
+                      fetchComments={fetchComments}
+                      expanded={expandedComments.has(post.id)}
+                      onToggleComments={() => toggleComments(post.id)}
+                      commentText={commentTexts[post.id] ?? ''}
+                      onCommentChange={(val) => setCommentTexts(prev => ({ ...prev, [post.id]: val }))}
+                      onAddComment={() => {
+                        const text = commentTexts[post.id]?.trim();
+                        if (text) addComment.mutate({ postId: post.id, content: text });
+                      }}
+                      postTypeLabel={postTypeLabel}
+                      postTypeIcon={postTypeIcon}
+                      postTypeBg={postTypeBg}
+                      postTypeColor={postTypeColor}
+                      formatDate={formatDate}
+                      queryClient={qc}
+                    />
                   ))}
                 </div>
               )}
@@ -538,5 +607,147 @@ export default function StudentDashboard() {
         </AnimatePresence>
       </main>
     </div>
+  );
+}
+
+// ─── StudentPostCard ──────────────────────────────────────────────────────────
+function StudentPostCard({
+  post, fetchComments, expanded, onToggleComments,
+  commentText, onCommentChange, onAddComment,
+  postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
+}: {
+  post: PostItem;
+  fetchComments: (id: string) => Promise<PostComment[]>;
+  expanded: boolean;
+  onToggleComments: () => void;
+  commentText: string;
+  onCommentChange: (v: string) => void;
+  onAddComment: () => void;
+  postTypeLabel: Record<string, string>;
+  postTypeIcon: (t: string) => React.ReactNode;
+  postTypeBg: Record<string, string>;
+  postTypeColor: Record<string, string>;
+  formatDate: (s: string) => string;
+  queryClient: ReturnType<typeof useQueryClient>;
+}) {
+  const { data: comments = [], isLoading: commentsLoading } = useQuery<PostComment[]>({
+    queryKey: ['student-comments', post.id],
+    queryFn: () => fetchComments(post.id),
+    enabled: expanded,
+  });
+
+  const pType = post.post_type;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`bg-card rounded-2xl card-shadow overflow-hidden ${post.is_pinned ? 'ring-2 ring-primary/20' : ''}`}
+    >
+      <div className="p-5">
+        {/* Pin indicator */}
+        {post.is_pinned && (
+          <div className="flex items-center gap-1.5 text-xs text-primary font-medium mb-3">
+            <Pin className="w-3 h-3" />
+            נעוץ
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0">
+            {post.mentorName[0]?.toUpperCase() ?? 'M'}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-foreground">{post.mentorName}</span>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${postTypeBg[pType] ?? 'bg-muted'} ${postTypeColor[pType] ?? 'text-foreground'}`}>
+                {pType === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
+                {postTypeIcon(pType)}
+                {postTypeLabel[pType] ?? pType}
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">{formatDate(post.created_at)}</div>
+          </div>
+        </div>
+
+        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
+
+        {/* Media */}
+        {post.media_url && (
+          <div className="mt-3 rounded-xl overflow-hidden">
+            {post.media_type === 'video' ? (
+              <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" controls />
+            ) : (
+              <img src={post.media_url} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
+            )}
+          </div>
+        )}
+
+        {/* Comment toggle */}
+        <button
+          onClick={onToggleComments}
+          className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <MessageCircle className="w-3.5 h-3.5" />
+          {expanded ? 'הסתר תגובות' : `תגובות${comments.length > 0 ? ` (${comments.length})` : ''}`}
+        </button>
+      </div>
+
+      {/* Comments section */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            exit={{ height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-border px-5 pb-4 pt-3">
+              {commentsLoading ? (
+                <div className="flex justify-center py-4">
+                  <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : comments.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-3">אין תגובות עדיין — היה הראשון!</p>
+              ) : (
+                <div className="space-y-3 mb-3">
+                  {comments.map(c => (
+                    <div key={c.id} className="flex gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-accent text-xs font-bold shrink-0">
+                        {c.profiles?.full_name?.[0]?.toUpperCase() ?? '?'}
+                      </div>
+                      <div className="flex-1 bg-muted/40 rounded-xl px-3 py-2">
+                        <div className="text-xs font-medium text-foreground mb-0.5">{c.profiles?.full_name ?? 'תלמיד'}</div>
+                        <p className="text-xs text-foreground leading-relaxed">{c.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Reply input */}
+              <div className="flex gap-2 mt-2">
+                <textarea
+                  value={commentText}
+                  onChange={e => onCommentChange(e.target.value)}
+                  placeholder="כתוב תגובה..."
+                  rows={1}
+                  className="flex-1 px-3 py-2 bg-surface border-none ring-1 ring-border rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right resize-none"
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAddComment(); } }}
+                />
+                <button
+                  onClick={onAddComment}
+                  disabled={!commentText.trim()}
+                  className="w-9 h-9 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all disabled:opacity-40"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
