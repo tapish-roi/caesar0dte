@@ -7,11 +7,12 @@ import {
   TrendingUp, BookOpen, Users, Video, Film, FileText,
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
-  User, Phone, Camera, X, Trash2,
+  User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
 
-type SidebarTab = 'lessons' | 'community' | 'profile';
+type SidebarTab = 'lessons' | 'community';
 type PostType = 'discussion' | 'media' | 'live';
 
 interface InviteItem {
