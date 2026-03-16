@@ -1027,6 +1027,11 @@ export default function StudentDashboard() {
 
               <div className="space-y-3">
                 {categories.map((cat) => {
+                  // If there are specific grants and this category is not in them → hide
+                  const hasSpecificGrants = categoryAccess.length > 0;
+                  const hasAccessToCat = !hasSpecificGrants || categoryAccess.some(g => g.category_id === cat.id);
+                  if (!hasAccessToCat) return null;
+
                   const catLessons = lessons.filter(l => l.category_id === cat.id);
                   if (catLessons.length === 0) return null;
                   const isExpanded = expandedCats.has(cat.id);
@@ -1068,6 +1073,12 @@ export default function StudentDashboard() {
                                          הוקלט בלייב
                                        </span>
                                      )}
+                                    {lesson.attachment_url && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
+                                        <Paperclip className="w-2.5 h-2.5" />
+                                        צירוף
+                                      </span>
+                                    )}
                                     {lesson.duration_minutes && (
                                       <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
                                     )}
