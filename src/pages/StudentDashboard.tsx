@@ -330,6 +330,7 @@ export default function StudentDashboard() {
   const [showPassword, setShowPassword] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [notifyState, setNotifyState] = useState({ notify_sms: false, notify_email: false });
 
   // ── Queries ──────────────────────────────────────────────────────────────────
 
