@@ -8,7 +8,7 @@ import {
   ChevronDown, Trash2, Eye, EyeOff,
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, Radio, MessageSquare, MessageCircle, Wifi, Pin, PinOff,
-  ShieldCheck, Lock, Unlock, Paperclip,
+  ShieldCheck, Lock, Unlock, Paperclip, Pencil,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import LiveBroadcast from '@/components/LiveBroadcast';
@@ -91,6 +91,14 @@ export default function MentorDashboard() {
   // Category access panel
   const [accessStudentId, setAccessStudentId] = useState<string | null>(null);
   const [accessStudentName, setAccessStudentName] = useState('');
+
+  // Edit lesson
+  const [editLesson, setEditLesson] = useState<Lesson | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', description: '', video_url: '', duration_minutes: '', attachment_url: '', attachment_name: '' });
+  const [isEditVideoUploading, setIsEditVideoUploading] = useState(false);
+  const [isEditAttachmentUploading, setIsEditAttachmentUploading] = useState(false);
+  const editVideoInputRef = useRef<HTMLInputElement>(null);
+  const editAttachmentInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -278,6 +286,49 @@ export default function MentorDashboard() {
       toast({ title: 'שיעור נוצר' });
     },
   });
+
+  const updateLesson = useMutation({
+    mutationFn: async () => {
+      if (!editLesson) return;
+      const { error } = await supabase.from('lessons').update({
+        title: editForm.title,
+        description: editForm.description || null,
+        video_url: editForm.video_url || null,
+        duration_minutes: editForm.duration_minutes ? parseInt(editForm.duration_minutes) : null,
+        attachment_url: editForm.attachment_url || null,
+        attachment_name: editForm.attachment_name || null,
+      }).eq('id', editLesson.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lessons'] });
+      setEditLesson(null);
+      toast({ title: 'שיעור עודכן בהצלחה' });
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון השיעור', variant: 'destructive' }),
+  });
+
+  const handleEditVideoUpload = async (file: File): Promise<string> => {
+    setIsEditVideoUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `${user!.id}/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
+    setIsEditVideoUploading(false);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+    return publicUrl;
+  };
+
+  const handleEditAttachmentUpload = async (file: File): Promise<{ url: string; name: string }> => {
+    setIsEditAttachmentUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `attachments/${user!.id}/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
+    setIsEditAttachmentUploading(false);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+    return { url: publicUrl, name: file.name };
+  };
 
   const togglePublish = useMutation({
     mutationFn: async ({ id, is_published }: { id: string; is_published: boolean }) => {
@@ -617,6 +668,7 @@ export default function MentorDashboard() {
                                 <LessonRow key={lesson.id} lesson={lesson}
                                   onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                                   onDelete={() => deleteLesson.mutate(lesson.id)}
+                                  onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
                                   typeIcon={typeIcon} typeLabel={typeLabel}
                                 />
                               ))}
@@ -638,6 +690,7 @@ export default function MentorDashboard() {
                         <LessonRow key={lesson.id} lesson={lesson}
                           onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                           onDelete={() => deleteLesson.mutate(lesson.id)}
+                          onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
                           typeIcon={typeIcon} typeLabel={typeLabel}
                         />
                       ))}
@@ -1201,17 +1254,163 @@ export default function MentorDashboard() {
           />
         )}
       </AnimatePresence>
+
+      {/* ── Edit Lesson Panel ── */}
+      <AnimatePresence>
+        {editLesson && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/20 z-40" onClick={() => setEditLesson(null)} />
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 h-full w-[440px] bg-card z-50 shadow-2xl border-l border-border overflow-y-auto"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-bold text-foreground">עריכת שיעור</h2>
+                  <button onClick={() => setEditLesson(null)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">כותרת השיעור *</label>
+                    <input
+                      value={editForm.title}
+                      onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                      className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">תיאור</label>
+                    <textarea
+                      value={editForm.description}
+                      onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                      rows={3}
+                      className="w-full px-4 py-3 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent text-right resize-none"
+                    />
+                  </div>
+
+                  {/* Video replacement */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">קובץ וידאו</label>
+                    <input ref={editVideoInputRef} type="file" accept="video/*,.pdf,.ppt,.pptx" className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const url = await handleEditVideoUpload(file);
+                          setEditForm(f => ({ ...f, video_url: url }));
+                          toast({ title: 'הוידאו הוחלף בהצלחה' });
+                        } catch { toast({ title: 'שגיאה בהעלאה', variant: 'destructive' }); }
+                      }}
+                    />
+                    {editForm.video_url ? (
+                      <div className="flex items-center gap-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                        <Check className="w-4 h-4 text-accent shrink-0" />
+                        <span className="text-xs text-accent flex-1 truncate">יש קובץ וידאו</span>
+                        <button
+                          onClick={() => editVideoInputRef.current?.click()}
+                          disabled={isEditVideoUploading}
+                          className="text-xs text-muted-foreground hover:text-foreground underline disabled:opacity-50"
+                        >
+                          {isEditVideoUploading ? 'מעלה...' : 'החלף'}
+                        </button>
+                        <button onClick={() => setEditForm(f => ({ ...f, video_url: '' }))} className="text-muted-foreground hover:text-destructive">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => editVideoInputRef.current?.click()} disabled={isEditVideoUploading}
+                        className="w-full h-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-accent hover:text-accent transition-all disabled:opacity-50"
+                      >
+                        {isEditVideoUploading
+                          ? <><div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" /><span className="text-xs">מעלה...</span></>
+                          : <><Upload className="w-5 h-5" /><span className="text-xs font-medium">העלה וידאו חדש</span></>
+                        }
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Attachment replacement */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                      <span className="flex items-center gap-1.5"><Paperclip className="w-4 h-4 text-muted-foreground" />קובץ מצורף</span>
+                    </label>
+                    <input ref={editAttachmentInputRef} type="file"
+                      accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.zip"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const { url, name } = await handleEditAttachmentUpload(file);
+                          setEditForm(f => ({ ...f, attachment_url: url, attachment_name: name }));
+                          toast({ title: 'הצירוף הוחלף בהצלחה' });
+                        } catch { toast({ title: 'שגיאה בהעלאת הצירוף', variant: 'destructive' }); }
+                      }}
+                    />
+                    {editForm.attachment_url ? (
+                      <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                        <Paperclip className="w-4 h-4 text-primary shrink-0" />
+                        <span className="text-xs text-primary flex-1 truncate">{editForm.attachment_name || 'קובץ מצורף'}</span>
+                        <button
+                          onClick={() => editAttachmentInputRef.current?.click()}
+                          disabled={isEditAttachmentUploading}
+                          className="text-xs text-muted-foreground hover:text-foreground underline disabled:opacity-50"
+                        >
+                          {isEditAttachmentUploading ? 'מעלה...' : 'החלף'}
+                        </button>
+                        <button onClick={() => setEditForm(f => ({ ...f, attachment_url: '', attachment_name: '' }))} className="text-muted-foreground hover:text-destructive">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => editAttachmentInputRef.current?.click()} disabled={isEditAttachmentUploading}
+                        className="w-full h-16 border-2 border-dashed border-border rounded-lg flex items-center justify-center gap-2 text-muted-foreground hover:border-primary/40 hover:text-primary transition-all disabled:opacity-50 text-sm"
+                      >
+                        {isEditAttachmentUploading
+                          ? <><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">מעלה...</span></>
+                          : <><Paperclip className="w-4 h-4" /><span className="text-xs font-medium">הוסף / החלף קובץ מצורף</span></>
+                        }
+                      </button>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">משך (דקות)</label>
+                    <input type="number" value={editForm.duration_minutes}
+                      onChange={e => setEditForm(f => ({ ...f, duration_minutes: e.target.value }))}
+                      placeholder="45"
+                      className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent text-right"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => editForm.title.trim() && updateLesson.mutate()}
+                    disabled={!editForm.title.trim() || updateLesson.isPending || isEditVideoUploading || isEditAttachmentUploading}
+                    className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    {updateLesson.isPending ? 'שומר...' : 'שמור שינויים'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
 // ─── LessonRow ────────────────────────────────────────────────────────────────
 function LessonRow({
-  lesson, onTogglePublish, onDelete, typeIcon, typeLabel,
+  lesson, onTogglePublish, onDelete, onEdit, typeIcon, typeLabel,
 }: {
   lesson: Lesson;
   onTogglePublish: () => void;
   onDelete: () => void;
+  onEdit: () => void;
   typeIcon: (t: string) => React.ReactNode;
   typeLabel: (t: string) => string;
 }) {
@@ -1241,6 +1440,13 @@ function LessonRow({
       {lesson.duration_minutes && (
         <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
       )}
+      <button
+        onClick={onEdit}
+        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+        title="ערוך שיעור"
+      >
+        <Pencil className="w-3.5 h-3.5" />
+      </button>
       <button
         onClick={onTogglePublish}
         className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
