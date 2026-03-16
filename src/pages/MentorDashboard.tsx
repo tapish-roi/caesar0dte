@@ -1,16 +1,16 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp, LayoutGrid, BookOpen, Users, Plus, Video, FileText,
-  ChevronDown, ChevronRight, MoreVertical, Trash2, Edit2, Eye, EyeOff,
-  LogOut, Send, X, Check, Film
+  ChevronDown, Trash2, Eye, EyeOff,
+  LogOut, Send, X, Check, Film, Upload, GraduationCap
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-type SidebarTab = 'lessons' | 'community';
+type SidebarTab = 'lessons' | 'community' | 'students';
 
 interface Category {
   id: string;
@@ -41,8 +41,11 @@ export default function MentorDashboard() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [newCatTitle, setNewCatTitle] = useState('');
   const [inviteContact, setInviteContact] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [lessonForm, setLessonForm] = useState({
-    title: '', description: '', lesson_type: 'lesson', video_url: '', duration_minutes: '',
+    title: '', description: '', lesson_type: 'recorded_lesson', video_url: '', duration_minutes: '',
   });
 
   // Fetch categories
@@ -84,7 +87,6 @@ export default function MentorDashboard() {
         .select('student_id, joined_at')
         .eq('mentor_id', user!.id);
       if (error) throw error;
-      // Enrich with profile data
       const enriched = await Promise.all(
         (data ?? []).map(async (m) => {
           const { data: profile } = await supabase.from('profiles').select('full_name, email').eq('user_id', m.student_id).single();
@@ -93,7 +95,7 @@ export default function MentorDashboard() {
       );
       return enriched;
     },
-    enabled: !!user && activeTab === 'community',
+    enabled: !!user && (activeTab === 'community' || activeTab === 'students'),
   });
 
   // Fetch pending invites
@@ -129,6 +131,20 @@ export default function MentorDashboard() {
     },
   });
 
+  const handleFileUpload = async (file: File): Promise<string> => {
+    setIsUploading(true);
+    setUploadProgress(0);
+    const ext = file.name.split('.').pop();
+    const path = `${user!.id}/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage
+      .from('lesson-assets')
+      .upload(path, file, { upsert: false });
+    setIsUploading(false);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+    return publicUrl;
+  };
+
   // Create lesson
   const createLesson = useMutation({
     mutationFn: async () => {
@@ -148,7 +164,7 @@ export default function MentorDashboard() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lessons'] });
       setShowLessonPanel(false);
-      setLessonForm({ title: '', description: '', lesson_type: 'lesson', video_url: '', duration_minutes: '' });
+      setLessonForm({ title: '', description: '', lesson_type: 'recorded_lesson', video_url: '', duration_minutes: '' });
       toast({ title: 'שיעור נוצר', description: 'השיעור נוסף בהצלחה.' });
     },
   });
@@ -208,15 +224,23 @@ export default function MentorDashboard() {
 
   const typeIcon = (type: string) => {
     if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-blue-500" />;
-    if (type === 'resource') return <FileText className="w-3.5 h-3.5 text-amber-500" />;
+    if (type === 'presentation') return <FileText className="w-3.5 h-3.5 text-amber-500" />;
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
 
   const typeLabel = (type: string) => {
     if (type === 'zoom_recording') return 'הקלטת זום';
-    if (type === 'resource') return 'חומר לימוד';
-    return 'שיעור';
+    if (type === 'presentation') return 'מצגת';
+    return 'שיעור מוקלט';
   };
+
+  const lessonTypes = [
+    { key: 'recorded_lesson', label: 'שיעור מוקלט', icon: Video },
+    { key: 'zoom_recording', label: 'הקלטת זום', icon: Film },
+    { key: 'presentation', label: 'מצגות', icon: FileText },
+  ];
+
+  const isPresentation = lessonForm.lesson_type === 'presentation';
 
   const uncategorized = lessons.filter(l => !l.category_id);
 
@@ -228,7 +252,7 @@ export default function MentorDashboard() {
         <div className="p-5 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <TrendingUp className="w-4.5 h-4.5 text-primary-foreground w-5 h-5" />
+              <TrendingUp className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
               <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
@@ -242,6 +266,7 @@ export default function MentorDashboard() {
           {([
             { key: 'lessons', label: 'שיעורים', icon: BookOpen },
             { key: 'community', label: 'קהילה', icon: Users },
+            { key: 'students', label: 'תלמידים', icon: GraduationCap },
           ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -306,7 +331,7 @@ export default function MentorDashboard() {
                   </button>
                   <button
                     onClick={() => { setSelectedCategoryId(null); setShowLessonPanel(true); }}
-                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-slate-800 transition-all"
+                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
                   >
                     <Plus className="w-4 h-4" />
                     צור שיעור חדש
@@ -357,7 +382,7 @@ export default function MentorDashboard() {
                   return (
                     <div key={cat.id} className="bg-card rounded-xl card-shadow overflow-hidden">
                       <div
-                        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                         onClick={() => toggleCat(cat.id)}
                       >
                         <ChevronDown
@@ -470,13 +495,13 @@ export default function MentorDashboard() {
                     value={inviteContact}
                     onChange={e => setInviteContact(e.target.value)}
                     placeholder="אימייל@example.com או 050-0000000"
-                    className="flex-1 h-11 px-4 bg-surface border-none ring-1 ring-slate-200 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                    className="flex-1 h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
                     onKeyDown={e => e.key === 'Enter' && inviteContact.trim() && sendInvite.mutate(inviteContact)}
                   />
                   <button
                     onClick={() => inviteContact.trim() && sendInvite.mutate(inviteContact)}
                     disabled={!inviteContact.trim() || sendInvite.isPending}
-                    className="h-11 px-6 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-all disabled:opacity-50 flex items-center gap-2"
+                    className="h-11 px-6 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2"
                   >
                     <Send className="w-4 h-4" />
                     שלח הזמנה
@@ -531,6 +556,48 @@ export default function MentorDashboard() {
               </div>
             </motion.div>
           )}
+
+          {activeTab === 'students' && (
+            <motion.div
+              key="students"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="p-8 max-w-3xl"
+            >
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-foreground">תלמידים</h1>
+                <p className="text-sm text-muted-foreground mt-1">{members.length} תלמידים רשומים</p>
+              </div>
+
+              <div className="bg-card rounded-xl card-shadow p-6">
+                {members.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <GraduationCap className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="font-medium">אין תלמידים עדיין</p>
+                    <p className="text-sm mt-1">הזמן תלמידים דרך לשונית הקהילה</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {members.map((m: { student_id: string; joined_at: string; profiles: { full_name: string; email: string } | null }) => (
+                      <div key={m.student_id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold">
+                          {m.profiles?.full_name?.[0]?.toUpperCase() ?? '?'}
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-foreground">{m.profiles?.full_name ?? 'תלמיד'}</div>
+                          <div className="text-xs text-muted-foreground">{m.profiles?.email}</div>
+                        </div>
+                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                          הצטרף {new Date(m.joined_at).toLocaleDateString('he-IL')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </main>
 
@@ -561,6 +628,7 @@ export default function MentorDashboard() {
                 </div>
 
                 <div className="space-y-4">
+                  {/* Title */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">כותרת השיעור *</label>
                     <input
@@ -571,17 +639,14 @@ export default function MentorDashboard() {
                     />
                   </div>
 
+                  {/* Content type */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">סוג תוכן</label>
                     <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { key: 'lesson', label: 'שיעור', icon: Video },
-                        { key: 'zoom_recording', label: 'הקלטת זום', icon: Film },
-                        { key: 'resource', label: 'חומר לימוד', icon: FileText },
-                      ].map(({ key, label, icon: Icon }) => (
+                      {lessonTypes.map(({ key, label, icon: Icon }) => (
                         <button
                           key={key}
-                          onClick={() => setLessonForm(f => ({ ...f, lesson_type: key }))}
+                          onClick={() => setLessonForm(f => ({ ...f, lesson_type: key, video_url: '' }))}
                           className={`p-3 rounded-lg border text-xs font-medium flex flex-col items-center gap-1.5 transition-all ${
                             lessonForm.lesson_type === key
                               ? 'border-accent bg-accent/5 text-accent'
@@ -595,6 +660,67 @@ export default function MentorDashboard() {
                     </div>
                   </div>
 
+                  {/* File upload — shown for all types */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                      {isPresentation ? 'העלאת מצגת / וידאו' : 'העלאת וידאו'}
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept={isPresentation ? 'video/*,.pdf,.ppt,.pptx' : 'video/*'}
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const url = await handleFileUpload(file);
+                          setLessonForm(f => ({ ...f, video_url: url }));
+                          toast({ title: 'הקובץ הועלה בהצלחה' });
+                        } catch {
+                          toast({ title: 'שגיאה בהעלאה', variant: 'destructive' });
+                        }
+                      }}
+                    />
+                    {lessonForm.video_url ? (
+                      <div className="flex items-center gap-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                        <Check className="w-4 h-4 text-accent shrink-0" />
+                        <span className="text-xs text-accent flex-1 truncate">הקובץ הועלה בהצלחה</span>
+                        <button
+                          onClick={() => { setLessonForm(f => ({ ...f, video_url: '' })); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-accent hover:text-accent transition-all disabled:opacity-50"
+                      >
+                        {isUploading ? (
+                          <>
+                            <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                            <span className="text-xs">מעלה...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-5 h-5" />
+                            <span className="text-xs font-medium">
+                              {isPresentation ? 'לחץ להעלאת מצגת או וידאו' : 'לחץ להעלאת וידאו'}
+                            </span>
+                            <span className="text-xs opacity-60">
+                              {isPresentation ? 'MP4, PDF, PPT, PPTX' : 'MP4, MOV, AVI'}
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Category */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">קטגוריה</label>
                     <select
@@ -609,17 +735,7 @@ export default function MentorDashboard() {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1.5">קישור לוידאו</label>
-                    <input
-                      value={lessonForm.video_url}
-                      onChange={e => setLessonForm(f => ({ ...f, video_url: e.target.value }))}
-                      placeholder="https://youtube.com/..."
-                      dir="ltr"
-                      className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-left"
-                    />
-                  </div>
-
+                  {/* Duration */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">משך (דקות)</label>
                     <input
@@ -631,6 +747,7 @@ export default function MentorDashboard() {
                     />
                   </div>
 
+                  {/* Description */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">תיאור</label>
                     <textarea
@@ -644,8 +761,8 @@ export default function MentorDashboard() {
 
                   <button
                     onClick={() => lessonForm.title.trim() && createLesson.mutate()}
-                    disabled={!lessonForm.title.trim() || createLesson.isPending}
-                    className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-slate-800 transition-all disabled:opacity-50"
+                    disabled={!lessonForm.title.trim() || createLesson.isPending || isUploading}
+                    className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50"
                   >
                     {createLesson.isPending ? 'שומר...' : 'צור שיעור'}
                   </button>
@@ -673,7 +790,7 @@ function LessonRow({
   typeLabel: (t: string) => string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-6 py-3 hover:bg-slate-50 transition-colors group">
+    <div className="flex items-center gap-3 px-6 py-3 hover:bg-muted/30 transition-colors group">
       <div className="flex items-center gap-2 flex-1 min-w-0">
         {typeIcon(lesson.lesson_type)}
         <span className="text-sm text-foreground truncate">{lesson.title}</span>
