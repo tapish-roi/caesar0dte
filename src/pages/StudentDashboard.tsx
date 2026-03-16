@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,10 +7,11 @@ import {
   TrendingUp, BookOpen, Users, Video, Film, FileText,
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
+  User, Phone, Camera, X, Trash2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-type SidebarTab = 'lessons' | 'community';
+type SidebarTab = 'lessons' | 'community' | 'profile';
 type PostType = 'discussion' | 'media' | 'live';
 
 interface InviteItem {
@@ -69,6 +70,64 @@ interface PostComment {
   profiles?: { full_name: string } | null;
 }
 
+interface ProfileItem {
+  id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+}
+
+// ─── VideoPlayer with progress tracking ───────────────────────────────────────
+function VideoPlayer({
+  src, lessonId, studentId, initialProgress, onComplete,
+}: {
+  src: string;
+  lessonId: string;
+  studentId: string;
+  initialProgress: ProgressItem | undefined;
+  onComplete: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const lastSavedPercent = useRef(initialProgress?.progress_percent ?? 0);
+  const completed = useRef(initialProgress?.completed ?? false);
+
+  const saveProgress = useCallback(async (percent: number, done: boolean) => {
+    if (done && completed.current) return; // already marked
+    if (!done && Math.abs(percent - lastSavedPercent.current) < 5) return; // only save every ~5%
+
+    lastSavedPercent.current = percent;
+    if (done) completed.current = true;
+
+    await supabase.from('lesson_progress').upsert(
+      { lesson_id: lessonId, student_id: studentId, progress_percent: percent, completed: done, last_watched_at: new Date().toISOString() },
+      { onConflict: 'lesson_id,student_id' }
+    );
+    if (done) onComplete();
+  }, [lessonId, studentId, onComplete]);
+
+  const handleTimeUpdate = useCallback(() => {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    const pct = Math.round((v.currentTime / v.duration) * 100);
+    if (pct >= 90) saveProgress(100, true);
+    else saveProgress(pct, false);
+  }, [saveProgress]);
+
+  const handleEnded = useCallback(() => saveProgress(100, true), [saveProgress]);
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      className="w-full h-full"
+      controls
+      onTimeUpdate={handleTimeUpdate}
+      onEnded={handleEnded}
+    />
+  );
+}
+
 // ─── Landing Screen (unified) ─────────────────────────────────────────────────
 function LandingScreen({
   memberships,
@@ -92,7 +151,6 @@ function LandingScreen({
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6" dir="rtl">
-      {/* Logo */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -104,14 +162,12 @@ function LandingScreen({
         <span className="text-lg font-bold text-foreground">TradeLearn</span>
       </motion.div>
 
-      {/* Main card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.08 }}
         className="w-full max-w-md bg-card rounded-2xl card-shadow overflow-hidden"
       >
-        {/* Card header */}
         <div className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -145,7 +201,6 @@ function LandingScreen({
                 </motion.button>
               ))}
 
-              {/* Pending invites within the same card if both exist */}
               {hasInvites && (
                 <div className="mt-4 pt-4 border-t border-border">
                   <p className="text-xs font-semibold text-muted-foreground mb-2.5 flex items-center gap-1.5">
@@ -171,9 +226,10 @@ function LandingScreen({
                           </button>
                           <button
                             onClick={() => onDecline(inv.id)}
-                            className="h-7 px-2 border border-border text-muted-foreground rounded-lg text-xs hover:bg-muted transition-all"
+                            className="h-7 w-7 flex items-center justify-center border border-border text-muted-foreground rounded-lg hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
+                            title="מחק הזמנה"
                           >
-                            דחה
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -214,9 +270,10 @@ function LandingScreen({
                     </button>
                     <button
                       onClick={() => onDecline(inv.id)}
-                      className="h-8 px-2.5 border border-border text-muted-foreground rounded-lg text-xs hover:bg-muted transition-all"
+                      className="h-8 w-8 flex items-center justify-center border border-border text-muted-foreground rounded-lg hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
+                      title="מחק הזמנה"
                     >
-                      דחה
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </motion.div>
@@ -239,7 +296,6 @@ function LandingScreen({
         </div>
       </motion.div>
 
-      {/* Sign out */}
       <button
         onClick={onSignOut}
         className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
@@ -261,11 +317,16 @@ export default function StudentDashboard() {
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
-  // Selected community mentor
   const [selectedMentorId, setSelectedMentorId] = useState<string | null>(null);
 
-  // Fetch pending invites
-  const { data: invites = [] } = useQuery<InviteItem[]>({
+  // Profile edit state
+  const [profileForm, setProfileForm] = useState({ full_name: '', phone: '' });
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Queries ──────────────────────────────────────────────────────────────────
+
+  const { data: invites = [], isLoading: invitesLoading } = useQuery<InviteItem[]>({
     queryKey: ['student-invites', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -285,7 +346,6 @@ export default function StudentDashboard() {
     enabled: !!user,
   });
 
-  // Fetch mentor memberships
   const { data: memberships = [], isLoading: membershipsLoading } = useQuery<MembershipItem[]>({
     queryKey: ['memberships', user?.id],
     queryFn: async () => {
@@ -306,7 +366,23 @@ export default function StudentDashboard() {
     enabled: !!user,
   });
 
-  // Auto-select if only one community; show picker for multiple
+  const { data: profile, isLoading: profileLoading } = useQuery<ProfileItem | null>({
+    queryKey: ['student-profile', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('*').eq('user_id', user!.id).single();
+      return data ?? null;
+    },
+    enabled: !!user,
+  });
+
+  // Sync profile form when data loads
+  useEffect(() => {
+    if (profile) {
+      setProfileForm({ full_name: profile.full_name ?? '', phone: profile.phone ?? '' });
+    }
+  }, [profile]);
+
+  // Auto-select if only one community
   useEffect(() => {
     if (membershipsLoading) return;
     if (memberships.length === 1 && !selectedMentorId) {
@@ -318,22 +394,16 @@ export default function StudentDashboard() {
   const mentorId = activeMembership?.mentor_id ?? null;
   const mentorName = activeMembership?.mentorName ?? null;
 
-  // Fetch categories
   const { data: categories = [] } = useQuery<CategoryItem[]>({
     queryKey: ['student-categories', mentorId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('id, title')
-        .eq('mentor_id', mentorId!)
-        .order('position');
+      const { data, error } = await supabase.from('categories').select('id, title').eq('mentor_id', mentorId!).order('position');
       if (error) throw error;
       return data ?? [];
     },
     enabled: !!mentorId,
   });
 
-  // Fetch published lessons
   const { data: lessons = [] } = useQuery<LessonItem[]>({
     queryKey: ['student-lessons', mentorId],
     queryFn: async () => {
@@ -349,7 +419,6 @@ export default function StudentDashboard() {
     enabled: !!mentorId,
   });
 
-  // Fetch student lesson progress
   const { data: progress = [] } = useQuery<ProgressItem[]>({
     queryKey: ['progress', user?.id],
     queryFn: async () => {
@@ -363,7 +432,6 @@ export default function StudentDashboard() {
     enabled: !!user,
   });
 
-  // Fetch community posts (pinned first, then newest)
   const { data: posts = [] } = useQuery<PostItem[]>({
     queryKey: ['student-posts', mentorId],
     queryFn: async () => {
@@ -376,8 +444,8 @@ export default function StudentDashboard() {
       if (error) throw error;
       const enriched = await Promise.all(
         (data ?? []).map(async (p) => {
-          const { data: profile } = await supabase.from('profiles').select('full_name').eq('user_id', p.mentor_id).single();
-          return { ...p, mentorName: profile?.full_name ?? 'מנטור' };
+          const { data: prof } = await supabase.from('profiles').select('full_name').eq('user_id', p.mentor_id).single();
+          return { ...p, mentorName: prof?.full_name ?? 'מנטור' };
         })
       );
       return enriched as PostItem[];
@@ -385,51 +453,24 @@ export default function StudentDashboard() {
     enabled: !!mentorId && activeTab === 'community',
   });
 
-  // Fetch comments for a post
-  const fetchComments = async (postId: string): Promise<PostComment[]> => {
-    const { data, error } = await supabase
-      .from('community_post_comments')
-      .select('*')
-      .eq('post_id', postId)
-      .order('created_at');
-    if (error) throw error;
-    const enriched = await Promise.all(
-      (data ?? []).map(async (c) => {
-        const { data: profile } = await supabase.from('profiles').select('full_name').eq('user_id', c.author_id).single();
-        return { ...c, profiles: profile };
-      })
-    );
-    return enriched;
-  };
-
-  // Realtime: subscribe to new posts + comments
+  // ── Realtime ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mentorId || activeTab !== 'community') return;
-
     const channel = supabase
       .channel(`community-${mentorId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'community_posts',
-        filter: `mentor_id=eq.${mentorId}`,
-      }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_posts', filter: `mentor_id=eq.${mentorId}` }, () => {
         qc.invalidateQueries({ queryKey: ['student-posts', mentorId] });
       })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'community_post_comments',
-      }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'community_post_comments' }, (payload) => {
         const postId = (payload.new as { post_id?: string })?.post_id || (payload.old as { post_id?: string })?.post_id;
         if (postId) qc.invalidateQueries({ queryKey: ['student-comments', postId] });
       })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [mentorId, activeTab, qc]);
 
-  // Accept invite
+  // ── Mutations ─────────────────────────────────────────────────────────────────
+
   const acceptInvite = useMutation({
     mutationFn: async (invite: { id: string; mentor_id: string }) => {
       await supabase.from('community_invites').update({ status: 'accepted' }).eq('id', invite.id);
@@ -442,22 +483,19 @@ export default function StudentDashboard() {
     },
   });
 
-  // Decline invite
-  const declineInvite = useMutation({
+  // Delete invite (student side — decline permanently)
+  const deleteInvite = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from('community_invites').update({ status: 'declined' }).eq('id', id);
+      const { error } = await supabase.from('community_invites').update({ status: 'declined' }).eq('id', id);
+      if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['student-invites'] }),
+    onError: () => toast({ title: 'שגיאה במחיקת ההזמנה', variant: 'destructive' }),
   });
 
-  // Add comment
   const addComment = useMutation({
     mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
-      const { error } = await supabase.from('community_post_comments').insert({
-        post_id: postId,
-        author_id: user!.id,
-        content,
-      });
+      const { error } = await supabase.from('community_post_comments').insert({ post_id: postId, author_id: user!.id, content });
       if (error) throw error;
     },
     onSuccess: (_, { postId }) => {
@@ -467,24 +505,63 @@ export default function StudentDashboard() {
     onError: () => toast({ title: 'שגיאה בשליחת תגובה', variant: 'destructive' }),
   });
 
+  const saveProfile = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('profiles').update({
+        full_name: profileForm.full_name.trim(),
+        phone: profileForm.phone.trim() || null,
+      }).eq('user_id', user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['student-profile'] });
+      toast({ title: 'הפרופיל עודכן!' });
+    },
+    onError: () => toast({ title: 'שגיאה בשמירת הפרופיל', variant: 'destructive' }),
+  });
+
+  const uploadAvatar = async (file: File) => {
+    setIsAvatarUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `avatars/${user!.id}.${ext}`;
+      const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('user_id', user!.id);
+      qc.invalidateQueries({ queryKey: ['student-profile'] });
+      toast({ title: 'תמונת פרופיל עודכנה!' });
+    } catch {
+      toast({ title: 'שגיאה בהעלאת התמונה', variant: 'destructive' });
+    } finally {
+      setIsAvatarUploading(false);
+    }
+  };
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  const fetchComments = async (postId: string): Promise<PostComment[]> => {
+    const { data, error } = await supabase.from('community_post_comments').select('*').eq('post_id', postId).order('created_at');
+    if (error) throw error;
+    const enriched = await Promise.all(
+      (data ?? []).map(async (c) => {
+        const { data: prof } = await supabase.from('profiles').select('full_name').eq('user_id', c.author_id).single();
+        return { ...c, profiles: prof };
+      })
+    );
+    return enriched;
+  };
+
   const toggleCat = (id: string) => {
-    setExpandedCats(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    setExpandedCats(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   };
 
   const toggleComments = (postId: string) => {
-    setExpandedComments(prev => {
-      const next = new Set(prev);
-      next.has(postId) ? next.delete(postId) : next.add(postId);
-      return next;
-    });
+    setExpandedComments(prev => { const next = new Set(prev); next.has(postId) ? next.delete(postId) : next.add(postId); return next; });
   };
 
-  const getProgress = (lessonId: string) => progress.find((p) => p.lesson_id === lessonId);
-  const selectedLessonData = lessons.find((l) => l.id === selectedLesson);
+  const getProgress = (lessonId: string) => progress.find(p => p.lesson_id === lessonId);
+  const selectedLessonData = lessons.find(l => l.id === selectedLesson);
 
   const typeIcon = (type: string) => {
     if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-blue-500" />;
@@ -493,12 +570,8 @@ export default function StudentDashboard() {
   };
 
   const postTypeLabel: Record<string, string> = { discussion: 'דיון', media: 'מדיה', live: 'לייב' };
-  const postTypeBg: Record<string, string> = {
-    discussion: 'bg-blue-500/10', media: 'bg-emerald-500/10', live: 'bg-red-500/10',
-  };
-  const postTypeColor: Record<string, string> = {
-    discussion: 'text-blue-500', media: 'text-emerald-500', live: 'text-red-500',
-  };
+  const postTypeBg: Record<string, string> = { discussion: 'bg-blue-500/10', media: 'bg-emerald-500/10', live: 'bg-red-500/10' };
+  const postTypeColor: Record<string, string> = { discussion: 'text-blue-500', media: 'text-emerald-500', live: 'text-red-500' };
   const postTypeIcon = (type: string) => {
     if (type === 'live') return <Wifi className="w-3.5 h-3.5" />;
     if (type === 'media') return <Image className="w-3.5 h-3.5" />;
@@ -508,7 +581,7 @@ export default function StudentDashboard() {
     new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   // ── Loading ──
-  if (membershipsLoading) {
+  if (membershipsLoading || invitesLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -516,7 +589,7 @@ export default function StudentDashboard() {
     );
   }
 
-  // ── Landing screen: no community selected yet (0 memberships OR multiple and none chosen) ──
+  // ── Landing screen ──
   if (!selectedMentorId) {
     return (
       <LandingScreen
@@ -524,7 +597,7 @@ export default function StudentDashboard() {
         invites={invites}
         onSelect={setSelectedMentorId}
         onAccept={(inv) => acceptInvite.mutate(inv)}
-        onDecline={(id) => declineInvite.mutate(id)}
+        onDecline={(id) => deleteInvite.mutate(id)}
         onSignOut={signOut}
         userEmail={user?.email}
       />
@@ -548,7 +621,6 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {/* Active community + switch button */}
         {mentorName && (
           <div className="px-4 py-3 border-b border-sidebar-border bg-accent/5">
             <p className="text-xs text-muted-foreground">קהילה נוכחית</p>
@@ -569,6 +641,7 @@ export default function StudentDashboard() {
           {([
             { key: 'lessons', label: 'שיעורים', icon: BookOpen },
             { key: 'community', label: 'קהילה', icon: Users },
+            { key: 'profile', label: 'הפרופיל שלי', icon: User },
           ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -587,11 +660,14 @@ export default function StudentDashboard() {
 
         <div className="p-3 border-t border-sidebar-border">
           <div className="flex items-center gap-3 px-2 py-2">
-            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">
-              {user?.email?.[0]?.toUpperCase()}
+            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold overflow-hidden">
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                : user?.email?.[0]?.toUpperCase()
+              }
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-foreground truncate">{user?.email}</div>
+              <div className="text-xs font-medium text-foreground truncate">{profile?.full_name || user?.email}</div>
             </div>
             <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors">
               <LogOut className="w-4 h-4" />
@@ -602,176 +678,172 @@ export default function StudentDashboard() {
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto">
-        {/* Invite banners */}
-        <AnimatePresence>
-          {invites.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="border-b border-amber-200 bg-amber-50"
-            >
-              {invites.map((inv) => (
-                <div key={inv.id} className="flex items-center gap-4 px-8 py-3">
-                  <Bell className="w-4 h-4 text-amber-600 shrink-0" />
-                  <p className="text-sm text-amber-800 flex-1">
-                    <span className="font-semibold">{inv.mentorName}</span> הוזמנת להצטרף לקהילת {inv.mentorName}
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => acceptInvite.mutate({ id: inv.id, mentor_id: inv.mentor_id })}
-                      className="h-8 px-4 bg-accent text-accent-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all"
-                    >
-                      הצטרף
-                    </button>
-                    <button
-                      onClick={() => declineInvite.mutate(inv.id)}
-                      className="h-8 px-3 bg-card border border-amber-200 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-50 transition-all"
-                    >
-                      דחה
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         <AnimatePresence mode="wait">
+
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
             <motion.div key="lessons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8">
-              <>
-                <div className="mb-8">
-                  <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {lessons.length} שיעורים זמינים · {progress.filter((p) => p.completed).length} הושלמו
-                  </p>
-                </div>
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {lessons.length} שיעורים זמינים · {progress.filter(p => p.completed).length} הושלמו
+                </p>
+              </div>
 
-                <AnimatePresence>
-                  {selectedLessonData && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      className="bg-card rounded-xl card-shadow mb-6 overflow-hidden"
-                    >
-                      <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
-                        {selectedLessonData.video_url ? (
-                          <video
-                            src={selectedLessonData.video_url}
-                            className="w-full h-full"
-                            controls
-                            title={selectedLessonData.title}
-                          />
-                        ) : (
-                          <div className="text-center text-slate-500">
-                            <Video className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                            <p className="text-sm">אין קובץ וידאו</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-6">
-                        <h2 className="text-xl font-bold text-foreground mb-2">{selectedLessonData.title}</h2>
-                        {selectedLessonData.description && (
-                          <p className="text-sm text-muted-foreground">{selectedLessonData.description}</p>
-                        )}
-                        {selectedLessonData.duration_minutes && (
-                          <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>{selectedLessonData.duration_minutes} דקות</span>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="space-y-3">
-                  {categories.map((cat) => {
-                    const catLessons = lessons.filter((l) => l.category_id === cat.id);
-                    if (catLessons.length === 0) return null;
-                    const isExpanded = expandedCats.has(cat.id);
-                    const completedCount = catLessons.filter((l) => getProgress(l.id)?.completed).length;
-                    return (
-                      <div key={cat.id} className="bg-card rounded-xl card-shadow overflow-hidden">
-                        <div
-                          className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-                          onClick={() => toggleCat(cat.id)}
-                        >
-                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
-                          <span className="font-semibold text-foreground flex-1">{cat.title}</span>
-                          <span className="text-xs text-muted-foreground">{completedCount}/{catLessons.length} הושלמו</span>
-                          {completedCount === catLessons.length && catLessons.length > 0 && (
-                            <CheckCircle2 className="w-4 h-4 text-accent" />
-                          )}
+              <AnimatePresence>
+                {selectedLessonData && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="bg-card rounded-xl card-shadow mb-6 overflow-hidden"
+                  >
+                    <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
+                      {selectedLessonData.video_url ? (
+                        <VideoPlayer
+                          src={selectedLessonData.video_url}
+                          lessonId={selectedLessonData.id}
+                          studentId={user!.id}
+                          initialProgress={getProgress(selectedLessonData.id)}
+                          onComplete={() => qc.invalidateQueries({ queryKey: ['progress', user?.id] })}
+                        />
+                      ) : (
+                        <div className="text-center text-slate-500">
+                          <Video className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                          <p className="text-sm">אין קובץ וידאו</p>
                         </div>
-                        <AnimatePresence>
-                          {isExpanded && (
-                            <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
-                              <div className="border-t border-border">
-                                {catLessons.map((lesson) => {
-                                  const prog = getProgress(lesson.id);
-                                  return (
-                                    <div
-                                      key={lesson.id}
-                                      onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
-                                      className={`flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${selectedLesson === lesson.id ? 'bg-accent/5' : ''}`}
-                                    >
-                                      <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
-                                        {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : typeIcon(lesson.lesson_type)}
-                                      </div>
-                                      <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
-                                        {lesson.title}
-                                      </span>
-                                      {lesson.duration_minutes && (
-                                        <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
-                                      )}
-                                      {prog && !prog.completed && prog.progress_percent > 0 && (
-                                        <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
-                                          <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    );
-                  })}
-
-                  {lessons.filter((l) => !l.category_id).map((lesson) => {
-                    const prog = getProgress(lesson.id);
-                    return (
-                      <motion.div
-                        key={lesson.id}
-                        whileHover={{ y: -2 }}
-                        onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
-                        className="bg-card rounded-xl card-shadow p-4 flex items-center gap-3 cursor-pointer transition-all"
-                      >
-                        {typeIcon(lesson.lesson_type)}
-                        <span className="text-sm text-foreground flex-1">{lesson.title}</span>
-                        {lesson.duration_minutes && (
-                          <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
-                        )}
-                        {prog?.completed && <CheckCircle2 className="w-4 h-4 text-accent" />}
-                      </motion.div>
-                    );
-                  })}
-
-                  {lessons.length === 0 && (
-                    <div className="text-center py-16 text-muted-foreground">
-                      <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                      <p className="font-medium">עדיין אין תכנים</p>
-                      <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
+                      )}
                     </div>
-                  )}
-                </div>
-              </>
+                    <div className="p-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <h2 className="text-xl font-bold text-foreground">{selectedLessonData.title}</h2>
+                        {getProgress(selectedLessonData.id)?.completed && (
+                          <div className="flex items-center gap-1.5 text-accent text-sm font-medium shrink-0">
+                            <CheckCircle2 className="w-4 h-4" />הושלם
+                          </div>
+                        )}
+                      </div>
+                      {selectedLessonData.description && (
+                        <p className="text-sm text-muted-foreground mt-2">{selectedLessonData.description}</p>
+                      )}
+                      {/* Progress bar */}
+                      {(() => {
+                        const prog = getProgress(selectedLessonData.id);
+                        if (!prog || prog.completed) return null;
+                        return (
+                          <div className="mt-4">
+                            <div className="flex items-center justify-between mb-1.5 text-xs text-muted-foreground">
+                              <span>התקדמות</span>
+                              <span>{prog.progress_percent}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-accent rounded-full transition-all duration-300"
+                                style={{ width: `${prog.progress_percent}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {selectedLessonData.duration_minutes && (
+                        <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>{selectedLessonData.duration_minutes} דקות</span>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="space-y-3">
+                {categories.map((cat) => {
+                  const catLessons = lessons.filter(l => l.category_id === cat.id);
+                  if (catLessons.length === 0) return null;
+                  const isExpanded = expandedCats.has(cat.id);
+                  const completedCount = catLessons.filter(l => getProgress(l.id)?.completed).length;
+                  return (
+                    <div key={cat.id} className="bg-card rounded-xl card-shadow overflow-hidden">
+                      <div
+                        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => toggleCat(cat.id)}
+                      >
+                        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                        <span className="font-semibold text-foreground flex-1">{cat.title}</span>
+                        <span className="text-xs text-muted-foreground">{completedCount}/{catLessons.length} הושלמו</span>
+                        {completedCount === catLessons.length && catLessons.length > 0 && (
+                          <CheckCircle2 className="w-4 h-4 text-accent" />
+                        )}
+                      </div>
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                            <div className="border-t border-border">
+                              {catLessons.map((lesson) => {
+                                const prog = getProgress(lesson.id);
+                                return (
+                                  <div
+                                    key={lesson.id}
+                                    onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
+                                    className={`flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${selectedLesson === lesson.id ? 'bg-accent/5' : ''}`}
+                                  >
+                                    <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
+                                      {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : typeIcon(lesson.lesson_type)}
+                                    </div>
+                                    <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
+                                      {lesson.title}
+                                    </span>
+                                    {lesson.duration_minutes && (
+                                      <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
+                                    )}
+                                    {prog && !prog.completed && prog.progress_percent > 0 && (
+                                      <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
+                                        <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })}
+
+                {lessons.filter(l => !l.category_id).map((lesson) => {
+                  const prog = getProgress(lesson.id);
+                  return (
+                    <motion.div
+                      key={lesson.id}
+                      whileHover={{ y: -2 }}
+                      onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
+                      className="bg-card rounded-xl card-shadow p-4 flex items-center gap-3 cursor-pointer transition-all"
+                    >
+                      {typeIcon(lesson.lesson_type)}
+                      <span className="text-sm text-foreground flex-1">{lesson.title}</span>
+                      {lesson.duration_minutes && (
+                        <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
+                      )}
+                      {prog && !prog.completed && prog.progress_percent > 0 && (
+                        <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
+                        </div>
+                      )}
+                      {prog?.completed && <CheckCircle2 className="w-4 h-4 text-accent" />}
+                    </motion.div>
+                  );
+                })}
+
+                {lessons.length === 0 && (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="font-medium">עדיין אין תכנים</p>
+                    <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
 
@@ -818,6 +890,117 @@ export default function StudentDashboard() {
               )}
             </motion.div>
           )}
+
+          {/* ──────── PROFILE ──────── */}
+          {activeTab === 'profile' && (
+            <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-lg">
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-foreground">הפרופיל שלי</h1>
+                <p className="text-sm text-muted-foreground mt-1">עדכן את הפרטים האישיים שלך</p>
+              </div>
+
+              {profileLoading ? (
+                <div className="flex justify-center py-16">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Avatar */}
+                  <div className="bg-card rounded-2xl card-shadow p-6">
+                    <h2 className="text-sm font-semibold text-foreground mb-4">תמונת פרופיל</h2>
+                    <div className="flex items-center gap-5">
+                      <div className="relative">
+                        <div className="w-20 h-20 rounded-2xl bg-accent/10 flex items-center justify-center overflow-hidden">
+                          {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-8 h-8 text-accent/40" />
+                          )}
+                        </div>
+                        <button
+                          onClick={() => avatarInputRef.current?.click()}
+                          disabled={isAvatarUploading}
+                          className="absolute -bottom-1.5 -left-1.5 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-50 shadow-md"
+                        >
+                          {isAvatarUploading
+                            ? <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                            : <Camera className="w-3.5 h-3.5" />
+                          }
+                        </button>
+                        <input
+                          ref={avatarInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); }}
+                        />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{profile?.full_name || 'תלמיד'}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{user?.email}</p>
+                        <button
+                          onClick={() => avatarInputRef.current?.click()}
+                          className="mt-2 text-xs text-primary hover:opacity-80 transition-opacity"
+                        >
+                          החלף תמונה
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Details form */}
+                  <div className="bg-card rounded-2xl card-shadow p-6 space-y-4">
+                    <h2 className="text-sm font-semibold text-foreground mb-1">פרטים אישיים</h2>
+
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">שם מלא</label>
+                      <div className="relative">
+                        <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                          value={profileForm.full_name}
+                          onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))}
+                          placeholder="השם שלך"
+                          className="w-full h-11 pr-10 pl-4 bg-background border-none ring-1 ring-border rounded-xl text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">מספר טלפון</label>
+                      <div className="relative">
+                        <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                          value={profileForm.phone}
+                          onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))}
+                          placeholder="050-0000000"
+                          type="tel"
+                          className="w-full h-11 pr-10 pl-4 bg-background border-none ring-1 ring-border rounded-xl text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1.5">אימייל</label>
+                      <input
+                        value={user?.email ?? ''}
+                        disabled
+                        className="w-full h-11 px-4 bg-muted border-none ring-1 ring-border rounded-xl text-sm text-muted-foreground cursor-not-allowed text-right"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => saveProfile.mutate()}
+                      disabled={saveProfile.isPending || !profileForm.full_name.trim()}
+                      className="w-full h-11 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-all disabled:opacity-50 text-sm"
+                    >
+                      {saveProfile.isPending ? 'שומר...' : 'שמור שינויים'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </main>
     </div>
@@ -859,15 +1042,11 @@ function StudentPostCard({
       className={`bg-card rounded-2xl card-shadow overflow-hidden ${post.is_pinned ? 'ring-2 ring-primary/20' : ''}`}
     >
       <div className="p-5">
-        {/* Pin indicator */}
         {post.is_pinned && (
           <div className="flex items-center gap-1.5 text-xs text-primary font-medium mb-3">
-            <Pin className="w-3 h-3" />
-            נעוץ
+            <Pin className="w-3 h-3" />נעוץ
           </div>
         )}
-
-        {/* Header */}
         <div className="flex items-center gap-3 mb-3">
           <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0">
             {post.mentorName[0]?.toUpperCase() ?? 'M'}
@@ -887,18 +1066,15 @@ function StudentPostCard({
 
         <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
-        {/* Media */}
         {post.media_url && (
           <div className="mt-3 rounded-xl overflow-hidden">
-            {post.media_type === 'video' ? (
-              <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" controls />
-            ) : (
-              <img src={post.media_url} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
-            )}
+            {post.media_type === 'video'
+              ? <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" controls />
+              : <img src={post.media_url} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
+            }
           </div>
         )}
 
-        {/* Comment toggle */}
         <button
           onClick={onToggleComments}
           className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -908,15 +1084,9 @@ function StudentPostCard({
         </button>
       </div>
 
-      {/* Comments section */}
       <AnimatePresence>
         {expanded && (
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: 0 }}
-            className="overflow-hidden"
-          >
+          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
             <div className="border-t border-border px-5 pb-4 pt-3">
               {commentsLoading ? (
                 <div className="flex justify-center py-4">
@@ -939,8 +1109,6 @@ function StudentPostCard({
                   ))}
                 </div>
               )}
-
-              {/* Reply input */}
               <div className="flex gap-2 mt-2">
                 <textarea
                   value={commentText}
