@@ -267,6 +267,8 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          notify_email: boolean
+          notify_sms: boolean
           phone: string | null
           updated_at: string
           user_id: string
@@ -277,6 +279,8 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          notify_email?: boolean
+          notify_sms?: boolean
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -287,6 +291,8 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          notify_email?: boolean
+          notify_sms?: boolean
           phone?: string | null
           updated_at?: string
           user_id?: string
