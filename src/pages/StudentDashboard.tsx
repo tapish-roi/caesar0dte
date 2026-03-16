@@ -552,12 +552,22 @@ export default function StudentDashboard() {
     mutationFn: async (prefs: { notify_sms: boolean; notify_email: boolean }) => {
       const { error } = await supabase.from('profiles').update(prefs).eq('user_id', user!.id);
       if (error) throw error;
+      return prefs;
     },
-    onSuccess: () => {
+    onMutate: (prefs) => {
+      // Optimistic update
+      setNotifyState(prefs);
+    },
+    onSuccess: (prefs) => {
+      setNotifyState(prefs);
       qc.invalidateQueries({ queryKey: ['student-profile'] });
       toast({ title: 'ההעדפות נשמרו!' });
     },
-    onError: () => toast({ title: 'שגיאה בשמירת ההעדפות', variant: 'destructive' }),
+    onError: () => {
+      // Revert on error
+      setNotifyState({ notify_sms: profile?.notify_sms ?? false, notify_email: profile?.notify_email ?? false });
+      toast({ title: 'שגיאה בשמירת ההעדפות', variant: 'destructive' });
+    },
   });
 
   const uploadAvatar = async (file: File) => {
