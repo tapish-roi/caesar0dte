@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +8,14 @@ import {
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
   User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
+  CalendarDays, Filter, XCircle,
 } from 'lucide-react';
+import { format, isWithinInterval, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { he } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import LiveViewer from '@/components/LiveViewer';
@@ -35,6 +42,7 @@ interface LessonItem {
   title: string;
   description: string | null;
   lesson_type: string;
+  created_at: string;
   video_url: string | null;
   category_id: string | null;
   duration_minutes: number | null;
@@ -325,6 +333,10 @@ export default function StudentDashboard() {
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [selectedMentorId, setSelectedMentorId] = useState<string | null>(null);
 
+  // Date filter state
+  const [lessonDateRange, setLessonDateRange] = useState<DateRange | undefined>(undefined);
+  const [communityDateRange, setCommunityDateRange] = useState<DateRange | undefined>(undefined);
+
   // Profile popover state
   const [profileOpen, setProfileOpen] = useState(false);
   const profilePopoverRef = useRef<HTMLDivElement>(null);
@@ -428,7 +440,7 @@ export default function StudentDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lessons')
-        .select('id, title, description, lesson_type, video_url, category_id, duration_minutes, attachment_url, attachment_name')
+        .select('id, title, description, lesson_type, video_url, category_id, duration_minutes, attachment_url, attachment_name, created_at')
         .eq('mentor_id', mentorId!)
         .eq('is_published', true)
         .order('position');
@@ -649,6 +661,49 @@ export default function StudentDashboard() {
   };
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  // ── Date-filter helpers ─────────────────────────────────────────────────────
+  const isInDateRange = (iso: string, range: DateRange | undefined): boolean => {
+    if (!range?.from) return true;
+    const d = parseISO(iso);
+    const from = startOfDay(range.from);
+    const to = endOfDay(range.to ?? range.from);
+    return isWithinInterval(d, { start: from, end: to });
+  };
+
+  // Filtered lessons (by date range)
+  const filteredLessons = useMemo(() =>
+    lessonDateRange?.from
+      ? lessons.filter(l => isInDateRange(l.created_at, lessonDateRange))
+      : lessons
+  , [lessons, lessonDateRange]);
+
+  // Filtered posts (by date range)
+  const filteredPosts = useMemo(() =>
+    communityDateRange?.from
+      ? posts.filter(p => isInDateRange(p.created_at, communityDateRange))
+      : posts
+  , [posts, communityDateRange]);
+
+  // Group filtered posts by date (day label)
+  const postsByDay = useMemo(() => {
+    const groups: { label: string; posts: typeof filteredPosts }[] = [];
+    let lastLabel = '';
+    // posts are ordered desc; group them
+    const sorted = [...filteredPosts].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    // re-sort desc for display, then group
+    const desc = [...sorted].reverse();
+    for (const post of desc) {
+      const label = format(parseISO(post.created_at), 'dd.MM.yyyy', { locale: he });
+      if (label !== lastLabel) {
+        groups.push({ label, posts: [post] });
+        lastLabel = label;
+      } else {
+        groups[groups.length - 1].posts.push(post);
+      }
+    }
+    return groups;
+  }, [filteredPosts]);
 
   // ── Loading ──
   if (membershipsLoading || invitesLoading) {
@@ -931,12 +986,18 @@ export default function StudentDashboard() {
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
             <motion.div key="lessons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8">
-              <div className="mb-8">
-                <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {lessons.length} שיעורים זמינים · {progress.filter(p => p.completed).length} הושלמו
-                </p>
+              <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {filteredLessons.length} שיעורים זמינים · {progress.filter(p => p.completed).length} הושלמו
+                    {lessonDateRange?.from && <span className="mr-2 text-primary font-medium">· מסונן לפי תאריך</span>}
+                  </p>
+                </div>
+                {/* Date range filter */}
+                <DateRangeFilter range={lessonDateRange} onChange={setLessonDateRange} />
               </div>
+
 
               <AnimatePresence>
                 {selectedLessonData && (
@@ -1087,7 +1148,7 @@ export default function StudentDashboard() {
                   const hasAccessToCat = !hasSpecificGrants || categoryAccess.some(g => g.category_id === cat.id);
                   if (!hasAccessToCat) return null;
 
-                  const catLessons = lessons.filter(l => l.category_id === cat.id);
+                  const catLessons = filteredLessons.filter(l => l.category_id === cat.id);
                   if (catLessons.length === 0) return null;
                   const isExpanded = expandedCats.has(cat.id);
                   const completedCount = catLessons.filter(l => getProgress(l.id)?.completed).length;
@@ -1122,6 +1183,9 @@ export default function StudentDashboard() {
                                     <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
                                       {lesson.title}
                                     </span>
+                                    <span className="text-[10px] text-muted-foreground/70 shrink-0">
+                                      {format(parseISO(lesson.created_at), 'dd.MM.yy', { locale: he })}
+                                    </span>
                                     {lesson.lesson_type === 'live' && (
                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
                                          <Radio className="w-2.5 h-2.5" />
@@ -1153,7 +1217,7 @@ export default function StudentDashboard() {
                   );
                 })}
 
-                {lessons.filter(l => !l.category_id).map((lesson) => {
+                {filteredLessons.filter(l => !l.category_id).map((lesson) => {
                   const prog = getProgress(lesson.id);
                   return (
                     <motion.div
@@ -1164,6 +1228,9 @@ export default function StudentDashboard() {
                     >
                       {typeIcon(lesson.lesson_type)}
                       <span className="text-sm text-foreground flex-1">{lesson.title}</span>
+                      <span className="text-[10px] text-muted-foreground/70">
+                        {format(parseISO(lesson.created_at), 'dd.MM.yy', { locale: he })}
+                      </span>
                       {lesson.duration_minutes && (
                         <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
                       )}
@@ -1177,11 +1244,25 @@ export default function StudentDashboard() {
                   );
                 })}
 
-                {lessons.length === 0 && (
+                {filteredLessons.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
                     <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">עדיין אין תכנים</p>
-                    <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
+                    {lessonDateRange?.from ? (
+                      <>
+                        <p className="font-medium">לא נמצאו שיעורים בתקופה שנבחרה</p>
+                        <button
+                          onClick={() => setLessonDateRange(undefined)}
+                          className="mt-2 text-sm text-primary hover:opacity-80 transition-opacity"
+                        >
+                          נקה סינון
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-medium">עדיין אין תכנים</p>
+                        <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -1191,11 +1272,15 @@ export default function StudentDashboard() {
           {/* ──────── COMMUNITY ──────── */}
           {activeTab === 'community' && (
             <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-2xl">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {mentorName ? `עדכונים מ${mentorName}` : 'עדכונים מהמנטור שלך'}
-                </p>
+              <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {mentorName ? `עדכונים מ${mentorName}` : 'עדכונים מהמנטור שלך'}
+                    {communityDateRange?.from && <span className="mr-2 text-primary font-medium">· מסונן לפי תאריך</span>}
+                  </p>
+                </div>
+                <DateRangeFilter range={communityDateRange} onChange={setCommunityDateRange} />
               </div>
 
               {posts.length === 0 ? (
@@ -1204,39 +1289,64 @@ export default function StudentDashboard() {
                   <p className="font-medium">אין עדכונים עדיין</p>
                   <p className="text-sm mt-1">המנטור שלך יפרסם עדכונים בקרוב</p>
                 </div>
+              ) : filteredPosts.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">לא נמצאו פוסטים בתקופה שנבחרה</p>
+                  <button
+                    onClick={() => setCommunityDateRange(undefined)}
+                    className="mt-2 text-sm text-primary hover:opacity-80 transition-opacity"
+                  >
+                    נקה סינון
+                  </button>
+                </div>
               ) : (
-                <div className="space-y-4">
-                  {posts.map((post) => (
-                    <StudentPostCard
-                      key={post.id}
-                      post={post}
-                      fetchComments={fetchComments}
-                      expanded={expandedComments.has(post.id)}
-                      onToggleComments={() => toggleComments(post.id)}
-                      commentText={commentTexts[post.id] ?? ''}
-                      onCommentChange={(val) => setCommentTexts(prev => ({ ...prev, [post.id]: val }))}
-                      onAddComment={() => {
-                        const text = commentTexts[post.id]?.trim();
-                        if (text) addComment.mutate({ postId: post.id, content: text });
-                      }}
-                      onJoinLive={async () => {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const { data } = await (supabase.from('live_sessions') as any)
-                          .select('id, title, mentor_id')
-                          .eq('mentor_id', post.mentor_id)
-                          .eq('status', 'active')
-                          .order('started_at', { ascending: false })
-                          .limit(1)
-                          .single();
-                        if (data) setActiveLiveSession(data);
-                      }}
-                      postTypeLabel={postTypeLabel}
-                      postTypeIcon={postTypeIcon}
-                      postTypeBg={postTypeBg}
-                      postTypeColor={postTypeColor}
-                      formatDate={formatDate}
-                      queryClient={qc}
-                    />
+                <div className="space-y-0">
+                  {postsByDay.map((group, gi) => (
+                    <div key={group.label}>
+                      {/* Day separator */}
+                      <div className={`flex items-center gap-3 ${gi > 0 ? 'mt-6' : ''} mb-4`}>
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-muted/50 rounded-full border border-border shrink-0">
+                          {group.label}
+                        </span>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                      <div className="space-y-4">
+                        {group.posts.map((post) => (
+                          <StudentPostCard
+                            key={post.id}
+                            post={post}
+                            fetchComments={fetchComments}
+                            expanded={expandedComments.has(post.id)}
+                            onToggleComments={() => toggleComments(post.id)}
+                            commentText={commentTexts[post.id] ?? ''}
+                            onCommentChange={(val) => setCommentTexts(prev => ({ ...prev, [post.id]: val }))}
+                            onAddComment={() => {
+                              const text = commentTexts[post.id]?.trim();
+                              if (text) addComment.mutate({ postId: post.id, content: text });
+                            }}
+                            onJoinLive={async () => {
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              const { data } = await (supabase.from('live_sessions') as any)
+                                .select('id, title, mentor_id')
+                                .eq('mentor_id', post.mentor_id)
+                                .eq('status', 'active')
+                                .order('started_at', { ascending: false })
+                                .limit(1)
+                                .single();
+                              if (data) setActiveLiveSession(data);
+                            }}
+                            postTypeLabel={postTypeLabel}
+                            postTypeIcon={postTypeIcon}
+                            postTypeBg={postTypeBg}
+                            postTypeColor={postTypeColor}
+                            formatDate={formatDate}
+                            queryClient={qc}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -1260,6 +1370,63 @@ export default function StudentDashboard() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ─── DateRangeFilter ─────────────────────────────────────────────────────────
+function DateRangeFilter({ range, onChange }: { range: DateRange | undefined; onChange: (r: DateRange | undefined) => void }) {
+  const [open, setOpen] = useState(false);
+  const hasFilter = !!range?.from;
+
+  const label = hasFilter
+    ? range?.to && range.to.getTime() !== range.from!.getTime()
+      ? `${format(range.from!, 'dd.MM.yy', { locale: he })} – ${format(range.to, 'dd.MM.yy', { locale: he })}`
+      : format(range.from!, 'dd.MM.yy', { locale: he })
+    : 'סנן לפי תאריך';
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={`flex items-center gap-2 h-9 px-3 text-xs ${hasFilter ? 'border-primary text-primary bg-primary/5' : 'text-muted-foreground'}`}
+        >
+          <CalendarDays className="w-3.5 h-3.5" />
+          {label}
+          {hasFilter && (
+            <span
+              onClick={(e) => { e.stopPropagation(); onChange(undefined); }}
+              className="hover:text-destructive transition-colors"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="end" sideOffset={6}>
+        <Calendar
+          mode="range"
+          selected={range}
+          onSelect={(r) => {
+            onChange(r);
+            if (r?.from && r?.to) setOpen(false);
+          }}
+          className="p-3 pointer-events-auto"
+          numberOfMonths={2}
+        />
+        {hasFilter && (
+          <div className="border-t border-border p-2 flex justify-end">
+            <button
+              onClick={() => { onChange(undefined); setOpen(false); }}
+              className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1"
+            >
+              נקה סינון
+            </button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 
