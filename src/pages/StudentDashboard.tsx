@@ -77,6 +77,8 @@ interface ProfileItem {
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
+  notify_sms: boolean;
+  notify_email: boolean;
 }
 
 // ─── VideoPlayer with progress tracking ───────────────────────────────────────
