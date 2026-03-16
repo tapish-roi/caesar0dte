@@ -83,6 +83,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  // If user is set but role is still null (e.g. stale session on reload), re-fetch role
+  useEffect(() => {
+    if (user && !role && !loading) {
+      const metadataRole = user.user_metadata?.role as string | undefined;
+      fetchRole(user.id, metadataRole);
+    }
+  }, [user, role, loading]);
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setRole(null);
