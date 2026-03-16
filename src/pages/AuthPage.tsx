@@ -28,21 +28,20 @@ export default function AuthPage() {
           email,
           password,
           options: {
-            data: { full_name: fullName },
+            // Store role in metadata — AuthContext will create user_roles row on SIGNED_IN
+            data: { full_name: fullName, role: tab },
             emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
         if (data.user) {
-          // Insert role
-          await supabase.from('user_roles').insert({ user_id: data.user.id, role: tab });
-          // Update profile with phone if provided
+          // Update profile with phone if provided (session is active with auto-confirm)
           if (phone) {
             await supabase.from('profiles').update({ phone }).eq('user_id', data.user.id);
           }
           toast({
-            title: 'חשבון נוצר בהצלחה',
-            description: 'אנא בדוק את האימייל שלך לאישור החשבון.',
+            title: 'חשבון נוצר בהצלחה! 🎉',
+            description: tab === 'mentor' ? 'ברוך הבא, מנטור! הנך מועבר לממשק הניהול.' : 'ברוך הבא! הנך מועבר לדף הלמידה שלך.',
           });
         }
       } else {
