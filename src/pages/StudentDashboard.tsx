@@ -258,8 +258,8 @@ function LandingScreen({
                   transition={{ delay: i * 0.07 }}
                   className="flex items-center gap-3 p-4 bg-background border border-border rounded-xl"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                    <span className="text-base font-bold text-amber-700">{inv.mentorName[0]?.toUpperCase()}</span>
+                  <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-base font-bold text-primary">{inv.mentorName[0]?.toUpperCase()}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm text-foreground">{inv.mentorName}</p>
