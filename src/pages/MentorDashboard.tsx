@@ -10,6 +10,7 @@ import {
   Image, Radio, MessageSquare, MessageCircle, Wifi, Pin, PinOff,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import LiveBroadcast from '@/components/LiveBroadcast';
 
 type SidebarTab = 'lessons' | 'community' | 'students';
 type PostType = 'discussion' | 'media' | 'live';
@@ -79,6 +80,7 @@ export default function MentorDashboard() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [removeConfirm, setRemoveConfirm] = useState<{ studentId: string; name: string } | null>(null);
+  const [showLiveBroadcast, setShowLiveBroadcast] = useState(false);
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -371,8 +373,8 @@ export default function MentorDashboard() {
   };
 
   const typeIcon = (type: string) => {
-    if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-blue-500" />;
-    if (type === 'presentation') return <FileText className="w-3.5 h-3.5 text-amber-500" />;
+    if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-primary" />;
+    if (type === 'presentation') return <FileText className="w-3.5 h-3.5 text-accent" />;
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
 
@@ -589,7 +591,7 @@ export default function MentorDashboard() {
               {/* Compose box */}
               <div className="bg-card rounded-2xl card-shadow p-5 mb-6">
                 <div className="flex gap-2 mb-4">
-                  {postTypeOptions.map(({ key, label, icon: Icon }) => (
+                  {postTypeOptions.filter(o => o.key !== 'live').map(({ key, label, icon: Icon }) => (
                     <button
                       key={key}
                       onClick={() => { setPostType(key); setPostMediaUrl(''); setPostMediaType(''); }}
@@ -602,14 +604,21 @@ export default function MentorDashboard() {
                       <Icon className="w-3.5 h-3.5" />{label}
                     </button>
                   ))}
+                  {/* Live button — opens LiveBroadcast modal */}
+                  <button
+                    onClick={() => setShowLiveBroadcast(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-destructive/40 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-all"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                    לייב
+                  </button>
                 </div>
 
                 <textarea
                   value={postContent}
                   onChange={e => setPostContent(e.target.value)}
                   placeholder={
-                    postType === 'live' ? 'תאר את הסשן: מה אתה מסחר היום, אסטרטגיה, זמן...'
-                    : postType === 'media' ? 'תאר את התמונה/סרטון שאתה מעלה...'
+                    postType === 'media' ? 'תאר את התמונה/סרטון שאתה מעלה...'
                     : 'שתף ניתוח, שאלה לדיון, או עדכון לקהילה...'
                   }
                   rows={3}
@@ -638,7 +647,7 @@ export default function MentorDashboard() {
                         }
                         <button
                           onClick={() => { setPostMediaUrl(''); setPostMediaType(''); if (postFileInputRef.current) postFileInputRef.current.value = ''; }}
-                          className="absolute top-2 left-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80"
+                          className="absolute top-2 left-2 w-7 h-7 bg-foreground/60 rounded-full flex items-center justify-center text-background hover:bg-foreground/80"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -654,13 +663,6 @@ export default function MentorDashboard() {
                         }
                       </button>
                     )}
-                  </div>
-                )}
-
-                {postType === 'live' && (
-                  <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-red-500/10 rounded-lg text-red-500 text-xs font-medium w-fit">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    LIVE — יצורף לפוסט כאשר יפורסם
                   </div>
                 )}
 
@@ -741,8 +743,8 @@ export default function MentorDashboard() {
                   <div className="space-y-2">
                     {invites.map((inv: { id: string; contact: string; created_at: string }) => (
                       <div key={inv.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/30 transition-colors group">
-                        <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
-                          <Send className="w-3.5 h-3.5 text-amber-500" />
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <Send className="w-3.5 h-3.5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className="text-sm text-foreground">{inv.contact}</span>
@@ -962,6 +964,17 @@ export default function MentorDashboard() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Live Broadcast Modal */}
+      <AnimatePresence>
+        {showLiveBroadcast && (
+          <LiveBroadcast
+            mentorId={user!.id}
+            onClose={() => { setShowLiveBroadcast(false); qc.invalidateQueries({ queryKey: ['community_posts'] }); }}
+            onPostCreated={() => qc.invalidateQueries({ queryKey: ['community_posts'] })}
+          />
         )}
       </AnimatePresence>
     </div>

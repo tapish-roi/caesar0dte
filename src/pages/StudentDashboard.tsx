@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
+import LiveViewer from '@/components/LiveViewer';
 
 type SidebarTab = 'lessons' | 'community';
 type PostType = 'discussion' | 'media' | 'live';
@@ -331,6 +332,7 @@ export default function StudentDashboard() {
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [notifyState, setNotifyState] = useState({ notify_sms: false, notify_email: false });
+  const [activeLiveSession, setActiveLiveSession] = useState<{ id: string; title: string; mentor_id: string } | null>(null);
 
   // ── Queries ──────────────────────────────────────────────────────────────────
 
@@ -1106,6 +1108,17 @@ export default function StudentDashboard() {
                         const text = commentTexts[post.id]?.trim();
                         if (text) addComment.mutate({ postId: post.id, content: text });
                       }}
+                      onJoinLive={async () => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const { data } = await (supabase.from('live_sessions') as any)
+                          .select('id, title, mentor_id')
+                          .eq('mentor_id', post.mentor_id)
+                          .eq('status', 'active')
+                          .order('started_at', { ascending: false })
+                          .limit(1)
+                          .single();
+                        if (data) setActiveLiveSession(data);
+                      }}
                       postTypeLabel={postTypeLabel}
                       postTypeIcon={postTypeIcon}
                       postTypeBg={postTypeBg}
@@ -1121,6 +1134,19 @@ export default function StudentDashboard() {
 
         </AnimatePresence>
       </main>
+
+      {/* Live Viewer Modal */}
+      <AnimatePresence>
+        {activeLiveSession && (
+          <LiveViewer
+            sessionId={activeLiveSession.id}
+            mentorId={activeLiveSession.mentor_id}
+            userId={user!.id}
+            sessionTitle={activeLiveSession.title}
+            onClose={() => setActiveLiveSession(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -1128,7 +1154,7 @@ export default function StudentDashboard() {
 // ─── StudentPostCard ──────────────────────────────────────────────────────────
 function StudentPostCard({
   post, fetchComments, expanded, onToggleComments,
-  commentText, onCommentChange, onAddComment,
+  commentText, onCommentChange, onAddComment, onJoinLive,
   postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
 }: {
   post: PostItem;
@@ -1138,6 +1164,7 @@ function StudentPostCard({
   commentText: string;
   onCommentChange: (v: string) => void;
   onAddComment: () => void;
+  onJoinLive: () => void;
   postTypeLabel: Record<string, string>;
   postTypeIcon: (t: string) => React.ReactNode;
   postTypeBg: Record<string, string>;
@@ -1191,6 +1218,16 @@ function StudentPostCard({
               : <img src={post.media_url} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
             }
           </div>
+        )}
+
+        {pType === 'live' && (
+          <button
+            onClick={onJoinLive}
+            className="mt-3 flex items-center gap-2 h-9 px-4 bg-destructive text-destructive-foreground rounded-xl text-xs font-bold hover:opacity-90 transition-all"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-destructive-foreground animate-pulse" />
+            הצטרף ללייב
+          </button>
         )}
 
         <button

@@ -260,6 +260,74 @@ export type Database = {
           },
         ]
       }
+      live_sessions: {
+        Row: {
+          ended_at: string | null
+          id: string
+          mentor_id: string
+          started_at: string
+          status: string
+          title: string
+          viewer_count: number
+        }
+        Insert: {
+          ended_at?: string | null
+          id?: string
+          mentor_id: string
+          started_at?: string
+          status?: string
+          title?: string
+          viewer_count?: number
+        }
+        Update: {
+          ended_at?: string | null
+          id?: string
+          mentor_id?: string
+          started_at?: string
+          status?: string
+          title?: string
+          viewer_count?: number
+        }
+        Relationships: []
+      }
+      live_signals: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          id: string
+          payload: Json
+          session_id: string
+          signal_type: string
+          to_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          id?: string
+          payload: Json
+          session_id: string
+          signal_type: string
+          to_user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          payload?: Json
+          session_id?: string
+          signal_type?: string
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_signals_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
