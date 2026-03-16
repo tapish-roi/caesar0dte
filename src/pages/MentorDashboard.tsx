@@ -278,6 +278,19 @@ export default function MentorDashboard() {
     onError: () => toast({ title: 'שגיאה בביטול ההזמנה', variant: 'destructive' }),
   });
 
+  const removeMember = useMutation({
+    mutationFn: async (studentId: string) => {
+      const { error } = await supabase.from('community_members').delete().eq('mentor_id', user!.id).eq('student_id', studentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['members'] });
+      toast({ title: 'התלמיד הוסר מהקהילה' });
+      setRemoveConfirm(null);
+    },
+    onError: () => toast({ title: 'שגיאה בהסרת התלמיד', variant: 'destructive' }),
+  });
+
   const createPost = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from('community_posts').insert({
