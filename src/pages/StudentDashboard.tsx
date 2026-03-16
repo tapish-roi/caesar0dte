@@ -320,8 +320,12 @@ export default function StudentDashboard() {
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [selectedMentorId, setSelectedMentorId] = useState<string | null>(null);
 
-  // Profile edit state
+  // Profile popover state
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profilePopoverRef = useRef<HTMLDivElement>(null);
   const [profileForm, setProfileForm] = useState({ full_name: '', phone: '' });
+  const [newPassword, setNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
