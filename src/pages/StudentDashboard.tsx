@@ -1025,10 +1025,11 @@ export default function StudentDashboard() {
                                       {lesson.title}
                                     </span>
                                     {lesson.lesson_type === 'live' && (
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold flex items-center gap-1 shrink-0">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-destructive" />לייב
-                                      </span>
-                                    )}
+                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
+                                         <Radio className="w-2.5 h-2.5" />
+                                         הוקלט בלייב
+                                       </span>
+                                     )}
                                     {lesson.duration_minutes && (
                                       <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
                                     )}
