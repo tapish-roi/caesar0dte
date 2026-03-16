@@ -1148,7 +1148,7 @@ export default function StudentDashboard() {
                   const hasAccessToCat = !hasSpecificGrants || categoryAccess.some(g => g.category_id === cat.id);
                   if (!hasAccessToCat) return null;
 
-                  const catLessons = lessons.filter(l => l.category_id === cat.id);
+                  const catLessons = filteredLessons.filter(l => l.category_id === cat.id);
                   if (catLessons.length === 0) return null;
                   const isExpanded = expandedCats.has(cat.id);
                   const completedCount = catLessons.filter(l => getProgress(l.id)?.completed).length;
@@ -1183,6 +1183,9 @@ export default function StudentDashboard() {
                                     <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
                                       {lesson.title}
                                     </span>
+                                    <span className="text-[10px] text-muted-foreground/70 shrink-0">
+                                      {format(parseISO(lesson.created_at), 'dd.MM.yy', { locale: he })}
+                                    </span>
                                     {lesson.lesson_type === 'live' && (
                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
                                          <Radio className="w-2.5 h-2.5" />
@@ -1214,7 +1217,7 @@ export default function StudentDashboard() {
                   );
                 })}
 
-                {lessons.filter(l => !l.category_id).map((lesson) => {
+                {filteredLessons.filter(l => !l.category_id).map((lesson) => {
                   const prog = getProgress(lesson.id);
                   return (
                     <motion.div
@@ -1225,6 +1228,9 @@ export default function StudentDashboard() {
                     >
                       {typeIcon(lesson.lesson_type)}
                       <span className="text-sm text-foreground flex-1">{lesson.title}</span>
+                      <span className="text-[10px] text-muted-foreground/70">
+                        {format(parseISO(lesson.created_at), 'dd.MM.yy', { locale: he })}
+                      </span>
                       {lesson.duration_minutes && (
                         <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
                       )}
@@ -1238,11 +1244,25 @@ export default function StudentDashboard() {
                   );
                 })}
 
-                {lessons.length === 0 && (
+                {filteredLessons.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
                     <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    <p className="font-medium">עדיין אין תכנים</p>
-                    <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
+                    {lessonDateRange?.from ? (
+                      <>
+                        <p className="font-medium">לא נמצאו שיעורים בתקופה שנבחרה</p>
+                        <button
+                          onClick={() => setLessonDateRange(undefined)}
+                          className="mt-2 text-sm text-primary hover:opacity-80 transition-opacity"
+                        >
+                          נקה סינון
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-medium">עדיין אין תכנים</p>
+                        <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -1252,11 +1272,15 @@ export default function StudentDashboard() {
           {/* ──────── COMMUNITY ──────── */}
           {activeTab === 'community' && (
             <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-2xl">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {mentorName ? `עדכונים מ${mentorName}` : 'עדכונים מהמנטור שלך'}
-                </p>
+              <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {mentorName ? `עדכונים מ${mentorName}` : 'עדכונים מהמנטור שלך'}
+                    {communityDateRange?.from && <span className="mr-2 text-primary font-medium">· מסונן לפי תאריך</span>}
+                  </p>
+                </div>
+                <DateRangeFilter range={communityDateRange} onChange={setCommunityDateRange} />
               </div>
 
               {posts.length === 0 ? (
@@ -1265,39 +1289,64 @@ export default function StudentDashboard() {
                   <p className="font-medium">אין עדכונים עדיין</p>
                   <p className="text-sm mt-1">המנטור שלך יפרסם עדכונים בקרוב</p>
                 </div>
+              ) : filteredPosts.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">לא נמצאו פוסטים בתקופה שנבחרה</p>
+                  <button
+                    onClick={() => setCommunityDateRange(undefined)}
+                    className="mt-2 text-sm text-primary hover:opacity-80 transition-opacity"
+                  >
+                    נקה סינון
+                  </button>
+                </div>
               ) : (
-                <div className="space-y-4">
-                  {posts.map((post) => (
-                    <StudentPostCard
-                      key={post.id}
-                      post={post}
-                      fetchComments={fetchComments}
-                      expanded={expandedComments.has(post.id)}
-                      onToggleComments={() => toggleComments(post.id)}
-                      commentText={commentTexts[post.id] ?? ''}
-                      onCommentChange={(val) => setCommentTexts(prev => ({ ...prev, [post.id]: val }))}
-                      onAddComment={() => {
-                        const text = commentTexts[post.id]?.trim();
-                        if (text) addComment.mutate({ postId: post.id, content: text });
-                      }}
-                      onJoinLive={async () => {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const { data } = await (supabase.from('live_sessions') as any)
-                          .select('id, title, mentor_id')
-                          .eq('mentor_id', post.mentor_id)
-                          .eq('status', 'active')
-                          .order('started_at', { ascending: false })
-                          .limit(1)
-                          .single();
-                        if (data) setActiveLiveSession(data);
-                      }}
-                      postTypeLabel={postTypeLabel}
-                      postTypeIcon={postTypeIcon}
-                      postTypeBg={postTypeBg}
-                      postTypeColor={postTypeColor}
-                      formatDate={formatDate}
-                      queryClient={qc}
-                    />
+                <div className="space-y-0">
+                  {postsByDay.map((group, gi) => (
+                    <div key={group.label}>
+                      {/* Day separator */}
+                      <div className={`flex items-center gap-3 ${gi > 0 ? 'mt-6' : ''} mb-4`}>
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-muted/50 rounded-full border border-border shrink-0">
+                          {group.label}
+                        </span>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                      <div className="space-y-4">
+                        {group.posts.map((post) => (
+                          <StudentPostCard
+                            key={post.id}
+                            post={post}
+                            fetchComments={fetchComments}
+                            expanded={expandedComments.has(post.id)}
+                            onToggleComments={() => toggleComments(post.id)}
+                            commentText={commentTexts[post.id] ?? ''}
+                            onCommentChange={(val) => setCommentTexts(prev => ({ ...prev, [post.id]: val }))}
+                            onAddComment={() => {
+                              const text = commentTexts[post.id]?.trim();
+                              if (text) addComment.mutate({ postId: post.id, content: text });
+                            }}
+                            onJoinLive={async () => {
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              const { data } = await (supabase.from('live_sessions') as any)
+                                .select('id, title, mentor_id')
+                                .eq('mentor_id', post.mentor_id)
+                                .eq('status', 'active')
+                                .order('started_at', { ascending: false })
+                                .limit(1)
+                                .single();
+                              if (data) setActiveLiveSession(data);
+                            }}
+                            postTypeLabel={postTypeLabel}
+                            postTypeIcon={postTypeIcon}
+                            postTypeBg={postTypeBg}
+                            postTypeColor={postTypeColor}
+                            formatDate={formatDate}
+                            queryClient={qc}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
