@@ -6,11 +6,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp, LayoutGrid, BookOpen, Users, Plus, Video, FileText,
   ChevronDown, Trash2, Eye, EyeOff,
-  LogOut, Send, X, Check, Film, Upload, GraduationCap
+  LogOut, Send, X, Check, Film, Upload, GraduationCap,
+  Image, Radio, MessageSquare, MessageCircle, Play, Wifi,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type SidebarTab = 'lessons' | 'community' | 'students';
+type PostType = 'discussion' | 'media' | 'live';
 
 interface Category {
   id: string;
@@ -30,6 +32,25 @@ interface Lesson {
   duration_minutes: number | null;
 }
 
+interface CommunityPost {
+  id: string;
+  content: string;
+  post_type: string;
+  media_url: string | null;
+  media_type: string | null;
+  mentor_id: string;
+  created_at: string;
+}
+
+interface PostComment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  content: string;
+  created_at: string;
+  profiles?: { full_name: string } | null;
+}
+
 export default function MentorDashboard() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -43,10 +64,20 @@ export default function MentorDashboard() {
   const [inviteContact, setInviteContact] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isPostUploading, setIsPostUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const postFileInputRef = useRef<HTMLInputElement>(null);
   const [lessonForm, setLessonForm] = useState({
     title: '', description: '', lesson_type: 'recorded_lesson', video_url: '', duration_minutes: '',
   });
+
+  // New post state
+  const [postType, setPostType] = useState<PostType>('discussion');
+  const [postContent, setPostContent] = useState('');
+  const [postMediaUrl, setPostMediaUrl] = useState('');
+  const [postMediaType, setPostMediaType] = useState('');
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
 
   // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
@@ -78,7 +109,7 @@ export default function MentorDashboard() {
     enabled: !!user,
   });
 
-  // Fetch community members
+  // Fetch community members (for students tab)
   const { data: members = [] } = useQuery<{ student_id: string; joined_at: string; profiles: { full_name: string; email: string } | null }[]>({
     queryKey: ['members', user?.id],
     queryFn: async () => {
@@ -95,10 +126,10 @@ export default function MentorDashboard() {
       );
       return enriched;
     },
-    enabled: !!user && (activeTab === 'community' || activeTab === 'students'),
+    enabled: !!user && activeTab === 'students',
   });
 
-  // Fetch pending invites
+  // Fetch pending invites (for students tab)
   const { data: invites = [] } = useQuery({
     queryKey: ['invites', user?.id],
     queryFn: async () => {
@@ -110,8 +141,40 @@ export default function MentorDashboard() {
       if (error) throw error;
       return data;
     },
+    enabled: !!user && activeTab === 'students',
+  });
+
+  // Fetch community posts
+  const { data: posts = [] } = useQuery<CommunityPost[]>({
+    queryKey: ['community_posts', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('community_posts')
+        .select('*')
+        .eq('mentor_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as CommunityPost[];
+    },
     enabled: !!user && activeTab === 'community',
   });
+
+  // Fetch comments for a specific post
+  const fetchComments = async (postId: string): Promise<PostComment[]> => {
+    const { data, error } = await supabase
+      .from('community_post_comments')
+      .select('*')
+      .eq('post_id', postId)
+      .order('created_at');
+    if (error) throw error;
+    const enriched = await Promise.all(
+      (data ?? []).map(async (c) => {
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('user_id', c.author_id).single();
+        return { ...c, profiles: profile };
+      })
+    );
+    return enriched;
+  };
 
   // Create category
   const createCategory = useMutation({
@@ -143,6 +206,20 @@ export default function MentorDashboard() {
     if (error) throw error;
     const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
     return publicUrl;
+  };
+
+  const handlePostFileUpload = async (file: File): Promise<{ url: string; type: string }> => {
+    setIsPostUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `posts/${user!.id}/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage
+      .from('lesson-assets')
+      .upload(path, file, { upsert: false });
+    setIsPostUploading(false);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+    const mediaType = file.type.startsWith('video') ? 'video' : 'image';
+    return { url: publicUrl, type: mediaType };
   };
 
   // Create lesson
@@ -214,10 +291,66 @@ export default function MentorDashboard() {
     onError: () => toast({ title: 'שגיאה', description: 'לא ניתן לשלוח הזמנה', variant: 'destructive' }),
   });
 
+  // Create community post
+  const createPost = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('community_posts').insert({
+        mentor_id: user!.id,
+        content: postContent,
+        post_type: postType,
+        media_url: postMediaUrl || null,
+        media_type: postMediaType || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['community_posts'] });
+      setPostContent('');
+      setPostMediaUrl('');
+      setPostMediaType('');
+      setPostType('discussion');
+      toast({ title: 'פוסט פורסם!' });
+    },
+    onError: () => toast({ title: 'שגיאה בפרסום', variant: 'destructive' }),
+  });
+
+  // Delete post
+  const deletePost = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('community_posts').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['community_posts'] }),
+  });
+
+  // Add comment
+  const addComment = useMutation({
+    mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
+      const { error } = await supabase.from('community_post_comments').insert({
+        post_id: postId,
+        author_id: user!.id,
+        content,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_, { postId }) => {
+      qc.invalidateQueries({ queryKey: ['comments', postId] });
+      setCommentTexts(prev => ({ ...prev, [postId]: '' }));
+    },
+  });
+
   const toggleCat = (id: string) => {
     setExpandedCats(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleComments = (postId: string) => {
+    setExpandedComments(prev => {
+      const next = new Set(prev);
+      next.has(postId) ? next.delete(postId) : next.add(postId);
       return next;
     });
   };
@@ -240,9 +373,43 @@ export default function MentorDashboard() {
     { key: 'presentation', label: 'מצגות', icon: FileText },
   ];
 
-  const isPresentation = lessonForm.lesson_type === 'presentation';
+  const postTypeOptions: { key: PostType; label: string; icon: typeof MessageSquare; desc: string }[] = [
+    { key: 'discussion', label: 'דיון', icon: MessageSquare, desc: 'שאלה או דיון פתוח' },
+    { key: 'media', label: 'תמונה/וידאו', icon: Image, desc: 'שתף עסקה, גרף או סרטון' },
+    { key: 'live', label: 'לייב', icon: Radio, desc: 'הודעת סשן מסחר לייב' },
+  ];
 
+  const isPresentation = lessonForm.lesson_type === 'presentation';
   const uncategorized = lessons.filter(l => !l.category_id);
+
+  const postTypeColor: Record<PostType, string> = {
+    discussion: 'text-blue-500',
+    media: 'text-emerald-500',
+    live: 'text-red-500',
+  };
+
+  const postTypeBg: Record<PostType, string> = {
+    discussion: 'bg-blue-500/10',
+    media: 'bg-emerald-500/10',
+    live: 'bg-red-500/10',
+  };
+
+  const postTypeLabel: Record<string, string> = {
+    discussion: 'דיון',
+    media: 'מדיה',
+    live: 'לייב',
+  };
+
+  const postTypeIcon = (type: string) => {
+    if (type === 'live') return <Wifi className="w-3.5 h-3.5" />;
+    if (type === 'media') return <Image className="w-3.5 h-3.5" />;
+    return <MessageCircle className="w-3.5 h-3.5" />;
+  };
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleString('he-IL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
@@ -306,6 +473,8 @@ export default function MentorDashboard() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
+
+          {/* ───────────── LESSONS ───────────── */}
           {activeTab === 'lessons' && (
             <motion.div
               key="lessons"
@@ -339,7 +508,6 @@ export default function MentorDashboard() {
                 </div>
               </div>
 
-              {/* Category form inline */}
               <AnimatePresence>
                 {showCategoryForm && (
                   <motion.div
@@ -374,7 +542,6 @@ export default function MentorDashboard() {
                 )}
               </AnimatePresence>
 
-              {/* Categories & Lessons */}
               <div className="space-y-3">
                 {categories.map(cat => {
                   const catLessons = lessons.filter(l => l.category_id === cat.id);
@@ -385,9 +552,7 @@ export default function MentorDashboard() {
                         className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                         onClick={() => toggleCat(cat.id)}
                       >
-                        <ChevronDown
-                          className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`}
-                        />
+                        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
                         <span className="font-semibold text-foreground flex-1">{cat.title}</span>
                         <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                           {catLessons.length} שיעורים
@@ -395,7 +560,6 @@ export default function MentorDashboard() {
                         <button
                           onClick={e => { e.stopPropagation(); setSelectedCategoryId(cat.id); setShowLessonPanel(true); }}
                           className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-accent/10 text-accent transition-colors"
-                          title="הוסף שיעור"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
@@ -408,17 +572,10 @@ export default function MentorDashboard() {
                       </div>
                       <AnimatePresence>
                         {isExpanded && (
-                          <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: 'auto' }}
-                            exit={{ height: 0 }}
-                            className="overflow-hidden"
-                          >
+                          <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                             <div className="border-t border-border">
                               {catLessons.length === 0 ? (
-                                <div className="px-6 py-4 text-sm text-muted-foreground text-center">
-                                  עדיין אין תכנים בקטגוריה זו.
-                                </div>
+                                <div className="px-6 py-4 text-sm text-muted-foreground text-center">עדיין אין תכנים בקטגוריה זו.</div>
                               ) : (
                                 catLessons.map(lesson => (
                                   <LessonRow
@@ -439,7 +596,6 @@ export default function MentorDashboard() {
                   );
                 })}
 
-                {/* Uncategorized */}
                 {uncategorized.length > 0 && (
                   <div className="bg-card rounded-xl card-shadow overflow-hidden">
                     <div className="flex items-center gap-3 p-4">
@@ -471,22 +627,176 @@ export default function MentorDashboard() {
             </motion.div>
           )}
 
+          {/* ───────────── COMMUNITY ───────────── */}
           {activeTab === 'community' && (
             <motion.div
               key="community"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              className="p-8 max-w-2xl"
+            >
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
+                <p className="text-sm text-muted-foreground mt-1">שתף עדכונים, ניתוחים ודיונים עם הקהילה שלך</p>
+              </div>
+
+              {/* Compose box */}
+              <div className="bg-card rounded-2xl card-shadow p-5 mb-6">
+                {/* Post type selector */}
+                <div className="flex gap-2 mb-4">
+                  {postTypeOptions.map(({ key, label, icon: Icon }) => (
+                    <button
+                      key={key}
+                      onClick={() => { setPostType(key); setPostMediaUrl(''); setPostMediaType(''); }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                        postType === key
+                          ? `${postTypeBg[key]} ${postTypeColor[key]} border-current`
+                          : 'border-border text-muted-foreground hover:border-foreground/20'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  value={postContent}
+                  onChange={e => setPostContent(e.target.value)}
+                  placeholder={
+                    postType === 'live'
+                      ? 'תאר את הסשן: מה אתה מסחר היום, אסטרטגיה, זמן...'
+                      : postType === 'media'
+                      ? 'תאר את התמונה/סרטון שאתה מעלה...'
+                      : 'שתף ניתוח, שאלה לדיון, או עדכון לקהילה...'
+                  }
+                  rows={3}
+                  className="w-full px-4 py-3 bg-surface border-none ring-1 ring-border rounded-xl text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right resize-none"
+                />
+
+                {/* Media upload */}
+                {postType === 'media' && (
+                  <div className="mt-3">
+                    <input
+                      ref={postFileInputRef}
+                      type="file"
+                      accept="image/*,video/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const { url, type } = await handlePostFileUpload(file);
+                          setPostMediaUrl(url);
+                          setPostMediaType(type);
+                          toast({ title: 'הקובץ הועלה בהצלחה' });
+                        } catch {
+                          toast({ title: 'שגיאה בהעלאה', variant: 'destructive' });
+                        }
+                      }}
+                    />
+                    {postMediaUrl ? (
+                      <div className="relative rounded-xl overflow-hidden">
+                        {postMediaType === 'video' ? (
+                          <video src={postMediaUrl} className="w-full max-h-64 object-cover rounded-xl" controls />
+                        ) : (
+                          <img src={postMediaUrl} alt="preview" className="w-full max-h-64 object-cover rounded-xl" />
+                        )}
+                        <button
+                          onClick={() => { setPostMediaUrl(''); setPostMediaType(''); if (postFileInputRef.current) postFileInputRef.current.value = ''; }}
+                          className="absolute top-2 left-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-all"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => postFileInputRef.current?.click()}
+                        disabled={isPostUploading}
+                        className="w-full h-20 border-2 border-dashed border-border rounded-xl flex items-center justify-center gap-2 text-muted-foreground hover:border-accent hover:text-accent transition-all disabled:opacity-50 text-sm"
+                      >
+                        {isPostUploading ? (
+                          <><div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" /><span>מעלה...</span></>
+                        ) : (
+                          <><Upload className="w-4 h-4" /><span>העלה תמונה או וידאו</span></>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Live badge preview */}
+                {postType === 'live' && (
+                  <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-red-500/10 rounded-lg text-red-500 text-xs font-medium w-fit">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    LIVE — יצורף לפוסט כאשר יפורסם
+                  </div>
+                )}
+
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => postContent.trim() && createPost.mutate()}
+                    disabled={!postContent.trim() || createPost.isPending || isPostUploading}
+                    className="flex items-center gap-2 h-9 px-5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    <Send className="w-4 h-4" />
+                    {createPost.isPending ? 'מפרסם...' : 'פרסם'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Posts feed */}
+              <div className="space-y-4">
+                {posts.length === 0 ? (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="font-medium">אין פוסטים עדיין</p>
+                    <p className="text-sm mt-1">פרסם את הפוסט הראשון שלך לקהילה</p>
+                  </div>
+                ) : (
+                  posts.map(post => (
+                    <PostCard
+                      key={post.id}
+                      post={post}
+                      fetchComments={fetchComments}
+                      expanded={expandedComments.has(post.id)}
+                      onToggleComments={() => toggleComments(post.id)}
+                      commentText={commentTexts[post.id] ?? ''}
+                      onCommentChange={(val) => setCommentTexts(prev => ({ ...prev, [post.id]: val }))}
+                      onAddComment={() => {
+                        const text = commentTexts[post.id]?.trim();
+                        if (text) addComment.mutate({ postId: post.id, content: text });
+                      }}
+                      onDelete={() => deletePost.mutate(post.id)}
+                      postTypeLabel={postTypeLabel}
+                      postTypeIcon={postTypeIcon}
+                      postTypeBg={postTypeBg}
+                      postTypeColor={postTypeColor}
+                      formatDate={formatDate}
+                      queryClient={qc}
+                    />
+                  ))
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ───────────── STUDENTS ───────────── */}
+          {activeTab === 'students' && (
+            <motion.div
+              key="students"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="p-8 max-w-3xl"
             >
               <div className="mb-8">
-                <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {members.length} תלמידים · {invites.length} הזמנות ממתינות
-                </p>
+                <h1 className="text-2xl font-bold text-foreground">תלמידים</h1>
+                <p className="text-sm text-muted-foreground mt-1">{members.length} תלמידים רשומים</p>
               </div>
 
-              {/* Invite input */}
+              {/* Invite */}
               <div className="bg-card rounded-xl card-shadow p-6 mb-6">
                 <h2 className="font-semibold text-foreground mb-1">הזמן תלמיד לקהילה</h2>
                 <p className="text-sm text-muted-foreground mb-4">הכנס אימייל או טלפון של התלמיד</p>
@@ -531,55 +841,14 @@ export default function MentorDashboard() {
               <div className="bg-card rounded-xl card-shadow p-6">
                 <h2 className="font-semibold text-foreground mb-3">תלמידים בקהילה</h2>
                 {members.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">אין תלמידים בקהילה עדיין. שלח הזמנות!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {members.map((m: { student_id: string; joined_at: string; profiles: { full_name: string; email: string } | null }) => (
-                      <div key={m.student_id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-                        <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent text-xs font-bold">
-                          {m.profiles?.full_name?.[0]?.toUpperCase() ?? '?'}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-foreground">{m.profiles?.full_name ?? 'תלמיד'}</div>
-                          <div className="text-xs text-muted-foreground">{m.profiles?.email}</div>
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          הצטרף {new Date(m.joined_at).toLocaleDateString('he-IL')}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'students' && (
-            <motion.div
-              key="students"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="p-8 max-w-3xl"
-            >
-              <div className="mb-8">
-                <h1 className="text-2xl font-bold text-foreground">תלמידים</h1>
-                <p className="text-sm text-muted-foreground mt-1">{members.length} תלמידים רשומים</p>
-              </div>
-
-              <div className="bg-card rounded-xl card-shadow p-6">
-                {members.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <GraduationCap className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="font-medium">אין תלמידים עדיין</p>
-                    <p className="text-sm mt-1">הזמן תלמידים דרך לשונית הקהילה</p>
+                    <p className="text-sm mt-1">הזמן תלמידים באמצעות הטופס למעלה</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {members.map((m: { student_id: string; joined_at: string; profiles: { full_name: string; email: string } | null }) => (
+                    {members.map((m) => (
                       <div key={m.student_id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors">
                         <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold">
                           {m.profiles?.full_name?.[0]?.toUpperCase() ?? '?'}
@@ -598,6 +867,7 @@ export default function MentorDashboard() {
               </div>
             </motion.div>
           )}
+
         </AnimatePresence>
       </main>
 
@@ -628,7 +898,6 @@ export default function MentorDashboard() {
                 </div>
 
                 <div className="space-y-4">
-                  {/* Title */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">כותרת השיעור *</label>
                     <input
@@ -639,7 +908,6 @@ export default function MentorDashboard() {
                     />
                   </div>
 
-                  {/* Content type */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">סוג תוכן</label>
                     <div className="grid grid-cols-3 gap-2">
@@ -660,7 +928,6 @@ export default function MentorDashboard() {
                     </div>
                   </div>
 
-                  {/* File upload — shown for all types */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">
                       {isPresentation ? 'העלאת מצגת / וידאו' : 'העלאת וידאו'}
@@ -701,26 +968,18 @@ export default function MentorDashboard() {
                         className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-accent hover:text-accent transition-all disabled:opacity-50"
                       >
                         {isUploading ? (
-                          <>
-                            <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                            <span className="text-xs">מעלה...</span>
-                          </>
+                          <><div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" /><span className="text-xs">מעלה...</span></>
                         ) : (
                           <>
                             <Upload className="w-5 h-5" />
-                            <span className="text-xs font-medium">
-                              {isPresentation ? 'לחץ להעלאת מצגת או וידאו' : 'לחץ להעלאת וידאו'}
-                            </span>
-                            <span className="text-xs opacity-60">
-                              {isPresentation ? 'MP4, PDF, PPT, PPTX' : 'MP4, MOV, AVI'}
-                            </span>
+                            <span className="text-xs font-medium">{isPresentation ? 'לחץ להעלאת מצגת או וידאו' : 'לחץ להעלאת וידאו'}</span>
+                            <span className="text-xs opacity-60">{isPresentation ? 'MP4, PDF, PPT, PPTX' : 'MP4, MOV, AVI'}</span>
                           </>
                         )}
                       </button>
                     )}
                   </div>
 
-                  {/* Category */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">קטגוריה</label>
                     <select
@@ -735,7 +994,6 @@ export default function MentorDashboard() {
                     </select>
                   </div>
 
-                  {/* Duration */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">משך (דקות)</label>
                     <input
@@ -747,7 +1005,6 @@ export default function MentorDashboard() {
                     />
                   </div>
 
-                  {/* Description */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">תיאור</label>
                     <textarea
@@ -776,12 +1033,142 @@ export default function MentorDashboard() {
   );
 }
 
+// ─── PostCard component ───────────────────────────────────────────────────────
+function PostCard({
+  post, fetchComments, expanded, onToggleComments,
+  commentText, onCommentChange, onAddComment, onDelete,
+  postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
+}: {
+  post: CommunityPost;
+  fetchComments: (id: string) => Promise<PostComment[]>;
+  expanded: boolean;
+  onToggleComments: () => void;
+  commentText: string;
+  onCommentChange: (v: string) => void;
+  onAddComment: () => void;
+  onDelete: () => void;
+  postTypeLabel: Record<string, string>;
+  postTypeIcon: (t: string) => React.ReactNode;
+  postTypeBg: Record<string, string>;
+  postTypeColor: Record<string, string>;
+  formatDate: (s: string) => string;
+  queryClient: ReturnType<typeof useQueryClient>;
+}) {
+  const { data: comments = [], isLoading: commentsLoading } = useQuery<PostComment[]>({
+    queryKey: ['comments', post.id],
+    queryFn: () => fetchComments(post.id),
+    enabled: expanded,
+  });
+
+  const pType = post.post_type as PostType;
+
+  return (
+    <div className="bg-card rounded-2xl card-shadow overflow-hidden">
+      {/* Post header */}
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${postTypeBg[pType] ?? 'bg-muted'} ${postTypeColor[pType] ?? 'text-foreground'}`}>
+              {pType === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
+              {postTypeIcon(pType)}
+              {postTypeLabel[pType] ?? pType}
+            </span>
+            <span className="text-xs text-muted-foreground">{formatDate(post.created_at)}</span>
+          </div>
+          <button
+            onClick={onDelete}
+            className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
+
+        {/* Media */}
+        {post.media_url && (
+          <div className="mt-3 rounded-xl overflow-hidden">
+            {post.media_type === 'video' ? (
+              <div className="relative">
+                <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" controls />
+              </div>
+            ) : (
+              <img src={post.media_url} alt="post media" className="w-full max-h-72 object-cover rounded-xl" />
+            )}
+          </div>
+        )}
+
+        {/* Comment toggle */}
+        <button
+          onClick={onToggleComments}
+          className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <MessageCircle className="w-3.5 h-3.5" />
+          {expanded ? 'הסתר תגובות' : `הצג תגובות${comments.length > 0 ? ` (${comments.length})` : ''}`}
+        </button>
+      </div>
+
+      {/* Comments */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            exit={{ height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-border px-5 pb-4 pt-3">
+              {commentsLoading ? (
+                <div className="flex justify-center py-4">
+                  <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : comments.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-3">אין תגובות עדיין</p>
+              ) : (
+                <div className="space-y-3 mb-3">
+                  {comments.map(c => (
+                    <div key={c.id} className="flex gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-accent text-xs font-bold shrink-0">
+                        {c.profiles?.full_name?.[0]?.toUpperCase() ?? '?'}
+                      </div>
+                      <div className="flex-1 bg-muted/40 rounded-xl px-3 py-2">
+                        <div className="text-xs font-medium text-foreground mb-0.5">{c.profiles?.full_name ?? 'תלמיד'}</div>
+                        <p className="text-xs text-foreground leading-relaxed">{c.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add comment */}
+              <div className="flex gap-2 mt-2">
+                <textarea
+                  value={commentText}
+                  onChange={e => onCommentChange(e.target.value)}
+                  placeholder="כתוב תגובה..."
+                  rows={1}
+                  className="flex-1 px-3 py-2 bg-surface border-none ring-1 ring-border rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right resize-none"
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAddComment(); } }}
+                />
+                <button
+                  onClick={onAddComment}
+                  disabled={!commentText.trim()}
+                  className="w-9 h-9 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all disabled:opacity-40"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── LessonRow component ──────────────────────────────────────────────────────
 function LessonRow({
-  lesson,
-  onTogglePublish,
-  onDelete,
-  typeIcon,
-  typeLabel,
+  lesson, onTogglePublish, onDelete, typeIcon, typeLabel,
 }: {
   lesson: Lesson;
   onTogglePublish: () => void;
@@ -805,11 +1192,8 @@ function LessonRow({
         <button
           onClick={onTogglePublish}
           className={`h-7 px-2 rounded-md text-xs font-medium flex items-center gap-1 transition-all ${
-            lesson.is_published
-              ? 'bg-accent/10 text-accent hover:bg-accent/20'
-              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            lesson.is_published ? 'bg-accent/10 text-accent hover:bg-accent/20' : 'bg-muted text-muted-foreground hover:bg-muted/80'
           }`}
-          title={lesson.is_published ? 'הסתר מתלמידים' : 'פרסם לתלמידים'}
         >
           {lesson.is_published ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
           {lesson.is_published ? 'פורסם' : 'טיוטה'}

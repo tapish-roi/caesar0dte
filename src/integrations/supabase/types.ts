@@ -98,26 +98,70 @@ export type Database = {
         }
         Relationships: []
       }
+      community_post_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_posts: {
         Row: {
           content: string
           created_at: string
           id: string
+          media_type: string | null
+          media_url: string | null
           mentor_id: string
+          post_type: string
           updated_at: string
         }
         Insert: {
           content: string
           created_at?: string
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           mentor_id: string
+          post_type?: string
           updated_at?: string
         }
         Update: {
           content?: string
           created_at?: string
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           mentor_id?: string
+          post_type?: string
           updated_at?: string
         }
         Relationships: []
