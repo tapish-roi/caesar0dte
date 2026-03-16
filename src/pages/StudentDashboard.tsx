@@ -332,6 +332,7 @@ export default function StudentDashboard() {
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [notifyState, setNotifyState] = useState({ notify_sms: false, notify_email: false });
+  const [activeLiveSession, setActiveLiveSession] = useState<{ id: string; title: string; mentor_id: string } | null>(null);
 
   // ── Queries ──────────────────────────────────────────────────────────────────
 
