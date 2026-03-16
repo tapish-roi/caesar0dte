@@ -1373,6 +1373,63 @@ export default function StudentDashboard() {
   );
 }
 
+// ─── DateRangeFilter ─────────────────────────────────────────────────────────
+function DateRangeFilter({ range, onChange }: { range: DateRange | undefined; onChange: (r: DateRange | undefined) => void }) {
+  const [open, setOpen] = useState(false);
+  const hasFilter = !!range?.from;
+
+  const label = hasFilter
+    ? range?.to && range.to.getTime() !== range.from!.getTime()
+      ? `${format(range.from!, 'dd.MM.yy', { locale: he })} – ${format(range.to, 'dd.MM.yy', { locale: he })}`
+      : format(range.from!, 'dd.MM.yy', { locale: he })
+    : 'סנן לפי תאריך';
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={`flex items-center gap-2 h-9 px-3 text-xs ${hasFilter ? 'border-primary text-primary bg-primary/5' : 'text-muted-foreground'}`}
+        >
+          <CalendarDays className="w-3.5 h-3.5" />
+          {label}
+          {hasFilter && (
+            <span
+              onClick={(e) => { e.stopPropagation(); onChange(undefined); }}
+              className="hover:text-destructive transition-colors"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="end" sideOffset={6}>
+        <Calendar
+          mode="range"
+          selected={range}
+          onSelect={(r) => {
+            onChange(r);
+            if (r?.from && r?.to) setOpen(false);
+          }}
+          className="p-3 pointer-events-auto"
+          numberOfMonths={2}
+        />
+        {hasFilter && (
+          <div className="border-t border-border p-2 flex justify-end">
+            <button
+              onClick={() => { onChange(undefined); setOpen(false); }}
+              className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1"
+            >
+              נקה סינון
+            </button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // ─── StudentPostCard ──────────────────────────────────────────────────────────
 const StudentPostCard = React.forwardRef<HTMLDivElement, {
   post: PostItem;
