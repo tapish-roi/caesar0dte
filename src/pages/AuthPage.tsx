@@ -57,15 +57,23 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
-      {/* Background subtle grid */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage: `linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)`,
-          backgroundSize: '48px 48px',
-        }}
-      />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-bg">
+      {/* Soft radial gradient blobs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.12]"
+          style={{ background: 'radial-gradient(circle, hsl(160 84% 39%) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full opacity-[0.07]"
+          style={{ background: 'radial-gradient(circle, hsl(222 47% 40%) 0%, transparent 70%)' }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] opacity-[0.05]"
+          style={{ background: 'radial-gradient(ellipse, hsl(160 84% 39%) 0%, transparent 60%)' }}
+        />
+      </div>
+
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
