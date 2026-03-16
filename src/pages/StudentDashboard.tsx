@@ -1108,6 +1108,17 @@ export default function StudentDashboard() {
                         const text = commentTexts[post.id]?.trim();
                         if (text) addComment.mutate({ postId: post.id, content: text });
                       }}
+                      onJoinLive={async () => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const { data } = await (supabase.from('live_sessions') as any)
+                          .select('id, title, mentor_id')
+                          .eq('mentor_id', post.mentor_id)
+                          .eq('status', 'active')
+                          .order('started_at', { ascending: false })
+                          .limit(1)
+                          .single();
+                        if (data) setActiveLiveSession(data);
+                      }}
                       postTypeLabel={postTypeLabel}
                       postTypeIcon={postTypeIcon}
                       postTypeBg={postTypeBg}
