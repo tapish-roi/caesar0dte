@@ -287,7 +287,50 @@ export default function MentorDashboard() {
     },
   });
 
-  const togglePublish = useMutation({
+  const updateLesson = useMutation({
+    mutationFn: async () => {
+      if (!editLesson) return;
+      const { error } = await supabase.from('lessons').update({
+        title: editForm.title,
+        description: editForm.description || null,
+        video_url: editForm.video_url || null,
+        duration_minutes: editForm.duration_minutes ? parseInt(editForm.duration_minutes) : null,
+        attachment_url: editForm.attachment_url || null,
+        attachment_name: editForm.attachment_name || null,
+      }).eq('id', editLesson.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lessons'] });
+      setEditLesson(null);
+      toast({ title: 'שיעור עודכן בהצלחה' });
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון השיעור', variant: 'destructive' }),
+  });
+
+  const handleEditVideoUpload = async (file: File): Promise<string> => {
+    setIsEditVideoUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `${user!.id}/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
+    setIsEditVideoUploading(false);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+    return publicUrl;
+  };
+
+  const handleEditAttachmentUpload = async (file: File): Promise<{ url: string; name: string }> => {
+    setIsEditAttachmentUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `attachments/${user!.id}/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
+    setIsEditAttachmentUploading(false);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+    return { url: publicUrl, name: file.name };
+  };
+
+
     mutationFn: async ({ id, is_published }: { id: string; is_published: boolean }) => {
       const { error } = await supabase.from('lessons').update({ is_published: !is_published }).eq('id', id);
       if (error) throw error;
