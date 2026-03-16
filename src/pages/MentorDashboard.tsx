@@ -92,6 +92,14 @@ export default function MentorDashboard() {
   const [accessStudentId, setAccessStudentId] = useState<string | null>(null);
   const [accessStudentName, setAccessStudentName] = useState('');
 
+  // Edit lesson
+  const [editLesson, setEditLesson] = useState<Lesson | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', description: '', video_url: '', duration_minutes: '', attachment_url: '', attachment_name: '' });
+  const [isEditVideoUploading, setIsEditVideoUploading] = useState(false);
+  const [isEditAttachmentUploading, setIsEditAttachmentUploading] = useState(false);
+  const editVideoInputRef = useRef<HTMLInputElement>(null);
+  const editAttachmentInputRef = useRef<HTMLInputElement>(null);
+
   // ─── Queries ────────────────────────────────────────────────────────────────
 
   const { data: mentorProfile } = useQuery({
