@@ -117,12 +117,12 @@ export default function MentorDashboard() {
     enabled: !!user && activeTab === 'students',
   });
 
-  const { data: invites = [] } = useQuery({
+  const { data: invites = [] } = useQuery<{ id: string; contact: string; created_at: string }[]>({
     queryKey: ['invites', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('community_invites').select('*').eq('mentor_id', user!.id).eq('status', 'pending');
+      const { data, error } = await supabase.from('community_invites').select('id, contact, created_at').eq('mentor_id', user!.id).eq('status', 'pending').order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
     enabled: !!user && activeTab === 'students',
   });
