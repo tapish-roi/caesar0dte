@@ -333,6 +333,10 @@ export default function StudentDashboard() {
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [selectedMentorId, setSelectedMentorId] = useState<string | null>(null);
 
+  // Date filter state
+  const [lessonDateRange, setLessonDateRange] = useState<DateRange | undefined>(undefined);
+  const [communityDateRange, setCommunityDateRange] = useState<DateRange | undefined>(undefined);
+
   // Profile popover state
   const [profileOpen, setProfileOpen] = useState(false);
   const profilePopoverRef = useRef<HTMLDivElement>(null);
