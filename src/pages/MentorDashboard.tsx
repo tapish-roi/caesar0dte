@@ -717,15 +717,26 @@ export default function MentorDashboard() {
 
               {invites.length > 0 && (
                 <div className="bg-card rounded-xl card-shadow p-6 mb-6">
-                  <h2 className="font-semibold text-foreground mb-3">הזמנות ממתינות</h2>
+                  <h2 className="font-semibold text-foreground mb-3">הזמנות ממתינות ({invites.length})</h2>
                   <div className="space-y-2">
-                    {invites.map((inv: { id: string; contact: string }) => (
-                      <div key={inv.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-                        <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center">
+                    {invites.map((inv: { id: string; contact: string; created_at: string }) => (
+                      <div key={inv.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/30 transition-colors group">
+                        <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
                           <Send className="w-3.5 h-3.5 text-amber-500" />
                         </div>
-                        <span className="text-sm text-foreground flex-1">{inv.contact}</span>
-                        <span className="text-xs text-muted-foreground">ממתין לאישור</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm text-foreground">{inv.contact}</span>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {new Date(inv.created_at).toLocaleDateString('he-IL')} · ממתין לאישור
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => deleteInvite.mutate(inv.id)}
+                          className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          title="בטל הזמנה"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     ))}
                   </div>
