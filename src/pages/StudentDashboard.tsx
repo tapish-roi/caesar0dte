@@ -662,6 +662,49 @@ export default function StudentDashboard() {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
+  // ── Date-filter helpers ─────────────────────────────────────────────────────
+  const isInDateRange = (iso: string, range: DateRange | undefined): boolean => {
+    if (!range?.from) return true;
+    const d = parseISO(iso);
+    const from = startOfDay(range.from);
+    const to = endOfDay(range.to ?? range.from);
+    return isWithinInterval(d, { start: from, end: to });
+  };
+
+  // Filtered lessons (by date range)
+  const filteredLessons = useMemo(() =>
+    lessonDateRange?.from
+      ? lessons.filter(l => isInDateRange(l.created_at, lessonDateRange))
+      : lessons
+  , [lessons, lessonDateRange]);
+
+  // Filtered posts (by date range)
+  const filteredPosts = useMemo(() =>
+    communityDateRange?.from
+      ? posts.filter(p => isInDateRange(p.created_at, communityDateRange))
+      : posts
+  , [posts, communityDateRange]);
+
+  // Group filtered posts by date (day label)
+  const postsByDay = useMemo(() => {
+    const groups: { label: string; posts: typeof filteredPosts }[] = [];
+    let lastLabel = '';
+    // posts are ordered desc; group them
+    const sorted = [...filteredPosts].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    // re-sort desc for display, then group
+    const desc = [...sorted].reverse();
+    for (const post of desc) {
+      const label = format(parseISO(post.created_at), 'dd.MM.yyyy', { locale: he });
+      if (label !== lastLabel) {
+        groups.push({ label, posts: [post] });
+        lastLabel = label;
+      } else {
+        groups[groups.length - 1].posts.push(post);
+      }
+    }
+    return groups;
+  }, [filteredPosts]);
+
   // ── Loading ──
   if (membershipsLoading || invitesLoading) {
     return (
