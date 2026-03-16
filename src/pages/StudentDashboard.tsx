@@ -440,7 +440,7 @@ export default function StudentDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lessons')
-        .select('id, title, description, lesson_type, video_url, category_id, duration_minutes, attachment_url, attachment_name')
+        .select('id, title, description, lesson_type, video_url, category_id, duration_minutes, attachment_url, attachment_name, created_at')
         .eq('mentor_id', mentorId!)
         .eq('is_published', true)
         .order('position');
