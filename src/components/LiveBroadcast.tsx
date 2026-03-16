@@ -192,12 +192,12 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
           } else if (sig.signal_type === 'answer') {
             const pc = peersRef.current.get(sig.from_user_id);
             if (pc) {
-              await pc.setRemoteDescription(new RTCSessionDescription(sig.payload as RTCSessionDescriptionInit));
+              await pc.setRemoteDescription(new RTCSessionDescription(sig.payload as unknown as RTCSessionDescriptionInit));
             }
           } else if (sig.signal_type === 'ice-candidate') {
             const pc = peersRef.current.get(sig.from_user_id);
             if (pc && sig.payload.candidate) {
-              await pc.addIceCandidate(new RTCIceCandidate(sig.payload as RTCIceCandidateInit));
+              await pc.addIceCandidate(new RTCIceCandidate(sig.payload as unknown as RTCIceCandidateInit));
             }
           }
         })
