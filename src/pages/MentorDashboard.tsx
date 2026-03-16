@@ -78,6 +78,7 @@ export default function MentorDashboard() {
   const [postMediaType, setPostMediaType] = useState('');
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [removeConfirm, setRemoveConfirm] = useState<{ studentId: string; name: string } | null>(null);
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -278,17 +279,36 @@ export default function MentorDashboard() {
     onError: () => toast({ title: 'שגיאה בביטול ההזמנה', variant: 'destructive' }),
   });
 
+  const removeMember = useMutation({
+    mutationFn: async (studentId: string) => {
+      const { error } = await supabase.from('community_members').delete().eq('mentor_id', user!.id).eq('student_id', studentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['members'] });
+      toast({ title: 'התלמיד הוסר מהקהילה' });
+      setRemoveConfirm(null);
+    },
+    onError: () => toast({ title: 'שגיאה בהסרת התלמיד', variant: 'destructive' }),
+  });
+
   const createPost = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('community_posts').insert({
+      const { data, error } = await supabase.from('community_posts').insert({
         mentor_id: user!.id,
         content: postContent,
         post_type: postType,
         media_url: postMediaUrl || null,
         media_type: postMediaType || null,
         is_pinned: false,
-      });
+      }).select('id').single();
       if (error) throw error;
+      // Trigger notifications in background (don't block post creation)
+      if (data?.id) {
+        supabase.functions.invoke('notify-new-post', {
+          body: { post_id: data.id, mentor_id: user!.id },
+        }).catch(() => {/* notifications are best-effort */});
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['community_posts'] });
@@ -754,7 +774,7 @@ export default function MentorDashboard() {
                 ) : (
                   <div className="space-y-3">
                     {members.map((m) => (
-                      <div key={m.student_id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors">
+                      <div key={m.student_id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors group">
                         <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold">
                           {m.profiles?.full_name?.[0]?.toUpperCase() ?? '?'}
                         </div>
@@ -765,6 +785,13 @@ export default function MentorDashboard() {
                         <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
                           הצטרף {new Date(m.joined_at).toLocaleDateString('he-IL')}
                         </div>
+                        <button
+                          onClick={() => setRemoveConfirm({ studentId: m.student_id, name: m.profiles?.full_name ?? 'תלמיד' })}
+                          className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          title="הסר מהקהילה"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -775,6 +802,47 @@ export default function MentorDashboard() {
 
         </AnimatePresence>
       </main>
+
+      {/* Remove student confirmation dialog */}
+      <AnimatePresence>
+        {removeConfirm && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black z-50" onClick={() => setRemoveConfirm(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-sm" dir="rtl">
+                <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-5 h-5 text-destructive" />
+                </div>
+                <h3 className="text-base font-bold text-foreground text-center mb-1">הסרת תלמיד</h3>
+                <p className="text-sm text-muted-foreground text-center mb-6">
+                  האם להסיר את <span className="font-semibold text-foreground">{removeConfirm.name}</span> מהקהילה?
+                  <br />פעולה זו לא ניתנת לביטול.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setRemoveConfirm(null)}
+                    className="flex-1 h-10 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+                  >
+                    ביטול
+                  </button>
+                  <button
+                    onClick={() => removeMember.mutate(removeConfirm.studentId)}
+                    disabled={removeMember.isPending}
+                    className="flex-1 h-10 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    {removeMember.isPending ? 'מסיר...' : 'הסר'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Lesson slide panel */}
       <AnimatePresence>
