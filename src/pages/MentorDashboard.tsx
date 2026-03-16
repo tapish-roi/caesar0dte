@@ -591,7 +591,7 @@ export default function MentorDashboard() {
               {/* Compose box */}
               <div className="bg-card rounded-2xl card-shadow p-5 mb-6">
                 <div className="flex gap-2 mb-4">
-                  {postTypeOptions.map(({ key, label, icon: Icon }) => (
+                  {postTypeOptions.filter(o => o.key !== 'live').map(({ key, label, icon: Icon }) => (
                     <button
                       key={key}
                       onClick={() => { setPostType(key); setPostMediaUrl(''); setPostMediaType(''); }}
@@ -604,14 +604,21 @@ export default function MentorDashboard() {
                       <Icon className="w-3.5 h-3.5" />{label}
                     </button>
                   ))}
+                  {/* Live button — opens LiveBroadcast modal */}
+                  <button
+                    onClick={() => setShowLiveBroadcast(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-destructive/40 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-all"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                    לייב
+                  </button>
                 </div>
 
                 <textarea
                   value={postContent}
                   onChange={e => setPostContent(e.target.value)}
                   placeholder={
-                    postType === 'live' ? 'תאר את הסשן: מה אתה מסחר היום, אסטרטגיה, זמן...'
-                    : postType === 'media' ? 'תאר את התמונה/סרטון שאתה מעלה...'
+                    postType === 'media' ? 'תאר את התמונה/סרטון שאתה מעלה...'
                     : 'שתף ניתוח, שאלה לדיון, או עדכון לקהילה...'
                   }
                   rows={3}
@@ -640,7 +647,7 @@ export default function MentorDashboard() {
                         }
                         <button
                           onClick={() => { setPostMediaUrl(''); setPostMediaType(''); if (postFileInputRef.current) postFileInputRef.current.value = ''; }}
-                          className="absolute top-2 left-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80"
+                          className="absolute top-2 left-2 w-7 h-7 bg-foreground/60 rounded-full flex items-center justify-center text-background hover:bg-foreground/80"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -656,13 +663,6 @@ export default function MentorDashboard() {
                         }
                       </button>
                     )}
-                  </div>
-                )}
-
-                {postType === 'live' && (
-                  <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-red-500/10 rounded-lg text-red-500 text-xs font-medium w-fit">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    LIVE — יצורף לפוסט כאשר יפורסם
                   </div>
                 )}
 
