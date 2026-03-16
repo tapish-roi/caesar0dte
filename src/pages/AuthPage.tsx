@@ -167,6 +167,7 @@ export default function AuthPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <AnimatePresence>
                 {mode === 'signup' && (
+                  <div>
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
