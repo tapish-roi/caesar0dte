@@ -1013,7 +1013,7 @@ export default function StudentDashboard() {
                               {catLessons.map((lesson) => {
                                 const prog = getProgress(lesson.id);
                                 return (
-                                  <div
+                                   <div
                                     key={lesson.id}
                                     onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
                                     className={`flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${selectedLesson === lesson.id ? 'bg-accent/5' : ''}`}
@@ -1024,6 +1024,11 @@ export default function StudentDashboard() {
                                     <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
                                       {lesson.title}
                                     </span>
+                                    {lesson.lesson_type === 'live' && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold flex items-center gap-1 shrink-0">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-destructive" />לייב
+                                      </span>
+                                    )}
                                     {lesson.duration_minutes && (
                                       <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
                                     )}
