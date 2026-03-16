@@ -393,6 +393,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (profile) {
       setProfileForm({ full_name: profile.full_name ?? '', phone: profile.phone ?? '' });
+      setNotifyState({ notify_sms: profile.notify_sms ?? false, notify_email: profile.notify_email ?? false });
     }
   }, [profile]);
 
