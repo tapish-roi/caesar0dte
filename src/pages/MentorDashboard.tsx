@@ -294,15 +294,21 @@ export default function MentorDashboard() {
 
   const createPost = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('community_posts').insert({
+      const { data, error } = await supabase.from('community_posts').insert({
         mentor_id: user!.id,
         content: postContent,
         post_type: postType,
         media_url: postMediaUrl || null,
         media_type: postMediaType || null,
         is_pinned: false,
-      });
+      }).select('id').single();
       if (error) throw error;
+      // Trigger notifications in background (don't block post creation)
+      if (data?.id) {
+        supabase.functions.invoke('notify-new-post', {
+          body: { post_id: data.id, mentor_id: user!.id },
+        }).catch(() => {/* notifications are best-effort */});
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['community_posts'] });
