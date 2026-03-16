@@ -236,7 +236,7 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-slate-800 active:bg-slate-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
               >
                 {loading ? '...' : mode === 'login' ? 'כניסה' : 'צור חשבון'}
               </button>
