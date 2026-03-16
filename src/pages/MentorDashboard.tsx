@@ -8,6 +8,7 @@ import {
   ChevronDown, Trash2, Eye, EyeOff,
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, Radio, MessageSquare, MessageCircle, Wifi, Pin, PinOff,
+  ShieldCheck, Lock, Unlock, Paperclip,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import LiveBroadcast from '@/components/LiveBroadcast';
@@ -31,6 +32,8 @@ interface Lesson {
   category_id: string | null;
   is_published: boolean;
   duration_minutes: number | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
 }
 
 interface CommunityPost {
@@ -65,11 +68,14 @@ export default function MentorDashboard() {
   const [newCatTitle, setNewCatTitle] = useState('');
   const [inviteContact, setInviteContact] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isAttachmentUploading, setIsAttachmentUploading] = useState(false);
   const [isPostUploading, setIsPostUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const postFileInputRef = useRef<HTMLInputElement>(null);
   const [lessonForm, setLessonForm] = useState({
     title: '', description: '', lesson_type: 'recorded_lesson', video_url: '', duration_minutes: '',
+    attachment_url: '', attachment_name: '',
   });
 
   // Post compose state
@@ -81,6 +87,10 @@ export default function MentorDashboard() {
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [removeConfirm, setRemoveConfirm] = useState<{ studentId: string; name: string } | null>(null);
   const [showLiveBroadcast, setShowLiveBroadcast] = useState(false);
+
+  // Category access panel
+  const [accessStudentId, setAccessStudentId] = useState<string | null>(null);
+  const [accessStudentName, setAccessStudentName] = useState('');
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -108,7 +118,7 @@ export default function MentorDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase.from('lessons').select('*').eq('mentor_id', user!.id).order('position');
       if (error) throw error;
-      return data;
+      return data as Lesson[];
     },
     enabled: !!user,
   });
@@ -137,6 +147,21 @@ export default function MentorDashboard() {
       return data ?? [];
     },
     enabled: !!user && activeTab === 'students',
+  });
+
+  // Access grants for the selected student
+  const { data: accessGrants = [] } = useQuery<{ category_id: string }[]>({
+    queryKey: ['access-grants', user?.id, accessStudentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('student_category_access')
+        .select('category_id')
+        .eq('mentor_id', user!.id)
+        .eq('student_id', accessStudentId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user && !!accessStudentId,
   });
 
   // Community posts — pinned first, then newest
@@ -207,6 +232,17 @@ export default function MentorDashboard() {
     return publicUrl;
   };
 
+  const handleAttachmentUpload = async (file: File): Promise<{ url: string; name: string }> => {
+    setIsAttachmentUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `attachments/${user!.id}/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
+    setIsAttachmentUploading(false);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+    return { url: publicUrl, name: file.name };
+  };
+
   const handlePostFileUpload = async (file: File): Promise<{ url: string; type: string }> => {
     setIsPostUploading(true);
     const ext = file.name.split('.').pop();
@@ -230,13 +266,15 @@ export default function MentorDashboard() {
         duration_minutes: lessonForm.duration_minutes ? parseInt(lessonForm.duration_minutes) : null,
         position: lessons.filter(l => l.category_id === selectedCategoryId).length,
         is_published: false,
+        attachment_url: lessonForm.attachment_url || null,
+        attachment_name: lessonForm.attachment_name || null,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lessons'] });
       setShowLessonPanel(false);
-      setLessonForm({ title: '', description: '', lesson_type: 'recorded_lesson', video_url: '', duration_minutes: '' });
+      setLessonForm({ title: '', description: '', lesson_type: 'recorded_lesson', video_url: '', duration_minutes: '', attachment_url: '', attachment_name: '' });
       toast({ title: 'שיעור נוצר' });
     },
   });
@@ -303,6 +341,32 @@ export default function MentorDashboard() {
     onError: () => toast({ title: 'שגיאה בהסרת התלמיד', variant: 'destructive' }),
   });
 
+  const grantAccess = useMutation({
+    mutationFn: async (categoryId: string) => {
+      const { error } = await supabase.from('student_category_access').insert({
+        mentor_id: user!.id,
+        student_id: accessStudentId!,
+        category_id: categoryId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['access-grants', user?.id, accessStudentId] }),
+    onError: () => toast({ title: 'שגיאה בהענקת הרשאה', variant: 'destructive' }),
+  });
+
+  const revokeAccess = useMutation({
+    mutationFn: async (categoryId: string) => {
+      const { error } = await supabase.from('student_category_access')
+        .delete()
+        .eq('mentor_id', user!.id)
+        .eq('student_id', accessStudentId!)
+        .eq('category_id', categoryId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['access-grants', user?.id, accessStudentId] }),
+    onError: () => toast({ title: 'שגיאה בביטול הרשאה', variant: 'destructive' }),
+  });
+
   const createPost = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.from('community_posts').insert({
@@ -314,11 +378,10 @@ export default function MentorDashboard() {
         is_pinned: false,
       }).select('id').single();
       if (error) throw error;
-      // Trigger notifications in background (don't block post creation)
       if (data?.id) {
         supabase.functions.invoke('notify-new-post', {
           body: { post_id: data.id, mentor_id: user!.id },
-        }).catch(() => {/* notifications are best-effort */});
+        }).catch(() => {});
       }
     },
     onSuccess: () => {
@@ -407,8 +470,8 @@ export default function MentorDashboard() {
     { key: 'live', label: 'לייב', icon: Radio },
   ];
 
-  const postTypeBg: Record<string, string> = { discussion: 'bg-blue-500/10', media: 'bg-emerald-500/10', live: 'bg-red-500/10' };
-  const postTypeColor: Record<string, string> = { discussion: 'text-blue-500', media: 'text-emerald-500', live: 'text-red-500' };
+  const postTypeBg: Record<string, string> = { discussion: 'bg-primary/10', media: 'bg-accent/10', live: 'bg-destructive/10' };
+  const postTypeColor: Record<string, string> = { discussion: 'text-primary', media: 'text-accent', live: 'text-destructive' };
   const postTypeLabel: Record<string, string> = { discussion: 'דיון', media: 'מדיה', live: 'לייב' };
   const postTypeIcon = (type: string) => {
     if (type === 'live') return <Wifi className="w-3.5 h-3.5" />;
@@ -421,6 +484,8 @@ export default function MentorDashboard() {
 
   const isPresentation = lessonForm.lesson_type === 'presentation';
   const uncategorized = lessons.filter(l => !l.category_id);
+
+  const grantedCategoryIds = new Set(accessGrants.map(g => g.category_id));
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
@@ -615,7 +680,6 @@ export default function MentorDashboard() {
                       <Icon className="w-3.5 h-3.5" />{label}
                     </button>
                   ))}
-                  {/* Live button — opens LiveBroadcast modal */}
                   <button
                     onClick={() => setShowLiveBroadcast(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-destructive/40 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-all"
@@ -798,6 +862,14 @@ export default function MentorDashboard() {
                         <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
                           הצטרף {new Date(m.joined_at).toLocaleDateString('he-IL')}
                         </div>
+                        {/* Permissions button */}
+                        <button
+                          onClick={() => { setAccessStudentId(m.student_id); setAccessStudentName(m.profiles?.full_name ?? 'תלמיד'); }}
+                          className="w-8 h-8 flex items-center justify-center rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-all"
+                          title="נהל הרשאות קטגוריות"
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => setRemoveConfirm({ studentId: m.student_id, name: m.profiles?.full_name ?? 'תלמיד' })}
                           className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
@@ -815,6 +887,99 @@ export default function MentorDashboard() {
 
         </AnimatePresence>
       </main>
+
+      {/* ── Category Access Panel ── */}
+      <AnimatePresence>
+        {accessStudentId && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/20 z-40" onClick={() => setAccessStudentId(null)} />
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 h-full w-[400px] bg-card z-50 shadow-2xl border-l border-border overflow-y-auto"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-1">
+                  <button onClick={() => setAccessStudentId(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                  <h2 className="text-lg font-bold text-foreground">הרשאות קטגוריות</h2>
+                  <div />
+                </div>
+                <p className="text-sm text-muted-foreground text-center mb-6">
+                  בחר לאילו קטגוריות <span className="font-semibold text-foreground">{accessStudentName}</span> יכול לגשת
+                </p>
+
+                {/* All-access note */}
+                <div className="bg-primary/5 border border-primary/15 rounded-xl p-3 mb-5 flex items-start gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    ללא הרשאות ספציפיות — התלמיד רואה את כל הקטגוריות הפומביות. הגדר כאן הרשאות להגבלת גישה לקטגוריות נבחרות בלבד.
+                  </p>
+                </div>
+
+                {categories.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <LayoutGrid className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">אין קטגוריות עדיין</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {categories.map(cat => {
+                      const hasAccess = grantedCategoryIds.has(cat.id);
+                      const catLessons = lessons.filter(l => l.category_id === cat.id);
+                      return (
+                        <div
+                          key={cat.id}
+                          className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all ${
+                            hasAccess
+                              ? 'border-primary/30 bg-primary/5'
+                              : 'border-border bg-background hover:border-border/80'
+                          }`}
+                        >
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            hasAccess ? 'bg-primary/10' : 'bg-muted'
+                          }`}>
+                            {hasAccess
+                              ? <Unlock className="w-4 h-4 text-primary" />
+                              : <Lock className="w-4 h-4 text-muted-foreground" />
+                            }
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-medium ${hasAccess ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {cat.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{catLessons.length} שיעורים</p>
+                          </div>
+                          <button
+                            onClick={() => hasAccess ? revokeAccess.mutate(cat.id) : grantAccess.mutate(cat.id)}
+                            disabled={grantAccess.isPending || revokeAccess.isPending}
+                            className={`h-8 px-3 rounded-lg text-xs font-medium transition-all disabled:opacity-50 ${
+                              hasAccess
+                                ? 'bg-destructive/10 text-destructive hover:bg-destructive/20'
+                                : 'bg-primary text-primary-foreground hover:opacity-90'
+                            }`}
+                          >
+                            {hasAccess ? 'בטל גישה' : 'אשר גישה'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {grantedCategoryIds.size > 0 && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-xs text-muted-foreground text-center">
+                      <span className="font-semibold text-foreground">{grantedCategoryIds.size}</span> קטגוריות עם גישה מוגדרת
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Remove student confirmation dialog */}
       <AnimatePresence>
@@ -865,7 +1030,7 @@ export default function MentorDashboard() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 h-full w-[420px] bg-card z-50 shadow-2xl border-l border-border overflow-y-auto"
+              className="fixed top-0 right-0 h-full w-[440px] bg-card z-50 shadow-2xl border-l border-border overflow-y-auto"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -898,6 +1063,7 @@ export default function MentorDashboard() {
                     </div>
                   </div>
 
+                  {/* Video upload */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">
                       {isPresentation ? 'העלאת מצגת / וידאו' : 'העלאת וידאו'}
@@ -938,6 +1104,52 @@ export default function MentorDashboard() {
                     )}
                   </div>
 
+                  {/* Attachment upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Paperclip className="w-4 h-4 text-muted-foreground" />
+                        קובץ מצורף (אופציונלי)
+                      </span>
+                    </label>
+                    <p className="text-xs text-muted-foreground mb-2">צרף מצגת, PDF, תמונה או כל מסמך שתלמידים יוכלו לפתוח לצד הסרטון</p>
+                    <input
+                      ref={attachmentInputRef} type="file"
+                      accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.zip"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const { url, name } = await handleAttachmentUpload(file);
+                          setLessonForm(f => ({ ...f, attachment_url: url, attachment_name: name }));
+                          toast({ title: 'הקובץ המצורף הועלה בהצלחה' });
+                        } catch { toast({ title: 'שגיאה בהעלאת הקובץ המצורף', variant: 'destructive' }); }
+                      }}
+                    />
+                    {lessonForm.attachment_url ? (
+                      <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                        <Paperclip className="w-4 h-4 text-primary shrink-0" />
+                        <span className="text-xs text-primary flex-1 truncate">{lessonForm.attachment_name}</span>
+                        <button
+                          onClick={() => { setLessonForm(f => ({ ...f, attachment_url: '', attachment_name: '' })); if (attachmentInputRef.current) attachmentInputRef.current.value = ''; }}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => attachmentInputRef.current?.click()} disabled={isAttachmentUploading}
+                        className="w-full h-16 border-2 border-dashed border-border rounded-lg flex items-center justify-center gap-2 text-muted-foreground hover:border-primary/40 hover:text-primary transition-all disabled:opacity-50 text-sm"
+                      >
+                        {isAttachmentUploading
+                          ? <><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">מעלה...</span></>
+                          : <><Paperclip className="w-4 h-4" /><span className="text-xs font-medium">PDF, PPT, DOC, תמונה, ZIP...</span></>
+                        }
+                      </button>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">קטגוריה</label>
                     <select value={selectedCategoryId ?? ''} onChange={e => setSelectedCategoryId(e.target.value || null)}
@@ -966,7 +1178,7 @@ export default function MentorDashboard() {
 
                   <button
                     onClick={() => lessonForm.title.trim() && createLesson.mutate()}
-                    disabled={!lessonForm.title.trim() || createLesson.isPending || isUploading}
+                    disabled={!lessonForm.title.trim() || createLesson.isPending || isUploading || isAttachmentUploading}
                     className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50"
                   >
                     {createLesson.isPending ? 'שומר...' : 'צור שיעור'}
@@ -989,6 +1201,58 @@ export default function MentorDashboard() {
           />
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── LessonRow ────────────────────────────────────────────────────────────────
+function LessonRow({
+  lesson, onTogglePublish, onDelete, typeIcon, typeLabel,
+}: {
+  lesson: Lesson;
+  onTogglePublish: () => void;
+  onDelete: () => void;
+  typeIcon: (t: string) => React.ReactNode;
+  typeLabel: (t: string) => string;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group">
+      <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
+        {typeIcon(lesson.lesson_type)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-foreground truncate">{lesson.title}</span>
+          {lesson.lesson_type === 'live' && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
+              <Radio className="w-2.5 h-2.5" />
+              הוקלט בלייב
+            </span>
+          )}
+          {lesson.attachment_url && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
+              <Paperclip className="w-2.5 h-2.5" />
+              צירוף
+            </span>
+          )}
+        </div>
+        <span className="text-xs text-muted-foreground">{typeLabel(lesson.lesson_type)}</span>
+      </div>
+      {lesson.duration_minutes && (
+        <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
+      )}
+      <button
+        onClick={onTogglePublish}
+        className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+          lesson.is_published ? 'text-accent hover:bg-accent/10' : 'text-muted-foreground hover:bg-muted'
+        }`}
+        title={lesson.is_published ? 'הסתר שיעור' : 'פרסם שיעור'}
+      >
+        {lesson.is_published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+      </button>
+      <button onClick={onDelete} className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
     </div>
   );
 }
@@ -1044,14 +1308,12 @@ function MentorPostCard({
           <div className="flex items-center gap-1">
             <button
               onClick={onTogglePin}
-              className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${
-                post.is_pinned ? 'text-primary bg-primary/10 hover:bg-primary/20' : 'text-muted-foreground hover:text-primary hover:bg-primary/10'
-              }`}
-              title={post.is_pinned ? 'בטל נעיצה' : 'נעץ פוסט'}
+              className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${post.is_pinned ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}
+              title={post.is_pinned ? 'הסר נעיצה' : 'נעץ פוסט'}
             >
               {post.is_pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
             </button>
-            <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+            <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -1062,50 +1324,55 @@ function MentorPostCard({
         {post.media_url && (
           <div className="mt-3 rounded-xl overflow-hidden">
             {post.media_type === 'video'
-              ? <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" controls />
-              : <img src={post.media_url} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
+              ? <video src={post.media_url} className="w-full max-h-80 object-cover" controls />
+              : <img src={post.media_url} alt="" className="w-full max-h-80 object-cover" />
             }
           </div>
         )}
+      </div>
 
-        <button onClick={onToggleComments} className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+      <div className="px-5 pb-3 border-t border-border pt-3">
+        <button
+          onClick={onToggleComments}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
           <MessageCircle className="w-3.5 h-3.5" />
-          {expanded ? 'הסתר תגובות' : `תגובות${comments.length > 0 ? ` (${comments.length})` : ''}`}
+          {expanded ? 'הסתר תגובות' : `הצג תגובות${comments.length > 0 ? ` (${comments.length})` : ''}`}
         </button>
       </div>
 
       <AnimatePresence>
         {expanded && (
           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
-            <div className="border-t border-border px-5 pb-4 pt-3">
+            <div className="px-5 pb-4 space-y-2.5 border-t border-border pt-3">
               {commentsLoading ? (
-                <div className="flex justify-center py-4"><div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" /></div>
+                <div className="flex justify-center py-2"><div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" /></div>
               ) : comments.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-3">אין תגובות עדיין</p>
-              ) : (
-                <div className="space-y-3 mb-3">
-                  {comments.map(c => (
-                    <div key={c.id} className="flex gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-accent text-xs font-bold shrink-0">
-                        {c.profiles?.full_name?.[0]?.toUpperCase() ?? '?'}
-                      </div>
-                      <div className="flex-1 bg-muted/40 rounded-xl px-3 py-2">
-                        <div className="text-xs font-medium text-foreground mb-0.5">{c.profiles?.full_name ?? 'תלמיד'}</div>
-                        <p className="text-xs text-foreground leading-relaxed">{c.content}</p>
-                      </div>
-                    </div>
-                  ))}
+                <p className="text-xs text-muted-foreground text-center py-2">אין תגובות עדיין</p>
+              ) : comments.map(c => (
+                <div key={c.id} className="flex gap-2.5">
+                  <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">
+                    {c.profiles?.full_name?.[0]?.toUpperCase() ?? '?'}
+                  </div>
+                  <div className="flex-1 bg-muted/50 rounded-xl px-3 py-2">
+                    <p className="text-xs font-semibold text-foreground mb-0.5">{c.profiles?.full_name ?? 'משתמש'}</p>
+                    <p className="text-xs text-foreground/80 leading-relaxed">{c.content}</p>
+                  </div>
                 </div>
-              )}
-              <div className="flex gap-2 mt-2">
-                <textarea
-                  value={commentText} onChange={e => onCommentChange(e.target.value)}
-                  placeholder="כתוב תגובה..." rows={1}
-                  className="flex-1 px-3 py-2 bg-surface border-none ring-1 ring-border rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right resize-none"
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAddComment(); } }}
+              ))}
+
+              <div className="flex gap-2 pt-1">
+                <input
+                  value={commentText}
+                  onChange={e => onCommentChange(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && commentText.trim() && onAddComment()}
+                  placeholder="הוסף תגובה..."
+                  className="flex-1 h-9 px-3 bg-surface border-none ring-1 ring-border rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
                 />
-                <button onClick={onAddComment} disabled={!commentText.trim()}
-                  className="w-9 h-9 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all disabled:opacity-40"
+                <button
+                  onClick={onAddComment}
+                  disabled={!commentText.trim()}
+                  className="h-9 w-9 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-40 transition-all"
                 >
                   <Send className="w-3.5 h-3.5" />
                 </button>
@@ -1114,49 +1381,6 @@ function MentorPostCard({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-// ─── LessonRow ────────────────────────────────────────────────────────────────
-function LessonRow({ lesson, onTogglePublish, onDelete, typeIcon, typeLabel }: {
-  lesson: Lesson;
-  onTogglePublish: () => void;
-  onDelete: () => void;
-  typeIcon: (t: string) => React.ReactNode;
-  typeLabel: (t: string) => string;
-}) {
-  const isLive = lesson.lesson_type === 'live';
-  return (
-    <div className="flex items-center gap-3 px-6 py-3 hover:bg-muted/30 transition-colors group">
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        {typeIcon(lesson.lesson_type)}
-        <span className="text-sm text-foreground truncate">{lesson.title}</span>
-        {isLive ? (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
-            <Radio className="w-2.5 h-2.5" />
-            הוקלט בלייב
-          </span>
-        ) : (
-          <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
-            {typeLabel(lesson.lesson_type)}
-          </span>
-        )}
-        {lesson.duration_minutes && <span className="text-xs text-muted-foreground tabular shrink-0">{lesson.duration_minutes} דק'</span>}
-      </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={onTogglePublish}
-          className={`h-7 px-2 rounded-md text-xs font-medium flex items-center gap-1 transition-all ${
-            lesson.is_published ? 'bg-accent/10 text-accent hover:bg-accent/20' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-          }`}
-        >
-          {lesson.is_published ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-          {lesson.is_published ? 'פורסם' : 'טיוטה'}
-        </button>
-        <button onClick={onDelete} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
     </div>
   );
 }
