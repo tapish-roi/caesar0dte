@@ -26,33 +26,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [role, setRole] = useState<AppRole>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string, userObj?: User): Promise<void> => {
+  const fetchRole = async (userId: string): Promise<void> => {
     try {
       const { data } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .single();
-
-      if (data?.role) {
-        setRole(data.role as AppRole);
-        return;
-      }
-
-      // If no role found, try to create from metadata (handles signup timing)
-      const metaRole = userObj?.user_metadata?.role as string | undefined;
-      if (metaRole === 'mentor' || metaRole === 'student') {
-        const { data: inserted } = await supabase
-          .from('user_roles')
-          .insert({ user_id: userId, role: metaRole })
-          .select('role')
-          .single();
-        setRole((inserted?.role as AppRole) ?? null);
-      } else {
-        setRole(null);
-      }
+      setRole((data?.role as AppRole) ?? null);
     } catch {
-      // Silently fail — role stays null, user will see auth page
       setRole(null);
     }
   };
