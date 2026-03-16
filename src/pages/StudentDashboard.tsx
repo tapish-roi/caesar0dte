@@ -1316,4 +1316,5 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
       </AnimatePresence>
     </motion.div>
   );
-}
+});
+StudentPostCard.displayName = 'StudentPostCard';
