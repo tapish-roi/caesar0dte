@@ -868,8 +868,8 @@ export default function StudentDashboard() {
                           <span className="text-xs text-foreground">SMS / נייד</span>
                         </div>
                         <Switch
-                          checked={profile?.notify_sms ?? false}
-                          onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: val, notify_email: profile?.notify_email ?? false })}
+                          checked={notifyState.notify_sms}
+                          onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: val, notify_email: notifyState.notify_email })}
                           disabled={saveNotifications.isPending}
                         />
                       </div>
@@ -879,8 +879,8 @@ export default function StudentDashboard() {
                           <span className="text-xs text-foreground">אימייל</span>
                         </div>
                         <Switch
-                          checked={profile?.notify_email ?? false}
-                          onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: profile?.notify_sms ?? false, notify_email: val })}
+                          checked={notifyState.notify_email}
+                          onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: notifyState.notify_sms, notify_email: val })}
                           disabled={saveNotifications.isPending}
                         />
                       </div>
