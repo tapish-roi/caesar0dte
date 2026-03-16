@@ -266,6 +266,18 @@ export default function MentorDashboard() {
     onError: () => toast({ title: 'שגיאה', description: 'לא ניתן לשלוח הזמנה', variant: 'destructive' }),
   });
 
+  const deleteInvite = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('community_invites').update({ status: 'declined' }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['invites'] });
+      toast({ title: 'הזמנה בוטלה' });
+    },
+    onError: () => toast({ title: 'שגיאה בביטול ההזמנה', variant: 'destructive' }),
+  });
+
   const createPost = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from('community_posts').insert({
