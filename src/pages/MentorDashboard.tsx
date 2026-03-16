@@ -78,6 +78,7 @@ export default function MentorDashboard() {
   const [postMediaType, setPostMediaType] = useState('');
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [removeConfirm, setRemoveConfirm] = useState<{ studentId: string; name: string } | null>(null);
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
