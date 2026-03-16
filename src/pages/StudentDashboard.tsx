@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -213,10 +213,10 @@ function LandingScreen({
                   </p>
                   <div className="space-y-2">
                     {invites.map((inv) => (
-                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
-                        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                          <span className="text-xs font-bold text-amber-700">{inv.mentorName[0]?.toUpperCase()}</span>
-                        </div>
+                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-muted/60 border border-border rounded-xl">
+                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                           <span className="text-xs font-bold text-primary">{inv.mentorName[0]?.toUpperCase()}</span>
+                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-foreground truncate">{inv.mentorName}</p>
                           <p className="text-xs text-muted-foreground">הזמין אותך לקהילה שלו</p>
@@ -258,8 +258,8 @@ function LandingScreen({
                   transition={{ delay: i * 0.07 }}
                   className="flex items-center gap-3 p-4 bg-background border border-border rounded-xl"
                 >
-                  <div className="w-11 h-11 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                    <span className="text-base font-bold text-amber-700">{inv.mentorName[0]?.toUpperCase()}</span>
+                  <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-base font-bold text-primary">{inv.mentorName[0]?.toUpperCase()}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm text-foreground">{inv.mentorName}</p>
@@ -616,8 +616,8 @@ export default function StudentDashboard() {
   const selectedLessonData = lessons.find(l => l.id === selectedLesson);
 
   const typeIcon = (type: string) => {
-    if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-blue-500" />;
-    if (type === 'resource') return <FileText className="w-3.5 h-3.5 text-amber-500" />;
+    if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-primary" />;
+    if (type === 'resource') return <FileText className="w-3.5 h-3.5 text-muted-foreground" />;
     if (type === 'live') return <Radio className="w-3.5 h-3.5 text-destructive" />;
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
@@ -929,7 +929,7 @@ export default function StudentDashboard() {
                     exit={{ opacity: 0, y: -8 }}
                     className="bg-card rounded-xl card-shadow mb-6 overflow-hidden"
                   >
-                    <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
+                    <div className="aspect-video bg-foreground/5 border-b border-border flex items-center justify-center relative">
                       {selectedLessonData.video_url ? (
                         <VideoPlayer
                           src={selectedLessonData.video_url}
@@ -938,10 +938,18 @@ export default function StudentDashboard() {
                           initialProgress={getProgress(selectedLessonData.id)}
                           onComplete={() => qc.invalidateQueries({ queryKey: ['progress', user?.id] })}
                         />
+                      ) : selectedLessonData.lesson_type === 'live' ? (
+                        <div className="text-center space-y-2">
+                          <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+                            <Radio className="w-6 h-6 text-destructive" />
+                          </div>
+                          <p className="text-sm font-medium text-foreground">שיעור לייב מוקלט</p>
+                          <p className="text-xs text-muted-foreground">הקלטת הלייב תופיע כאן לאחר עיבוד</p>
+                        </div>
                       ) : (
-                        <div className="text-center text-slate-500">
-                          <Video className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                          <p className="text-sm">אין קובץ וידאו</p>
+                        <div className="text-center">
+                          <Video className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />
+                          <p className="text-sm text-muted-foreground">אין קובץ וידאו</p>
                         </div>
                       )}
                     </div>
@@ -1160,11 +1168,7 @@ export default function StudentDashboard() {
 }
 
 // ─── StudentPostCard ──────────────────────────────────────────────────────────
-function StudentPostCard({
-  post, fetchComments, expanded, onToggleComments,
-  commentText, onCommentChange, onAddComment, onJoinLive,
-  postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
-}: {
+const StudentPostCard = React.forwardRef<HTMLDivElement, {
   post: PostItem;
   fetchComments: (id: string) => Promise<PostComment[]>;
   expanded: boolean;
@@ -1179,7 +1183,11 @@ function StudentPostCard({
   postTypeColor: Record<string, string>;
   formatDate: (s: string) => string;
   queryClient: ReturnType<typeof useQueryClient>;
-}) {
+}>(({
+  post, fetchComments, expanded, onToggleComments,
+  commentText, onCommentChange, onAddComment, onJoinLive,
+  postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
+}, ref) => {
   const { data: comments = [], isLoading: commentsLoading } = useQuery<PostComment[]>({
     queryKey: ['student-comments', post.id],
     queryFn: () => fetchComments(post.id),
@@ -1308,4 +1316,5 @@ function StudentPostCard({
       </AnimatePresence>
     </motion.div>
   );
-}
+});
+StudentPostCard.displayName = 'StudentPostCard';
