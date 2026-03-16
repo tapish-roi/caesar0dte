@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp, BookOpen, Users, Video, Film, FileText,
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
-  MessageCircle, Send, Image, Radio, Wifi, Pin,
+  MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,6 +24,7 @@ interface InviteItem {
 interface MembershipItem {
   mentor_id: string;
   mentorName: string;
+  avatarLetter: string;
 }
 
 interface LessonItem {
@@ -68,6 +69,57 @@ interface PostComment {
   profiles?: { full_name: string } | null;
 }
 
+// ─── Community Picker Screen ──────────────────────────────────────────────────
+function CommunityPicker({
+  memberships,
+  onSelect,
+}: {
+  memberships: MembershipItem[];
+  onSelect: (mentorId: string) => void;
+}) {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-6" dir="rtl">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="flex items-center gap-3 justify-center mb-10">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <span className="text-lg font-bold text-foreground">TradeLearn</span>
+        </div>
+
+        <h1 className="text-2xl font-bold text-foreground text-center mb-2">בחר קהילה</h1>
+        <p className="text-sm text-muted-foreground text-center mb-8">
+          אתה חבר ב-{memberships.length} קהילות. בחר לאיזה קהילה להיכנס.
+        </p>
+
+        <div className="space-y-3">
+          {memberships.map((m, i) => (
+            <motion.button
+              key={m.mentor_id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07 }}
+              onClick={() => onSelect(m.mentor_id)}
+              className="w-full flex items-center gap-4 p-4 bg-card rounded-2xl card-shadow hover:bg-accent/5 active:scale-98 transition-all text-right group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-lg shrink-0">
+                {m.avatarLetter}
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-foreground">{m.mentorName}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">קהילת מסחר</div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors rotate-180" />
+            </motion.button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -77,6 +129,8 @@ export default function StudentDashboard() {
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  // Selected community mentor
+  const [selectedMentorId, setSelectedMentorId] = useState<string | null>(null);
 
   // Fetch pending invites
   const { data: invites = [] } = useQuery<InviteItem[]>({
@@ -100,7 +154,7 @@ export default function StudentDashboard() {
   });
 
   // Fetch mentor memberships
-  const { data: memberships = [] } = useQuery<MembershipItem[]>({
+  const { data: memberships = [], isLoading: membershipsLoading } = useQuery<MembershipItem[]>({
     queryKey: ['memberships', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -111,7 +165,8 @@ export default function StudentDashboard() {
       const enriched = await Promise.all(
         (data ?? []).map(async (m) => {
           const { data: p } = await supabase.from('profiles').select('full_name').eq('user_id', m.mentor_id).single();
-          return { ...m, mentorName: p?.full_name ?? 'מנטור' };
+          const name = p?.full_name ?? 'מנטור';
+          return { ...m, mentorName: name, avatarLetter: name[0]?.toUpperCase() ?? 'מ' };
         })
       );
       return enriched;
@@ -119,8 +174,17 @@ export default function StudentDashboard() {
     enabled: !!user,
   });
 
-  const mentorId = memberships[0]?.mentor_id;
-  const mentorName = memberships[0]?.mentorName;
+  // Auto-select if only one community; show picker for multiple
+  useEffect(() => {
+    if (membershipsLoading) return;
+    if (memberships.length === 1 && !selectedMentorId) {
+      setSelectedMentorId(memberships[0].mentor_id);
+    }
+  }, [memberships, membershipsLoading]);
+
+  const activeMembership = memberships.find(m => m.mentor_id === selectedMentorId);
+  const mentorId = activeMembership?.mentor_id ?? null;
+  const mentorName = activeMembership?.mentorName ?? null;
 
   // Fetch categories
   const { data: categories = [] } = useQuery<CategoryItem[]>({
@@ -311,6 +375,117 @@ export default function StudentDashboard() {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
+  // ── Loading ──
+  if (membershipsLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // ── Community Picker: show when multiple memberships and none selected ──
+  if (memberships.length > 1 && !selectedMentorId) {
+    return (
+      <>
+        {/* Invite banners above picker */}
+        <AnimatePresence>
+          {invites.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed top-0 left-0 right-0 z-50 border-b border-amber-200 bg-amber-50"
+              dir="rtl"
+            >
+              {invites.map((inv) => (
+                <div key={inv.id} className="flex items-center gap-4 px-8 py-3">
+                  <Bell className="w-4 h-4 text-amber-600 shrink-0" />
+                  <p className="text-sm text-amber-800 flex-1">
+                    <span className="font-semibold">{inv.mentorName}</span> הזמין אותך להצטרף לקהילה שלו
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => acceptInvite.mutate({ id: inv.id, mentor_id: inv.mentor_id })}
+                      className="h-8 px-4 bg-accent text-accent-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all"
+                    >
+                      הצטרף
+                    </button>
+                    <button
+                      onClick={() => declineInvite.mutate(inv.id)}
+                      className="h-8 px-3 bg-card border border-amber-200 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-50 transition-all"
+                    >
+                      דחה
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <CommunityPicker memberships={memberships} onSelect={setSelectedMentorId} />
+      </>
+    );
+  }
+
+  // ── No memberships ──
+  if (memberships.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col" dir="rtl">
+        {/* Invite banners */}
+        <AnimatePresence>
+          {invites.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="border-b border-amber-200 bg-amber-50"
+            >
+              {invites.map((inv) => (
+                <div key={inv.id} className="flex items-center gap-4 px-8 py-3">
+                  <Bell className="w-4 h-4 text-amber-600 shrink-0" />
+                  <p className="text-sm text-amber-800 flex-1">
+                    <span className="font-semibold">{inv.mentorName}</span> הזמין אותך להצטרף לקהילה שלו
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => acceptInvite.mutate({ id: inv.id, mentor_id: inv.mentor_id })}
+                      className="h-8 px-4 bg-accent text-accent-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all"
+                    >
+                      הצטרף
+                    </button>
+                    <button
+                      onClick={() => declineInvite.mutate(inv.id)}
+                      className="h-8 px-3 bg-card border border-amber-200 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-50 transition-all"
+                    >
+                      דחה
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+              <Users className="w-7 h-7 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">טרם הצטרפת לקהילה</h2>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              המנטור שלך ישלח לך הזמנה לאימייל. ברגע שתקבל הזמנה, היא תופיע כאן.
+            </p>
+            <button onClick={signOut} className="mt-4 text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1.5 mx-auto">
+              <LogOut className="w-3.5 h-3.5" />
+              התנתק
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Full Dashboard ──
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
       {/* Sidebar */}
@@ -327,10 +502,20 @@ export default function StudentDashboard() {
           </div>
         </div>
 
+        {/* Active community + switch button */}
         {mentorName && (
           <div className="px-4 py-3 border-b border-sidebar-border bg-accent/5">
-            <p className="text-xs text-muted-foreground">המנטור שלך</p>
+            <p className="text-xs text-muted-foreground">קהילה נוכחית</p>
             <p className="text-sm font-semibold text-foreground mt-0.5">{mentorName}</p>
+            {memberships.length > 1 && (
+              <button
+                onClick={() => setSelectedMentorId(null)}
+                className="mt-1.5 flex items-center gap-1 text-xs text-primary hover:opacity-80 transition-opacity"
+              >
+                <ChevronLeft className="w-3 h-3" />
+                החלף קהילה
+              </button>
+            )}
           </div>
         )}
 
@@ -410,149 +595,137 @@ export default function StudentDashboard() {
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
             <motion.div key="lessons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8">
-              {!mentorId ? (
-                <div className="flex flex-col items-center justify-center py-24 text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-                    <BookOpen className="w-7 h-7 text-muted-foreground" />
-                  </div>
-                  <h2 className="text-xl font-bold text-foreground mb-2">עדיין לא הצטרפת לקהילה</h2>
-                  <p className="text-sm text-muted-foreground max-w-sm">
-                    המנטור שלך ישלח לך הזמנה לאימייל שלך. ברגע שתקבל הזמנה, היא תופיע בראש הדף.
+              <>
+                <div className="mb-8">
+                  <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {lessons.length} שיעורים זמינים · {progress.filter((p) => p.completed).length} הושלמו
                   </p>
                 </div>
-              ) : (
-                <>
-                  <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {lessons.length} שיעורים זמינים · {progress.filter((p) => p.completed).length} הושלמו
-                    </p>
-                  </div>
 
-                  <AnimatePresence>
-                    {selectedLessonData && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        className="bg-card rounded-xl card-shadow mb-6 overflow-hidden"
-                      >
-                        <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
-                          {selectedLessonData.video_url ? (
-                            <video
-                              src={selectedLessonData.video_url}
-                              className="w-full h-full"
-                              controls
-                              title={selectedLessonData.title}
-                            />
-                          ) : (
-                            <div className="text-center text-slate-500">
-                              <Video className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                              <p className="text-sm">אין קובץ וידאו</p>
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-6">
-                          <h2 className="text-xl font-bold text-foreground mb-2">{selectedLessonData.title}</h2>
-                          {selectedLessonData.description && (
-                            <p className="text-sm text-muted-foreground">{selectedLessonData.description}</p>
-                          )}
-                          {selectedLessonData.duration_minutes && (
-                            <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>{selectedLessonData.duration_minutes} דקות</span>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <div className="space-y-3">
-                    {categories.map((cat) => {
-                      const catLessons = lessons.filter((l) => l.category_id === cat.id);
-                      if (catLessons.length === 0) return null;
-                      const isExpanded = expandedCats.has(cat.id);
-                      const completedCount = catLessons.filter((l) => getProgress(l.id)?.completed).length;
-                      return (
-                        <div key={cat.id} className="bg-card rounded-xl card-shadow overflow-hidden">
-                          <div
-                            className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-                            onClick={() => toggleCat(cat.id)}
-                          >
-                            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
-                            <span className="font-semibold text-foreground flex-1">{cat.title}</span>
-                            <span className="text-xs text-muted-foreground">{completedCount}/{catLessons.length} הושלמו</span>
-                            {completedCount === catLessons.length && catLessons.length > 0 && (
-                              <CheckCircle2 className="w-4 h-4 text-accent" />
-                            )}
+                <AnimatePresence>
+                  {selectedLessonData && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="bg-card rounded-xl card-shadow mb-6 overflow-hidden"
+                    >
+                      <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
+                        {selectedLessonData.video_url ? (
+                          <video
+                            src={selectedLessonData.video_url}
+                            className="w-full h-full"
+                            controls
+                            title={selectedLessonData.title}
+                          />
+                        ) : (
+                          <div className="text-center text-slate-500">
+                            <Video className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                            <p className="text-sm">אין קובץ וידאו</p>
                           </div>
-                          <AnimatePresence>
-                            {isExpanded && (
-                              <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
-                                <div className="border-t border-border">
-                                  {catLessons.map((lesson) => {
-                                    const prog = getProgress(lesson.id);
-                                    return (
-                                      <div
-                                        key={lesson.id}
-                                        onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
-                                        className={`flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${selectedLesson === lesson.id ? 'bg-accent/5' : ''}`}
-                                      >
-                                        <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
-                                          {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : typeIcon(lesson.lesson_type)}
-                                        </div>
-                                        <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
-                                          {lesson.title}
-                                        </span>
-                                        {lesson.duration_minutes && (
-                                          <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
-                                        )}
-                                        {prog && !prog.completed && prog.progress_percent > 0 && (
-                                          <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
-                                            <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      );
-                    })}
-
-                    {lessons.filter((l) => !l.category_id).map((lesson) => {
-                      const prog = getProgress(lesson.id);
-                      return (
-                        <motion.div
-                          key={lesson.id}
-                          whileHover={{ y: -2 }}
-                          onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
-                          className="bg-card rounded-xl card-shadow p-4 flex items-center gap-3 cursor-pointer transition-all"
-                        >
-                          {typeIcon(lesson.lesson_type)}
-                          <span className="text-sm text-foreground flex-1">{lesson.title}</span>
-                          {lesson.duration_minutes && (
-                            <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
-                          )}
-                          {prog?.completed && <CheckCircle2 className="w-4 h-4 text-accent" />}
-                        </motion.div>
-                      );
-                    })}
-
-                    {lessons.length === 0 && (
-                      <div className="text-center py-16 text-muted-foreground">
-                        <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                        <p className="font-medium">עדיין אין תכנים</p>
-                        <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </>
-              )}
+                      <div className="p-6">
+                        <h2 className="text-xl font-bold text-foreground mb-2">{selectedLessonData.title}</h2>
+                        {selectedLessonData.description && (
+                          <p className="text-sm text-muted-foreground">{selectedLessonData.description}</p>
+                        )}
+                        {selectedLessonData.duration_minutes && (
+                          <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>{selectedLessonData.duration_minutes} דקות</span>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="space-y-3">
+                  {categories.map((cat) => {
+                    const catLessons = lessons.filter((l) => l.category_id === cat.id);
+                    if (catLessons.length === 0) return null;
+                    const isExpanded = expandedCats.has(cat.id);
+                    const completedCount = catLessons.filter((l) => getProgress(l.id)?.completed).length;
+                    return (
+                      <div key={cat.id} className="bg-card rounded-xl card-shadow overflow-hidden">
+                        <div
+                          className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                          onClick={() => toggleCat(cat.id)}
+                        >
+                          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                          <span className="font-semibold text-foreground flex-1">{cat.title}</span>
+                          <span className="text-xs text-muted-foreground">{completedCount}/{catLessons.length} הושלמו</span>
+                          {completedCount === catLessons.length && catLessons.length > 0 && (
+                            <CheckCircle2 className="w-4 h-4 text-accent" />
+                          )}
+                        </div>
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
+                              <div className="border-t border-border">
+                                {catLessons.map((lesson) => {
+                                  const prog = getProgress(lesson.id);
+                                  return (
+                                    <div
+                                      key={lesson.id}
+                                      onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
+                                      className={`flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${selectedLesson === lesson.id ? 'bg-accent/5' : ''}`}
+                                    >
+                                      <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
+                                        {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : typeIcon(lesson.lesson_type)}
+                                      </div>
+                                      <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
+                                        {lesson.title}
+                                      </span>
+                                      {lesson.duration_minutes && (
+                                        <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
+                                      )}
+                                      {prog && !prog.completed && prog.progress_percent > 0 && (
+                                        <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
+                                          <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+
+                  {lessons.filter((l) => !l.category_id).map((lesson) => {
+                    const prog = getProgress(lesson.id);
+                    return (
+                      <motion.div
+                        key={lesson.id}
+                        whileHover={{ y: -2 }}
+                        onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
+                        className="bg-card rounded-xl card-shadow p-4 flex items-center gap-3 cursor-pointer transition-all"
+                      >
+                        {typeIcon(lesson.lesson_type)}
+                        <span className="text-sm text-foreground flex-1">{lesson.title}</span>
+                        {lesson.duration_minutes && (
+                          <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
+                        )}
+                        {prog?.completed && <CheckCircle2 className="w-4 h-4 text-accent" />}
+                      </motion.div>
+                    );
+                  })}
+
+                  {lessons.length === 0 && (
+                    <div className="text-center py-16 text-muted-foreground">
+                      <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <p className="font-medium">עדיין אין תכנים</p>
+                      <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
+                    </div>
+                  )}
+                </div>
+              </>
             </motion.div>
           )}
 
@@ -566,12 +739,7 @@ export default function StudentDashboard() {
                 </p>
               </div>
 
-              {!mentorId ? (
-                <div className="text-center py-16 text-muted-foreground">
-                  <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="font-medium">הצטרף לקהילה כדי לראות עדכונים</p>
-                </div>
-              ) : posts.length === 0 ? (
+              {posts.length === 0 ? (
                 <div className="text-center py-16 text-muted-foreground">
                   <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
                   <p className="font-medium">אין עדכונים עדיין</p>
