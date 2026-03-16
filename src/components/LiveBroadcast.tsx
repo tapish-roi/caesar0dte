@@ -1,13 +1,8 @@
 /**
  * LiveBroadcast — Mentor-side live streaming component.
- *
- * Flow:
- * 1. Mentor selects screen source (window / full screen) via getDisplayMedia
- * 2. Mentor optionally picks a microphone
- * 3. On "Go Live": creates a live_session row, publishes a community post of type "live",
- *    then waits for viewer join signals via Supabase Realtime.
- * 4. For each viewer that joins, opens a WebRTC PeerConnection and sends the stream.
- * 5. "End Live" closes all connections and marks session as ended.
+ * Features: screen share, microphone selection, viewer management,
+ *           live chat panel, notify students on go-live,
+ *           save recording as lesson after ending.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
   Monitor, Wifi, MicOff, Mic, X, Users, Radio,
-  MonitorPlay, Maximize2, ChevronDown,
+  MonitorPlay, Maximize2, ChevronDown, MessageSquare, Send,
+  BookOpen, Check,
 } from 'lucide-react';
 
 const ICE_SERVERS = [
@@ -23,17 +19,31 @@ const ICE_SERVERS = [
   { urls: 'stun:stun1.l.google.com:19302' },
 ];
 
+interface ChatMessage {
+  id: string;
+  user_id: string;
+  display_name: string;
+  message: string;
+  created_at: string;
+}
+
+interface Category {
+  id: string;
+  title: string;
+}
+
 interface Props {
   mentorId: string;
+  mentorName: string;
   onClose: () => void;
   onPostCreated?: (postId: string) => void;
 }
 
 type ShareMode = 'screen' | 'window' | null;
 
-export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Props) {
+export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCreated }: Props) {
   const { toast } = useToast();
-  const [step, setStep] = useState<'setup' | 'live'>('setup');
+  const [step, setStep] = useState<'setup' | 'live' | 'ended'>('setup');
   const [shareMode, setShareMode] = useState<ShareMode>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
@@ -45,13 +55,31 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
   const [viewerCount, setViewerCount] = useState(0);
   const [liveTitle, setLiveTitle] = useState('');
   const [showMicMenu, setShowMicMenu] = useState(false);
+  const [showChat, setShowChat] = useState(true);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isSendingMsg, setIsSendingMsg] = useState(false);
+
+  // Save as lesson dialog
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [saveLessonForm, setSaveLessonForm] = useState({
+    title: '',
+    categoryId: '',
+    description: '',
+  });
+  const [isSavingLesson, setIsSavingLesson] = useState(false);
+  const [lessonSaved, setLessonSaved] = useState(false);
 
   const previewRef = useRef<HTMLVideoElement>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const sessionIdRef = useRef<string | null>(null);
+  const postIdRef = useRef<string | null>(null);
   const signalChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const chatChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // ── Load audio devices ──
   useEffect(() => {
@@ -62,37 +90,42 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
     });
   }, []);
 
+  // ── Load categories for save dialog ──
+  useEffect(() => {
+    supabase.from('categories').select('id, title').eq('mentor_id', mentorId).order('position')
+      .then(({ data }) => {
+        if (data) setCategories(data);
+      });
+  }, [mentorId]);
+
   // ── Preview local stream ──
   useEffect(() => {
-    if (previewRef.current && localStream) {
-      previewRef.current.srcObject = localStream;
-    }
+    if (previewRef.current && localStream) previewRef.current.srcObject = localStream;
   }, [localStream]);
+
+  // ── Auto-scroll chat ──
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   // ── Pick screen/window ──
   const pickScreen = useCallback(async (type: 'screen' | 'window') => {
     try {
-      // Stop previous screen stream
       screenStreamRef.current?.getTracks().forEach(t => t.stop());
-
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           displaySurface: type === 'window' ? 'window' : 'monitor',
           frameRate: 30,
         } as MediaTrackConstraints,
-        audio: false, // we'll mix mic separately
+        audio: false,
       });
       screenStreamRef.current = stream;
       setShareMode(type);
-
-      // Stop on native browser "Stop sharing" button
       stream.getVideoTracks()[0].addEventListener('ended', () => {
         setLocalStream(null);
         setShareMode(null);
         screenStreamRef.current = null;
       });
-
-      // Combine with mic if already acquired
       const combined = buildCombinedStream(stream, micStreamRef.current);
       setLocalStream(combined);
     } catch (err) {
@@ -110,7 +143,6 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
         audio: deviceId ? { deviceId: { exact: deviceId } } : true,
       });
       micStreamRef.current = stream;
-      // rebuild combined stream
       if (screenStreamRef.current) {
         const combined = buildCombinedStream(screenStreamRef.current, stream);
         setLocalStream(combined);
@@ -120,7 +152,6 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
     }
   }, [toast]);
 
-  // ── Toggle mic ──
   const toggleMic = useCallback(() => {
     const tracks = micStreamRef.current?.getAudioTracks();
     if (!tracks?.length) return;
@@ -128,89 +159,12 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
     setMicEnabled(e => !e);
   }, []);
 
-  // ── Build combined MediaStream ──
   function buildCombinedStream(video: MediaStream, audio: MediaStream | null): MediaStream {
     const tracks: MediaStreamTrack[] = [];
     video.getVideoTracks().forEach(t => tracks.push(t));
     audio?.getAudioTracks().forEach(t => tracks.push(t));
     return new MediaStream(tracks);
   }
-
-  // ── Go Live ──
-  const goLive = useCallback(async () => {
-    if (!localStream || !shareMode) return;
-    setIsStarting(true);
-    try {
-      // 1. Create session
-      const title = liveTitle.trim() || 'לייב סשן';
-      const { data: session, error: sessErr } = await supabase
-        .from('live_sessions')
-        .insert({ mentor_id: mentorId, title, status: 'active' })
-        .select('id')
-        .single();
-      if (sessErr) throw sessErr;
-
-      sessionIdRef.current = session.id;
-      setSessionId(session.id);
-
-      // 2. Publish community post
-      const { data: post, error: postErr } = await supabase
-        .from('community_posts')
-        .insert({
-          mentor_id: mentorId,
-          content: title,
-          post_type: 'live',
-          is_pinned: false,
-        })
-        .select('id')
-        .single();
-      if (postErr) throw postErr;
-      setPostId(post.id);
-      onPostCreated?.(post.id);
-
-      // 3. Subscribe to viewer join signals
-      const channel = supabase
-        .channel(`live-${session.id}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'live_signals',
-          filter: `session_id=eq.${session.id}`,
-        }, async (payload) => {
-          const sig = payload.new as {
-            id: string;
-            from_user_id: string;
-            to_user_id: string;
-            signal_type: string;
-            payload: Record<string, unknown>;
-          };
-          // Only handle signals TO mentor
-          if (sig.to_user_id !== mentorId) return;
-
-          if (sig.signal_type === 'join') {
-            await handleViewerJoin(sig.from_user_id, session.id);
-          } else if (sig.signal_type === 'answer') {
-            const pc = peersRef.current.get(sig.from_user_id);
-            if (pc) {
-              await pc.setRemoteDescription(new RTCSessionDescription(sig.payload as unknown as RTCSessionDescriptionInit));
-            }
-          } else if (sig.signal_type === 'ice-candidate') {
-            const pc = peersRef.current.get(sig.from_user_id);
-            if (pc && sig.payload.candidate) {
-              await pc.addIceCandidate(new RTCIceCandidate(sig.payload as unknown as RTCIceCandidateInit));
-            }
-          }
-        })
-        .subscribe();
-
-      signalChannelRef.current = channel;
-      setStep('live');
-    } catch {
-      toast({ title: 'שגיאה בהתחלת הלייב', variant: 'destructive' });
-    } finally {
-      setIsStarting(false);
-    }
-  }, [localStream, shareMode, liveTitle, mentorId, onPostCreated, toast]);
 
   // ── Handle new viewer joining ──
   const handleViewerJoin = useCallback(async (viewerId: string, sessId: string) => {
@@ -221,10 +175,8 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
     peersRef.current.set(viewerId, pc);
     setViewerCount(c => c + 1);
 
-    // Add tracks
     stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-    // ICE candidates
     pc.onicecandidate = async (e) => {
       if (!e.candidate) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -244,7 +196,6 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
       }
     };
 
-    // Create and send offer
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -257,42 +208,167 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
     });
   }, [localStream, mentorId]);
 
+  // ── Go Live ──
+  const goLive = useCallback(async () => {
+    if (!localStream || !shareMode) return;
+    setIsStarting(true);
+    try {
+      const title = liveTitle.trim() || 'לייב סשן';
+
+      // 1. Create session
+      const { data: session, error: sessErr } = await supabase
+        .from('live_sessions')
+        .insert({ mentor_id: mentorId, title, status: 'active' })
+        .select('id')
+        .single();
+      if (sessErr) throw sessErr;
+
+      sessionIdRef.current = session.id;
+      setSessionId(session.id);
+
+      // 2. Publish live community post
+      const { data: post, error: postErr } = await supabase
+        .from('community_posts')
+        .insert({ mentor_id: mentorId, content: title, post_type: 'live', is_pinned: false })
+        .select('id')
+        .single();
+      if (postErr) throw postErr;
+      setPostId(post.id);
+      postIdRef.current = post.id;
+      onPostCreated?.(post.id);
+
+      // 3. Subscribe to signals
+      const channel = supabase
+        .channel(`live-${session.id}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'live_signals',
+          filter: `session_id=eq.${session.id}`,
+        }, async (payload) => {
+          const sig = payload.new as {
+            id: string;
+            from_user_id: string;
+            to_user_id: string;
+            signal_type: string;
+            payload: Record<string, unknown>;
+          };
+          if (sig.to_user_id !== mentorId) return;
+          if (sig.signal_type === 'join') {
+            await handleViewerJoin(sig.from_user_id, session.id);
+          } else if (sig.signal_type === 'answer') {
+            const pc = peersRef.current.get(sig.from_user_id);
+            if (pc) await pc.setRemoteDescription(new RTCSessionDescription(sig.payload as unknown as RTCSessionDescriptionInit));
+          } else if (sig.signal_type === 'ice-candidate') {
+            const pc = peersRef.current.get(sig.from_user_id);
+            if (pc && sig.payload.candidate) await pc.addIceCandidate(new RTCIceCandidate(sig.payload as unknown as RTCIceCandidateInit));
+          }
+        })
+        .subscribe();
+
+      signalChannelRef.current = channel;
+
+      // 4. Subscribe to chat
+      const chatCh = supabase
+        .channel(`live-chat-mentor-${session.id}`)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'live_chat_messages',
+          filter: `session_id=eq.${session.id}`,
+        }, (payload) => {
+          setChatMessages(prev => [...prev, payload.new as ChatMessage]);
+        })
+        .subscribe();
+      chatChannelRef.current = chatCh;
+
+      // 5. Notify students (best-effort)
+      supabase.functions.invoke('notify-live', {
+        body: { session_id: session.id, mentor_id: mentorId, title },
+      }).catch(() => {});
+
+      setSaveLessonForm(f => ({ ...f, title }));
+      setStep('live');
+    } catch {
+      toast({ title: 'שגיאה בהתחלת הלייב', variant: 'destructive' });
+    } finally {
+      setIsStarting(false);
+    }
+  }, [localStream, shareMode, liveTitle, mentorId, onPostCreated, handleViewerJoin, toast]);
+
+  // ── Send chat message ──
+  const sendMessage = useCallback(async () => {
+    const text = chatInput.trim();
+    if (!text || isSendingMsg || !sessionId) return;
+    setIsSendingMsg(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('live_chat_messages') as any).insert({
+        session_id: sessionId,
+        user_id: mentorId,
+        display_name: mentorName || 'מנטור',
+        message: text,
+      });
+      setChatInput('');
+    } catch {
+      toast({ title: 'שגיאה בשליחה', variant: 'destructive' });
+    } finally {
+      setIsSendingMsg(false);
+    }
+  }, [chatInput, isSendingMsg, sessionId, mentorId, mentorName, toast]);
+
   // ── End Live ──
   const endLive = useCallback(async () => {
     const sessId = sessionIdRef.current;
+    const pId = postIdRef.current;
 
-    // Close all peer connections
     peersRef.current.forEach(pc => pc.close());
     peersRef.current.clear();
-
-    // Stop tracks
     localStream?.getTracks().forEach(t => t.stop());
     micStreamRef.current?.getTracks().forEach(t => t.stop());
     screenStreamRef.current?.getTracks().forEach(t => t.stop());
-
-    // Remove channel
-    if (signalChannelRef.current) {
-      supabase.removeChannel(signalChannelRef.current);
-    }
+    if (signalChannelRef.current) supabase.removeChannel(signalChannelRef.current);
+    if (chatChannelRef.current) supabase.removeChannel(chatChannelRef.current);
 
     if (sessId) {
-      // Mark session ended
-      await supabase.from('live_sessions').update({
-        status: 'ended',
-        ended_at: new Date().toISOString(),
-      }).eq('id', sessId);
+      await supabase.from('live_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', sessId);
     }
 
-    // Update post to "ended" by appending to content
-    if (postId) {
+    // Update post to show ended state
+    if (pId) {
       await supabase.from('community_posts').update({
         content: (liveTitle.trim() || 'לייב סשן') + ' (הסתיים)',
-      }).eq('id', postId);
+        post_type: 'live',
+      }).eq('id', pId);
     }
 
     toast({ title: 'הלייב הסתיים' });
-    onClose();
-  }, [localStream, liveTitle, postId, onClose, toast]);
+    setStep('ended');
+  }, [localStream, liveTitle, toast]);
+
+  // ── Save as lesson ──
+  const saveAsLesson = useCallback(async () => {
+    if (!saveLessonForm.title.trim()) return;
+    setIsSavingLesson(true);
+    try {
+      const { error } = await supabase.from('lessons').insert({
+        mentor_id: mentorId,
+        title: saveLessonForm.title.trim(),
+        description: saveLessonForm.description.trim() || null,
+        lesson_type: 'live',
+        category_id: saveLessonForm.categoryId || null,
+        is_published: false,
+        position: 0,
+      });
+      if (error) throw error;
+      setLessonSaved(true);
+      toast({ title: 'הלייב נשמר כשיעור!', description: 'תוכל למצוא אותו בלשונית שיעורים' });
+    } catch {
+      toast({ title: 'שגיאה בשמירת השיעור', variant: 'destructive' });
+    } finally {
+      setIsSavingLesson(false);
+    }
+  }, [saveLessonForm, mentorId, toast]);
 
   // ── Cleanup on unmount ──
   useEffect(() => {
@@ -303,30 +379,36 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
         screenStreamRef.current?.getTracks().forEach(t => t.stop());
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── UI ──
+  // ── Render ──
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" dir="rtl">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 12 }}
-        className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl border border-border overflow-hidden"
+        className="relative w-full max-w-4xl mx-4 bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col"
+        style={{ maxHeight: '90vh' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2.5">
             {step === 'live' ? (
               <>
                 <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
                 <span className="text-sm font-bold text-destructive uppercase tracking-wider">LIVE</span>
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5" />{viewerCount}
+                  <Users className="w-3.5 h-3.5" />{viewerCount} צופים
                 </span>
+              </>
+            ) : step === 'ended' ? (
+              <>
+                <BookOpen className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">הלייב הסתיים</span>
               </>
             ) : (
               <>
@@ -335,160 +417,153 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
               </>
             )}
           </div>
-          {step === 'setup' && (
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-
-        <div className="p-6 space-y-5">
-
-          {/* ── SETUP STEP ── */}
-          {step === 'setup' && (
-            <>
-              {/* Session title */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">כותרת הסשן</label>
-                <input
-                  value={liveTitle}
-                  onChange={e => setLiveTitle(e.target.value)}
-                  placeholder="לדוגמה: מסחר חי על S&P500 — גישת הבוקר"
-                  className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
-                />
-              </div>
-
-              {/* Screen sharing */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">שיתוף מסך</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => pickScreen('screen')}
-                    className={`flex flex-col items-center gap-2.5 p-4 rounded-xl border transition-all ${
-                      shareMode === 'screen'
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'
-                    }`}
-                  >
-                    <Maximize2 className="w-6 h-6" />
-                    <span className="text-xs font-medium">כל המסך</span>
-                    {shareMode === 'screen' && <span className="text-[10px] text-primary/70">✓ נבחר</span>}
-                  </button>
-                  <button
-                    onClick={() => pickScreen('window')}
-                    className={`flex flex-col items-center gap-2.5 p-4 rounded-xl border transition-all ${
-                      shareMode === 'window'
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'
-                    }`}
-                  >
-                    <MonitorPlay className="w-6 h-6" />
-                    <span className="text-xs font-medium">חלון ספציפי</span>
-                    {shareMode === 'window' && <span className="text-[10px] text-primary/70">✓ נבחר</span>}
-                  </button>
-                </div>
-              </div>
-
-              {/* Preview */}
-              {localStream && (
-                <div className="rounded-xl overflow-hidden bg-foreground/5 border border-border aspect-video relative">
-                  <video
-                    ref={previewRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="w-full h-full object-contain"
-                  />
-                  <div className="absolute top-2 right-2 px-2 py-0.5 bg-foreground/60 rounded-full text-[10px] text-background flex items-center gap-1">
-                    <Monitor className="w-3 h-3" />
-                    תצוגה מקדימה
-                  </div>
-                </div>
-              )}
-
-              {/* Microphone */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">מיקרופון</label>
-                <div className="flex gap-2">
-                  {/* Mic selector */}
-                  <div className="relative flex-1">
-                    <button
-                      onClick={() => setShowMicMenu(v => !v)}
-                      className="w-full flex items-center gap-2 h-10 px-3 bg-background ring-1 ring-border rounded-xl text-sm text-foreground hover:ring-accent transition-all"
-                    >
-                      <Mic className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <span className="flex-1 text-right truncate text-sm">
-                        {audioDevices.find(d => d.deviceId === selectedMic)?.label || 'מיקרופון ברירת מחדל'}
-                      </span>
-                      <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-                    </button>
-                    <AnimatePresence>
-                      {showMicMenu && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -4 }}
-                          className="absolute top-full mt-1 right-0 left-0 z-10 bg-card border border-border rounded-xl shadow-lg overflow-hidden"
-                        >
-                          {audioDevices.length === 0 ? (
-                            <div className="px-4 py-3 text-xs text-muted-foreground">לא נמצאו מיקרופונים</div>
-                          ) : audioDevices.map(d => (
-                            <button
-                              key={d.deviceId}
-                              onClick={() => {
-                                setSelectedMic(d.deviceId);
-                                setShowMicMenu(false);
-                                acquireMic(d.deviceId);
-                              }}
-                              className={`w-full text-right px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors ${
-                                selectedMic === d.deviceId ? 'text-primary font-medium' : 'text-foreground'
-                              }`}
-                            >
-                              {d.label || `מיקרופון ${d.deviceId.slice(0, 6)}`}
-                            </button>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Acquire mic button */}
-                  <button
-                    onClick={() => acquireMic(selectedMic)}
-                    className="h-10 px-4 rounded-xl bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-all shrink-0"
-                  >
-                    בדוק
-                  </button>
-                </div>
-              </div>
-
-              {/* Go Live button */}
+          <div className="flex items-center gap-2">
+            {step === 'live' && (
               <button
-                onClick={goLive}
-                disabled={!localStream || !shareMode || isStarting}
-                className="w-full h-12 bg-destructive text-destructive-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 hover:opacity-90"
+                onClick={() => setShowChat(v => !v)}
+                className={`flex items-center gap-1.5 h-7 px-2.5 rounded-lg border text-xs transition-all ${
+                  showChat ? 'border-primary/40 bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:text-foreground'
+                }`}
               >
-                {isStarting ? (
-                  <><div className="w-4 h-4 border-2 border-destructive-foreground border-t-transparent rounded-full animate-spin" />מכין לייב...</>
-                ) : (
-                  <><Wifi className="w-4 h-4" />התחל לייב</>
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">צ'אט</span>
+                {chatMessages.length > 0 && (
+                  <span className="bg-primary text-primary-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                    {chatMessages.length > 99 ? '99+' : chatMessages.length}
+                  </span>
                 )}
               </button>
-            </>
-          )}
+            )}
+            {step === 'setup' && (
+              <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            )}
+            {step === 'ended' && (
+              <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+        </div>
 
-          {/* ── LIVE STEP ── */}
-          {step === 'live' && (
-            <>
-              {/* Live preview */}
+        {/* ── SETUP STEP ── */}
+        {step === 'setup' && (
+          <div className="p-6 space-y-5 overflow-y-auto">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">כותרת הסשן</label>
+              <input
+                value={liveTitle}
+                onChange={e => setLiveTitle(e.target.value)}
+                placeholder="לדוגמה: מסחר חי על S&P500 — גישת הבוקר"
+                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">שיתוף מסך</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => pickScreen('screen')}
+                  className={`flex flex-col items-center gap-2.5 p-4 rounded-xl border transition-all ${
+                    shareMode === 'screen' ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'
+                  }`}
+                >
+                  <Maximize2 className="w-6 h-6" />
+                  <span className="text-xs font-medium">כל המסך</span>
+                  {shareMode === 'screen' && <span className="text-[10px] text-primary/70">✓ נבחר</span>}
+                </button>
+                <button
+                  onClick={() => pickScreen('window')}
+                  className={`flex flex-col items-center gap-2.5 p-4 rounded-xl border transition-all ${
+                    shareMode === 'window' ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground'
+                  }`}
+                >
+                  <MonitorPlay className="w-6 h-6" />
+                  <span className="text-xs font-medium">חלון ספציפי</span>
+                  {shareMode === 'window' && <span className="text-[10px] text-primary/70">✓ נבחר</span>}
+                </button>
+              </div>
+            </div>
+
+            {localStream && (
               <div className="rounded-xl overflow-hidden bg-foreground/5 border border-border aspect-video relative">
-                <video
-                  ref={previewRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="w-full h-full object-contain"
-                />
+                <video ref={previewRef} autoPlay muted playsInline className="w-full h-full object-contain" />
+                <div className="absolute top-2 right-2 px-2 py-0.5 bg-foreground/60 rounded-full text-[10px] text-background flex items-center gap-1">
+                  <Monitor className="w-3 h-3" />
+                  תצוגה מקדימה
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">מיקרופון</label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <button
+                    onClick={() => setShowMicMenu(v => !v)}
+                    className="w-full flex items-center gap-2 h-10 px-3 bg-background ring-1 ring-border rounded-xl text-sm text-foreground hover:ring-accent transition-all"
+                  >
+                    <Mic className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="flex-1 text-right truncate text-sm">
+                      {audioDevices.find(d => d.deviceId === selectedMic)?.label || 'מיקרופון ברירת מחדל'}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </button>
+                  <AnimatePresence>
+                    {showMicMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        className="absolute top-full mt-1 right-0 left-0 z-10 bg-card border border-border rounded-xl shadow-lg overflow-hidden"
+                      >
+                        {audioDevices.length === 0 ? (
+                          <div className="px-4 py-3 text-xs text-muted-foreground">לא נמצאו מיקרופונים</div>
+                        ) : audioDevices.map(d => (
+                          <button
+                            key={d.deviceId}
+                            onClick={() => { setSelectedMic(d.deviceId); setShowMicMenu(false); acquireMic(d.deviceId); }}
+                            className={`w-full text-right px-4 py-2.5 text-sm hover:bg-muted/50 transition-colors ${
+                              selectedMic === d.deviceId ? 'text-primary font-medium' : 'text-foreground'
+                            }`}
+                          >
+                            {d.label || `מיקרופון ${d.deviceId.slice(0, 6)}`}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <button
+                  onClick={() => acquireMic(selectedMic)}
+                  className="h-10 px-4 rounded-xl bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-all shrink-0"
+                >
+                  בדוק
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={goLive}
+              disabled={!localStream || !shareMode || isStarting}
+              className="w-full h-12 bg-destructive text-destructive-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-40 hover:opacity-90"
+            >
+              {isStarting
+                ? <><div className="w-4 h-4 border-2 border-destructive-foreground border-t-transparent rounded-full animate-spin" />מכין לייב...</>
+                : <><Wifi className="w-4 h-4" />התחל לייב</>
+              }
+            </button>
+          </div>
+        )}
+
+        {/* ── LIVE STEP ── */}
+        {step === 'live' && (
+          <div className="flex flex-1 overflow-hidden min-h-0">
+            {/* Video + controls */}
+            <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex-1 bg-foreground/5 relative overflow-hidden">
+                <video ref={previewRef} autoPlay muted playsInline className="w-full h-full object-contain" />
                 <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 bg-destructive rounded-full text-destructive-foreground text-xs font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-destructive-foreground animate-pulse" />
                   LIVE
@@ -498,42 +573,185 @@ export default function LiveBroadcast({ mentorId, onClose, onPostCreated }: Prop
                   {viewerCount} צופים
                 </div>
               </div>
-
-              {/* Controls */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 px-5 py-3 border-t border-border shrink-0 bg-card flex-wrap">
                 <button
                   onClick={toggleMic}
-                  className={`flex items-center gap-2 h-10 px-4 rounded-xl border text-sm font-medium transition-all ${
-                    micEnabled
-                      ? 'border-border text-foreground hover:bg-muted'
-                      : 'border-destructive/30 bg-destructive/10 text-destructive'
+                  className={`flex items-center gap-2 h-9 px-4 rounded-xl border text-xs font-medium transition-all ${
+                    micEnabled ? 'border-border text-foreground hover:bg-muted' : 'border-destructive/30 bg-destructive/10 text-destructive'
                   }`}
                 >
                   {micEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-                  {micEnabled ? 'מיקרופון פעיל' : 'מיקרופון כבוי'}
+                  {micEnabled ? 'מיק פעיל' : 'מיק כבוי'}
                 </button>
-
-                <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-xl">
+                <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-xl">
                   <MonitorPlay className="w-4 h-4 text-muted-foreground shrink-0" />
                   <span className="text-xs text-muted-foreground truncate">
                     {shareMode === 'screen' ? 'שיתוף כל המסך' : 'שיתוף חלון'}
                   </span>
                 </div>
-
+                <div className="flex-1" />
                 <button
                   onClick={endLive}
-                  className="h-10 px-5 bg-destructive text-destructive-foreground rounded-xl text-sm font-bold hover:opacity-90 transition-all"
+                  className="h-9 px-5 bg-destructive text-destructive-foreground rounded-xl text-xs font-bold hover:opacity-90 transition-all"
                 >
                   סיים לייב
                 </button>
               </div>
+            </div>
 
-              <p className="text-xs text-muted-foreground text-center">
-                התלמידים שלך יכולים לצפות בלייב ולהפעיל מיקרופון מתוך עמוד הקהילה
-              </p>
-            </>
-          )}
-        </div>
+            {/* Chat panel */}
+            <AnimatePresence>
+              {showChat && (
+                <motion.div
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: 260, opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="border-r border-border flex flex-col bg-card shrink-0 overflow-hidden"
+                  style={{ minWidth: 0 }}
+                >
+                  <div className="px-4 py-3 border-b border-border flex items-center gap-2 shrink-0">
+                    <MessageSquare className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-semibold text-foreground">צ'אט</span>
+                    <span className="text-xs text-muted-foreground mr-auto">{chatMessages.length}</span>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-0">
+                    {chatMessages.length === 0 && (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <MessageSquare className="w-8 h-8 opacity-20 mx-auto mb-2" />
+                        <p className="text-xs">ממתין להודעות...</p>
+                      </div>
+                    )}
+                    {chatMessages.map(msg => (
+                      <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.user_id === mentorId ? 'items-end' : 'items-start'}`}>
+                        <span className="text-[10px] text-muted-foreground font-medium px-1">
+                          {msg.user_id === mentorId ? 'אתה' : msg.display_name}
+                        </span>
+                        <div className={`max-w-[85%] px-3 py-1.5 rounded-2xl text-xs leading-relaxed ${
+                          msg.user_id === mentorId
+                            ? 'bg-primary text-primary-foreground rounded-tl-sm'
+                            : 'bg-muted text-foreground rounded-tr-sm'
+                        }`}>
+                          {msg.message}
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
+                  <div className="p-3 border-t border-border shrink-0">
+                    <div className="flex gap-2">
+                      <input
+                        value={chatInput}
+                        onChange={e => setChatInput(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                        placeholder="כתוב הודעה..."
+                        maxLength={300}
+                        className="flex-1 h-9 px-3 bg-background ring-1 ring-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
+                      />
+                      <button
+                        onClick={sendMessage}
+                        disabled={!chatInput.trim() || isSendingMsg}
+                        className="h-9 w-9 flex items-center justify-center bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-all disabled:opacity-40 shrink-0"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* ── ENDED STEP — Save as lesson ── */}
+        {step === 'ended' && (
+          <div className="p-6 space-y-5 overflow-y-auto">
+            <div className="text-center py-2">
+              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
+                <Radio className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <h3 className="text-base font-bold text-foreground mb-1">הלייב הסתיים בהצלחה</h3>
+              <p className="text-sm text-muted-foreground">הפוסט נשאר בקהילה עם סימון "הסתיים"</p>
+            </div>
+
+            {!lessonSaved ? (
+              <div className="bg-muted/40 border border-border rounded-xl p-5 space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <BookOpen className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">שמור את הלייב כשיעור</span>
+                </div>
+                <p className="text-xs text-muted-foreground">ניתן לתעד את הסשן כשיעור לייב תחת הקטגוריות שלך</p>
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">שם השיעור</label>
+                  <input
+                    value={saveLessonForm.title}
+                    onChange={e => setSaveLessonForm(f => ({ ...f, title: e.target.value }))}
+                    placeholder="כותרת השיעור"
+                    className="w-full h-9 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
+                  />
+                </div>
+
+                {categories.length > 0 && (
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">קטגוריה (אופציונלי)</label>
+                    <select
+                      value={saveLessonForm.categoryId}
+                      onChange={e => setSaveLessonForm(f => ({ ...f, categoryId: e.target.value }))}
+                      className="w-full h-9 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
+                    >
+                      <option value="">ללא קטגוריה</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">תיאור (אופציונלי)</label>
+                  <textarea
+                    value={saveLessonForm.description}
+                    onChange={e => setSaveLessonForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="תיאור קצר של הסשן..."
+                    rows={2}
+                    className="w-full px-3 py-2 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right resize-none"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveAsLesson}
+                    disabled={!saveLessonForm.title.trim() || isSavingLesson}
+                    className="flex-1 h-9 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    {isSavingLesson ? 'שומר...' : 'שמור כשיעור לייב'}
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="h-9 px-4 border border-border text-muted-foreground rounded-lg text-xs hover:bg-muted transition-all"
+                  >
+                    סגור
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-5 text-center space-y-2">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <Check className="w-5 h-5 text-primary" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">השיעור נשמר!</p>
+                <p className="text-xs text-muted-foreground">תוכל למצוא אותו בלשונית שיעורים ולפרסם אותו לתלמידים</p>
+                <button
+                  onClick={onClose}
+                  className="mt-2 h-9 px-6 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all"
+                >
+                  סגור
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </motion.div>
     </div>
   );

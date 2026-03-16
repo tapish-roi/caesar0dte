@@ -84,6 +84,15 @@ export default function MentorDashboard() {
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
+  const { data: mentorProfile } = useQuery({
+    queryKey: ['mentor-profile', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('full_name').eq('user_id', user!.id).single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['categories', user?.id],
     queryFn: async () => {
@@ -972,7 +981,8 @@ export default function MentorDashboard() {
         {showLiveBroadcast && (
           <LiveBroadcast
             mentorId={user!.id}
-            onClose={() => { setShowLiveBroadcast(false); qc.invalidateQueries({ queryKey: ['community_posts'] }); }}
+            mentorName={mentorProfile?.full_name || user?.email || 'מנטור'}
+            onClose={() => { setShowLiveBroadcast(false); qc.invalidateQueries({ queryKey: ['community_posts'] }); qc.invalidateQueries({ queryKey: ['lessons'] }); }}
             onPostCreated={() => qc.invalidateQueries({ queryKey: ['community_posts'] })}
           />
         )}
