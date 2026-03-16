@@ -29,9 +29,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   const fetchRole = async (userId: string, metadataRole?: string): Promise<void> => {
-    // Use SECURITY DEFINER RPC — bypasses RLS timing issues
-    const { data } = await supabase.rpc('get_user_role', { _user_id: userId });
+    // Immediate fallback from metadata — avoids any DB latency on signup
+    if (metadataRole === 'mentor' || metadataRole === 'student') {
+      setRole(metadataRole as AppRole);
+      // Still sync to DB in background (no await)
+      supabase.rpc('get_user_role', { _user_id: userId }).then(({ data }) => {
+        if (data === 'mentor' || data === 'student') setRole(data as AppRole);
+      });
+      return;
+    }
 
+    // No metadata — try SECURITY DEFINER RPC (bypasses RLS)
+    const { data } = await supabase.rpc('get_user_role', { _user_id: userId });
     if (data === 'mentor' || data === 'student') {
       setRole(data as AppRole);
       return;
@@ -40,15 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Retry once after 900ms — trigger may not have committed yet on fresh signup
     await sleep(900);
     const { data: data2 } = await supabase.rpc('get_user_role', { _user_id: userId });
-
     if (data2 === 'mentor' || data2 === 'student') {
       setRole(data2 as AppRole);
-      return;
-    }
-
-    // Final fallback: use role from user_metadata (set at signup time)
-    if (metadataRole === 'mentor' || metadataRole === 'student') {
-      setRole(metadataRole as AppRole);
       return;
     }
 
