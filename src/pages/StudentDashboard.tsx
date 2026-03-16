@@ -69,52 +69,184 @@ interface PostComment {
   profiles?: { full_name: string } | null;
 }
 
-// ─── Community Picker Screen ──────────────────────────────────────────────────
-function CommunityPicker({
+// ─── Landing Screen (unified) ─────────────────────────────────────────────────
+function LandingScreen({
   memberships,
+  invites,
   onSelect,
+  onAccept,
+  onDecline,
+  onSignOut,
+  userEmail,
 }: {
   memberships: MembershipItem[];
+  invites: InviteItem[];
   onSelect: (mentorId: string) => void;
+  onAccept: (invite: { id: string; mentor_id: string }) => void;
+  onDecline: (id: string) => void;
+  onSignOut: () => void;
+  userEmail?: string;
 }) {
+  const hasCommunities = memberships.length > 0;
+  const hasInvites = invites.length > 0;
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6" dir="rtl">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center gap-3 justify-center mb-10">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-primary-foreground" />
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6" dir="rtl">
+      {/* Logo */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-3 mb-10"
+      >
+        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+          <TrendingUp className="w-5 h-5 text-primary-foreground" />
+        </div>
+        <span className="text-lg font-bold text-foreground">TradeLearn</span>
+      </motion.div>
+
+      {/* Main card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="w-full max-w-md bg-card rounded-2xl card-shadow overflow-hidden"
+      >
+        {/* Card header */}
+        <div className="px-6 pt-6 pb-4 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users className="w-4 h-4 text-primary" />
+            </div>
+            <h2 className="text-base font-bold text-foreground">כניסה לקהילות שלי</h2>
           </div>
-          <span className="text-lg font-bold text-foreground">TradeLearn</span>
         </div>
 
-        <h1 className="text-2xl font-bold text-foreground text-center mb-2">בחר קהילה</h1>
-        <p className="text-sm text-muted-foreground text-center mb-8">
-          אתה חבר ב-{memberships.length} קהילות. בחר לאיזה קהילה להיכנס.
-        </p>
+        <div className="p-5">
+          {/* ── State 1: has communities ── */}
+          {hasCommunities && (
+            <div className="space-y-2.5">
+              {memberships.map((m, i) => (
+                <motion.button
+                  key={m.mentor_id}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  onClick={() => onSelect(m.mentor_id)}
+                  className="w-full flex items-center gap-4 p-4 bg-background rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-right group"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-base shrink-0">
+                    {m.avatarLetter}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm text-foreground">{m.mentorName}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">קהילת מסחר</div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors rotate-180" />
+                </motion.button>
+              ))}
 
-        <div className="space-y-3">
-          {memberships.map((m, i) => (
-            <motion.button
-              key={m.mentor_id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-              onClick={() => onSelect(m.mentor_id)}
-              className="w-full flex items-center gap-4 p-4 bg-card rounded-2xl card-shadow hover:bg-accent/5 active:scale-98 transition-all text-right group"
-            >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-lg shrink-0">
-                {m.avatarLetter}
+              {/* Pending invites within the same card if both exist */}
+              {hasInvites && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2.5 flex items-center gap-1.5">
+                    <Bell className="w-3.5 h-3.5" />
+                    הזמנות ממתינות
+                  </p>
+                  <div className="space-y-2">
+                    {invites.map((inv) => (
+                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                          <span className="text-xs font-bold text-amber-700">{inv.mentorName[0]?.toUpperCase()}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">{inv.mentorName}</p>
+                          <p className="text-xs text-muted-foreground">הזמין אותך לקהילה שלו</p>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          <button
+                            onClick={() => onAccept({ id: inv.id, mentor_id: inv.mentor_id })}
+                            className="h-7 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all"
+                          >
+                            הצטרף
+                          </button>
+                          <button
+                            onClick={() => onDecline(inv.id)}
+                            className="h-7 px-2 border border-border text-muted-foreground rounded-lg text-xs hover:bg-muted transition-all"
+                          >
+                            דחה
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── State 2: no communities but has invites ── */}
+          {!hasCommunities && hasInvites && (
+            <div className="space-y-2.5">
+              <p className="text-sm text-muted-foreground mb-3">
+                קיבלת הזמנות לקהילות הבאות. לחץ הצטרף כדי להיכנס.
+              </p>
+              {invites.map((inv, i) => (
+                <motion.div
+                  key={inv.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07 }}
+                  className="flex items-center gap-3 p-4 bg-background border border-border rounded-xl"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <span className="text-base font-bold text-amber-700">{inv.mentorName[0]?.toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-foreground">{inv.mentorName}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">מנטור מסחר</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => onAccept({ id: inv.id, mentor_id: inv.mentor_id })}
+                      className="h-8 px-4 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all"
+                    >
+                      הצטרף
+                    </button>
+                    <button
+                      onClick={() => onDecline(inv.id)}
+                      className="h-8 px-2.5 border border-border text-muted-foreground rounded-lg text-xs hover:bg-muted transition-all"
+                    >
+                      דחה
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+
+          {/* ── State 3: no communities, no invites ── */}
+          {!hasCommunities && !hasInvites && (
+            <div className="text-center py-6">
+              <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                <Bell className="w-6 h-6 text-muted-foreground" />
               </div>
-              <div className="flex-1">
-                <div className="font-semibold text-foreground">{m.mentorName}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">קהילת מסחר</div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors rotate-180" />
-            </motion.button>
-          ))}
+              <p className="text-sm font-semibold text-foreground mb-1.5">טרם קיבלת הזמנה לקהילה</p>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                בקרוב תקבל הזמנה ממנטור לקהילת המסחר שלו. ברגע שתאושר — תוכל להיכנס לשיעורים ולקהילה.
+              </p>
+            </div>
+          )}
         </div>
-      </div>
+      </motion.div>
+
+      {/* Sign out */}
+      <button
+        onClick={onSignOut}
+        className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+      >
+        <LogOut className="w-3.5 h-3.5" />
+        התנתק ({userEmail})
+      </button>
     </div>
   );
 }
@@ -384,104 +516,18 @@ export default function StudentDashboard() {
     );
   }
 
-  // ── Community Picker: show when multiple memberships and none selected ──
-  if (memberships.length > 1 && !selectedMentorId) {
+  // ── Landing screen: no community selected yet (0 memberships OR multiple and none chosen) ──
+  if (!selectedMentorId) {
     return (
-      <>
-        {/* Invite banners above picker */}
-        <AnimatePresence>
-          {invites.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="fixed top-0 left-0 right-0 z-50 border-b border-amber-200 bg-amber-50"
-              dir="rtl"
-            >
-              {invites.map((inv) => (
-                <div key={inv.id} className="flex items-center gap-4 px-8 py-3">
-                  <Bell className="w-4 h-4 text-amber-600 shrink-0" />
-                  <p className="text-sm text-amber-800 flex-1">
-                    <span className="font-semibold">{inv.mentorName}</span> הזמין אותך להצטרף לקהילה שלו
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => acceptInvite.mutate({ id: inv.id, mentor_id: inv.mentor_id })}
-                      className="h-8 px-4 bg-accent text-accent-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all"
-                    >
-                      הצטרף
-                    </button>
-                    <button
-                      onClick={() => declineInvite.mutate(inv.id)}
-                      className="h-8 px-3 bg-card border border-amber-200 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-50 transition-all"
-                    >
-                      דחה
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <CommunityPicker memberships={memberships} onSelect={setSelectedMentorId} />
-      </>
-    );
-  }
-
-  // ── No memberships ──
-  if (memberships.length === 0) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col" dir="rtl">
-        {/* Invite banners */}
-        <AnimatePresence>
-          {invites.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="border-b border-amber-200 bg-amber-50"
-            >
-              {invites.map((inv) => (
-                <div key={inv.id} className="flex items-center gap-4 px-8 py-3">
-                  <Bell className="w-4 h-4 text-amber-600 shrink-0" />
-                  <p className="text-sm text-amber-800 flex-1">
-                    <span className="font-semibold">{inv.mentorName}</span> הזמין אותך להצטרף לקהילה שלו
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => acceptInvite.mutate({ id: inv.id, mentor_id: inv.mentor_id })}
-                      className="h-8 px-4 bg-accent text-accent-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all"
-                    >
-                      הצטרף
-                    </button>
-                    <button
-                      onClick={() => declineInvite.mutate(inv.id)}
-                      className="h-8 px-3 bg-card border border-amber-200 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-50 transition-all"
-                    >
-                      דחה
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
-              <Users className="w-7 h-7 text-muted-foreground" />
-            </div>
-            <h2 className="text-xl font-bold text-foreground">טרם הצטרפת לקהילה</h2>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              המנטור שלך ישלח לך הזמנה לאימייל. ברגע שתקבל הזמנה, היא תופיע כאן.
-            </p>
-            <button onClick={signOut} className="mt-4 text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1.5 mx-auto">
-              <LogOut className="w-3.5 h-3.5" />
-              התנתק
-            </button>
-          </div>
-        </div>
-      </div>
+      <LandingScreen
+        memberships={memberships}
+        invites={invites}
+        onSelect={setSelectedMentorId}
+        onAccept={(inv) => acceptInvite.mutate(inv)}
+        onDecline={(id) => declineInvite.mutate(id)}
+        onSignOut={signOut}
+        userEmail={user?.email}
+      />
     );
   }
 
