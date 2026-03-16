@@ -28,32 +28,28 @@ export default function AuthPage() {
           email,
           password,
           options: {
-            // Store role in metadata — AuthContext will create user_roles row on SIGNED_IN
             data: { full_name: fullName, role: tab },
             emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
-        if (data.user) {
-          // Update profile with phone if provided (session is active with auto-confirm)
-          if (phone) {
-            await supabase.from('profiles').update({ phone }).eq('user_id', data.user.id);
-          }
-          toast({
-            title: 'חשבון נוצר בהצלחה! 🎉',
-            description: tab === 'mentor' ? 'ברוך הבא, מנטור! הנך מועבר לממשק הניהול.' : 'ברוך הבא! הנך מועבר לדף הלמידה שלך.',
-          });
+        if (data.user && phone) {
+          await supabase.from('profiles').update({ phone }).eq('user_id', data.user.id);
         }
+        // Don't show toast here — AuthContext redirect handles it
+        // Just clear loading; redirect happens via App.tsx when role is set
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // Redirect happens reactively via App.tsx once role loads
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
       toast({ title: 'שגיאה', description: message, variant: 'destructive' });
-    } finally {
-      setLoading(false);
+      setLoading(false); // Only clear on error; success navigates away
     }
+    // Note: on success we intentionally leave loading=true while redirect happens
+    // App.tsx will unmount this component once role is resolved
   };
 
   return (

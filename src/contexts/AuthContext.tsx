@@ -29,34 +29,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   const fetchRole = async (userId: string, metadataRole?: string): Promise<void> => {
-    // First attempt
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .single();
-
-    if (data?.role) {
-      setRole(data.role as AppRole);
-      return;
-    }
-
-    // Retry after 800ms — trigger may not have committed yet
-    await sleep(800);
-    const { data: data2 } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .single();
-
-    if (data2?.role) {
-      setRole(data2.role as AppRole);
-      return;
-    }
-
-    // Final fallback: use role from user_metadata (set at signup)
+    // Immediate fallback from metadata — avoids any DB latency on signup
     if (metadataRole === 'mentor' || metadataRole === 'student') {
       setRole(metadataRole as AppRole);
+      // Still sync to DB in background (no await)
+      supabase.rpc('get_user_role', { _user_id: userId }).then(({ data }) => {
+        if (data === 'mentor' || data === 'student') setRole(data as AppRole);
+      });
+      return;
+    }
+
+    // No metadata — try SECURITY DEFINER RPC (bypasses RLS)
+    const { data } = await supabase.rpc('get_user_role', { _user_id: userId });
+    if (data === 'mentor' || data === 'student') {
+      setRole(data as AppRole);
+      return;
+    }
+
+    // Retry once after 900ms — trigger may not have committed yet on fresh signup
+    await sleep(900);
+    const { data: data2 } = await supabase.rpc('get_user_role', { _user_id: userId });
+    if (data2 === 'mentor' || data2 === 'student') {
+      setRole(data2 as AppRole);
       return;
     }
 
@@ -90,6 +84,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearTimeout(timeout);
     };
   }, []);
+
+  // If user is set but role is still null (e.g. stale session on reload), re-fetch role
+  useEffect(() => {
+    if (user && !role && !loading) {
+      const metadataRole = user.user_metadata?.role as string | undefined;
+      fetchRole(user.id, metadataRole);
+    }
+  }, [user, role, loading]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
