@@ -969,16 +969,29 @@ export default function StudentDashboard() {
                           <p className="text-sm text-muted-foreground">אין קובץ וידאו</p>
                         </div>
                       )}
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <h2 className="text-xl font-bold text-foreground">{selectedLessonData.title}</h2>
-                        {getProgress(selectedLessonData.id)?.completed && (
-                          <div className="flex items-center gap-1.5 text-accent text-sm font-medium shrink-0">
-                            <CheckCircle2 className="w-4 h-4" />הושלם
-                          </div>
-                        )}
-                      </div>
+                     </div>
+                     <div className="p-6">
+                       <div className="flex items-start justify-between gap-4">
+                         <h2 className="text-xl font-bold text-foreground">{selectedLessonData.title}</h2>
+                         <div className="flex items-center gap-2 shrink-0">
+                           {selectedLessonData.attachment_url && (
+                             <a
+                               href={selectedLessonData.attachment_url}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="flex items-center gap-1.5 h-8 px-3 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-medium hover:bg-primary/20 transition-all"
+                             >
+                               <Paperclip className="w-3.5 h-3.5" />
+                               {selectedLessonData.attachment_name ? selectedLessonData.attachment_name.length > 20 ? selectedLessonData.attachment_name.slice(0, 20) + '...' : selectedLessonData.attachment_name : 'פתח צירוף'}
+                             </a>
+                           )}
+                           {getProgress(selectedLessonData.id)?.completed && (
+                             <div className="flex items-center gap-1.5 text-accent text-sm font-medium">
+                               <CheckCircle2 className="w-4 h-4" />הושלם
+                             </div>
+                           )}
+                         </div>
+                       </div>
                       {selectedLessonData.description && (
                         <p className="text-sm text-muted-foreground mt-2">{selectedLessonData.description}</p>
                       )}
