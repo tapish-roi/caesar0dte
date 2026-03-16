@@ -42,6 +42,7 @@ interface LessonItem {
   title: string;
   description: string | null;
   lesson_type: string;
+  created_at: string;
   video_url: string | null;
   category_id: string | null;
   duration_minutes: number | null;
