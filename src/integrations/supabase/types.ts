@@ -206,6 +206,8 @@ export type Database = {
       }
       lessons: {
         Row: {
+          attachment_name: string | null
+          attachment_url: string | null
           category_id: string | null
           created_at: string
           description: string | null
@@ -221,6 +223,8 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_url?: string | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -236,6 +240,8 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          attachment_name?: string | null
+          attachment_url?: string | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -402,6 +408,30 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      student_category_access: {
+        Row: {
+          category_id: string
+          granted_at: string
+          id: string
+          mentor_id: string
+          student_id: string
+        }
+        Insert: {
+          category_id: string
+          granted_at?: string
+          id?: string
+          mentor_id: string
+          student_id: string
+        }
+        Update: {
+          category_id?: string
+          granted_at?: string
+          id?: string
+          mentor_id?: string
+          student_id?: string
         }
         Relationships: []
       }

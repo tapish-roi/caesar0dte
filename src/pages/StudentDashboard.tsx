@@ -7,7 +7,7 @@ import {
   TrendingUp, BookOpen, Users, Video, Film, FileText,
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
-  User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio,
+  User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
@@ -38,6 +38,8 @@ interface LessonItem {
   video_url: string | null;
   category_id: string | null;
   duration_minutes: number | null;
+  attachment_url: string | null;
+  attachment_name: string | null;
 }
 
 interface CategoryItem {
@@ -426,14 +428,29 @@ export default function StudentDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lessons')
-        .select('id, title, description, lesson_type, video_url, category_id, duration_minutes')
+        .select('id, title, description, lesson_type, video_url, category_id, duration_minutes, attachment_url, attachment_name')
         .eq('mentor_id', mentorId!)
         .eq('is_published', true)
         .order('position');
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as LessonItem[];
     },
     enabled: !!mentorId,
+  });
+
+  // Category access grants for this student
+  const { data: categoryAccess = [] } = useQuery<{ category_id: string }[]>({
+    queryKey: ['student-category-access', user?.id, mentorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('student_category_access')
+        .select('category_id')
+        .eq('student_id', user!.id)
+        .eq('mentor_id', mentorId!);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user && !!mentorId,
   });
 
   const { data: progress = [] } = useQuery<ProgressItem[]>({
@@ -952,16 +969,29 @@ export default function StudentDashboard() {
                           <p className="text-sm text-muted-foreground">אין קובץ וידאו</p>
                         </div>
                       )}
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-start justify-between gap-4">
-                        <h2 className="text-xl font-bold text-foreground">{selectedLessonData.title}</h2>
-                        {getProgress(selectedLessonData.id)?.completed && (
-                          <div className="flex items-center gap-1.5 text-accent text-sm font-medium shrink-0">
-                            <CheckCircle2 className="w-4 h-4" />הושלם
-                          </div>
-                        )}
-                      </div>
+                     </div>
+                     <div className="p-6">
+                       <div className="flex items-start justify-between gap-4">
+                         <h2 className="text-xl font-bold text-foreground">{selectedLessonData.title}</h2>
+                         <div className="flex items-center gap-2 shrink-0">
+                           {selectedLessonData.attachment_url && (
+                             <a
+                               href={selectedLessonData.attachment_url}
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               className="flex items-center gap-1.5 h-8 px-3 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-medium hover:bg-primary/20 transition-all"
+                             >
+                               <Paperclip className="w-3.5 h-3.5" />
+                               {selectedLessonData.attachment_name ? selectedLessonData.attachment_name.length > 20 ? selectedLessonData.attachment_name.slice(0, 20) + '...' : selectedLessonData.attachment_name : 'פתח צירוף'}
+                             </a>
+                           )}
+                           {getProgress(selectedLessonData.id)?.completed && (
+                             <div className="flex items-center gap-1.5 text-accent text-sm font-medium">
+                               <CheckCircle2 className="w-4 h-4" />הושלם
+                             </div>
+                           )}
+                         </div>
+                       </div>
                       {selectedLessonData.description && (
                         <p className="text-sm text-muted-foreground mt-2">{selectedLessonData.description}</p>
                       )}
@@ -997,6 +1027,11 @@ export default function StudentDashboard() {
 
               <div className="space-y-3">
                 {categories.map((cat) => {
+                  // If there are specific grants and this category is not in them → hide
+                  const hasSpecificGrants = categoryAccess.length > 0;
+                  const hasAccessToCat = !hasSpecificGrants || categoryAccess.some(g => g.category_id === cat.id);
+                  if (!hasAccessToCat) return null;
+
                   const catLessons = lessons.filter(l => l.category_id === cat.id);
                   if (catLessons.length === 0) return null;
                   const isExpanded = expandedCats.has(cat.id);
@@ -1038,6 +1073,12 @@ export default function StudentDashboard() {
                                          הוקלט בלייב
                                        </span>
                                      )}
+                                    {lesson.attachment_url && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
+                                        <Paperclip className="w-2.5 h-2.5" />
+                                        צירוף
+                                      </span>
+                                    )}
                                     {lesson.duration_minutes && (
                                       <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
                                     )}
