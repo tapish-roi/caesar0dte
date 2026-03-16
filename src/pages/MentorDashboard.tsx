@@ -84,6 +84,15 @@ export default function MentorDashboard() {
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
+  const { data: mentorProfile } = useQuery({
+    queryKey: ['mentor-profile', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('full_name').eq('user_id', user!.id).single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['categories', user?.id],
     queryFn: async () => {
