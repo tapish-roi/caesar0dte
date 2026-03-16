@@ -1213,7 +1213,19 @@ function StudentPostCard({
 
         <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
-        {post.media_url && (
+        {/* Live ended with recording */}
+        {pType === 'live' && post.media_url && post.media_type === 'video' && (
+          <div className="mt-3 rounded-xl overflow-hidden border border-border">
+            <div className="px-3 py-1.5 bg-muted/50 border-b border-border flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
+              <span className="text-xs text-muted-foreground font-medium">הקלטת הלייב</span>
+            </div>
+            <video src={post.media_url} className="w-full max-h-72 object-contain bg-black rounded-b-xl" controls />
+          </div>
+        )}
+
+        {/* Non-live media */}
+        {pType !== 'live' && post.media_url && (
           <div className="mt-3 rounded-xl overflow-hidden">
             {post.media_type === 'video'
               ? <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" controls />
@@ -1222,7 +1234,8 @@ function StudentPostCard({
           </div>
         )}
 
-        {pType === 'live' && (
+        {/* Join live — only if active (no recording yet) */}
+        {pType === 'live' && !post.media_url && !post.content.includes('(הסתיים)') && (
           <button
             onClick={onJoinLive}
             className="mt-3 flex items-center gap-2 h-9 px-4 bg-destructive text-destructive-foreground rounded-xl text-xs font-bold hover:opacity-90 transition-all"
