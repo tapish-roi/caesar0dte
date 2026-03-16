@@ -929,7 +929,7 @@ export default function StudentDashboard() {
                     exit={{ opacity: 0, y: -8 }}
                     className="bg-card rounded-xl card-shadow mb-6 overflow-hidden"
                   >
-                    <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
+                    <div className="aspect-video bg-foreground/5 border-b border-border flex items-center justify-center relative">
                       {selectedLessonData.video_url ? (
                         <VideoPlayer
                           src={selectedLessonData.video_url}
@@ -938,10 +938,18 @@ export default function StudentDashboard() {
                           initialProgress={getProgress(selectedLessonData.id)}
                           onComplete={() => qc.invalidateQueries({ queryKey: ['progress', user?.id] })}
                         />
+                      ) : selectedLessonData.lesson_type === 'live' ? (
+                        <div className="text-center space-y-2">
+                          <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+                            <Radio className="w-6 h-6 text-destructive" />
+                          </div>
+                          <p className="text-sm font-medium text-foreground">שיעור לייב מוקלט</p>
+                          <p className="text-xs text-muted-foreground">הקלטת הלייב תופיע כאן לאחר עיבוד</p>
+                        </div>
                       ) : (
-                        <div className="text-center text-slate-500">
-                          <Video className="w-12 h-12 mx-auto mb-2 opacity-40" />
-                          <p className="text-sm">אין קובץ וידאו</p>
+                        <div className="text-center">
+                          <Video className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />
+                          <p className="text-sm text-muted-foreground">אין קובץ וידאו</p>
                         </div>
                       )}
                     </div>
