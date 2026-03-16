@@ -11,6 +11,48 @@ import { useToast } from '@/hooks/use-toast';
 
 type SidebarTab = 'lessons' | 'community';
 
+interface InviteItem {
+  id: string;
+  mentor_id: string;
+  contact: string;
+  status: string;
+  mentorName: string;
+}
+
+interface MembershipItem {
+  mentor_id: string;
+  mentorName: string;
+}
+
+interface LessonItem {
+  id: string;
+  title: string;
+  description: string | null;
+  lesson_type: string;
+  video_url: string | null;
+  category_id: string | null;
+  duration_minutes: number | null;
+}
+
+interface CategoryItem {
+  id: string;
+  title: string;
+}
+
+interface ProgressItem {
+  lesson_id: string;
+  progress_percent: number;
+  completed: boolean;
+}
+
+interface PostItem {
+  id: string;
+  content: string;
+  created_at: string;
+  mentor_id: string;
+  mentorName: string;
+}
+
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -20,92 +62,111 @@ export default function StudentDashboard() {
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
 
   // Fetch pending invites for current student
-  const { data: invites = [] } = useQuery({
+  const { data: invites = [] } = useQuery<InviteItem[]>({
     queryKey: ['student-invites', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('community_invites')
-        .select('*, profiles!community_invites_mentor_id_fkey(full_name)')
+        .select('id, mentor_id, contact, status')
         .eq('student_id', user!.id)
         .eq('status', 'pending');
       if (error) throw error;
-      return data;
+      const enriched = await Promise.all(
+        (data ?? []).map(async (inv) => {
+          const { data: p } = await supabase.from('profiles').select('full_name').eq('user_id', inv.mentor_id).single();
+          return { ...inv, mentorName: p?.full_name ?? 'מנטור' };
+        })
+      );
+      return enriched;
     },
     enabled: !!user,
   });
 
-  // Fetch mentor IDs the student is member of
-  const { data: memberships = [] } = useQuery({
+  // Fetch mentor memberships
+  const { data: memberships = [] } = useQuery<MembershipItem[]>({
     queryKey: ['memberships', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('community_members')
-        .select('mentor_id, profiles!community_members_mentor_id_fkey(full_name, email)')
+        .select('mentor_id')
         .eq('student_id', user!.id);
       if (error) throw error;
-      return data;
+      const enriched = await Promise.all(
+        (data ?? []).map(async (m) => {
+          const { data: p } = await supabase.from('profiles').select('full_name').eq('user_id', m.mentor_id).single();
+          return { ...m, mentorName: p?.full_name ?? 'מנטור' };
+        })
+      );
+      return enriched;
     },
     enabled: !!user,
   });
 
   const mentorId = memberships[0]?.mentor_id;
+  const mentorName = memberships[0]?.mentorName;
 
   // Fetch categories for mentor
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<CategoryItem[]>({
     queryKey: ['student-categories', mentorId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('categories')
-        .select('*')
+        .select('id, title')
         .eq('mentor_id', mentorId!)
         .order('position');
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
     enabled: !!mentorId,
   });
 
   // Fetch published lessons for mentor
-  const { data: lessons = [] } = useQuery({
+  const { data: lessons = [] } = useQuery<LessonItem[]>({
     queryKey: ['student-lessons', mentorId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lessons')
-        .select('*')
+        .select('id, title, description, lesson_type, video_url, category_id, duration_minutes')
         .eq('mentor_id', mentorId!)
         .eq('is_published', true)
         .order('position');
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
     enabled: !!mentorId,
   });
 
   // Fetch student lesson progress
-  const { data: progress = [] } = useQuery({
+  const { data: progress = [] } = useQuery<ProgressItem[]>({
     queryKey: ['progress', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lesson_progress')
-        .select('*')
+        .select('lesson_id, progress_percent, completed')
         .eq('student_id', user!.id);
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
     enabled: !!user,
   });
 
   // Fetch community posts
-  const { data: posts = [] } = useQuery({
+  const { data: posts = [] } = useQuery<PostItem[]>({
     queryKey: ['posts', mentorId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('community_posts')
-        .select('*, profiles!community_posts_mentor_id_fkey(full_name)')
+        .select('id, content, created_at, mentor_id')
         .eq('mentor_id', mentorId!)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      const enriched = await Promise.all(
+        (data ?? []).map(async (p) => {
+          const { data: profile } = await supabase.from('profiles').select('full_name').eq('user_id', p.mentor_id).single();
+          return { ...p, mentorName: profile?.full_name ?? 'מנטור' };
+        })
+      );
+      return enriched;
     },
     enabled: !!mentorId && activeTab === 'community',
   });
@@ -140,17 +201,15 @@ export default function StudentDashboard() {
   };
 
   const getProgress = (lessonId: string) =>
-    progress.find((p: { lesson_id: string }) => p.lesson_id === lessonId);
+    progress.find((p) => p.lesson_id === lessonId);
 
-  const selectedLessonData = lessons.find((l: { id: string }) => l.id === selectedLesson);
+  const selectedLessonData = lessons.find((l) => l.id === selectedLesson);
 
   const typeIcon = (type: string) => {
     if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-blue-500" />;
     if (type === 'resource') return <FileText className="w-3.5 h-3.5 text-amber-500" />;
     return <Video className="w-3.5 h-3.5 text-accent" />;
   };
-
-  const mentorProfile = memberships[0];
 
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
@@ -168,12 +227,10 @@ export default function StudentDashboard() {
           </div>
         </div>
 
-        {mentorProfile && (
+        {mentorName && (
           <div className="px-4 py-3 border-b border-sidebar-border bg-accent/5">
             <p className="text-xs text-muted-foreground">המנטור שלך</p>
-            <p className="text-sm font-semibold text-foreground mt-0.5">
-              {(mentorProfile as { profiles: { full_name: string } | null }).profiles?.full_name ?? 'מנטור'}
-            </p>
+            <p className="text-sm font-semibold text-foreground mt-0.5">{mentorName}</p>
           </div>
         )}
 
@@ -223,14 +280,12 @@ export default function StudentDashboard() {
               exit={{ opacity: 0, y: -20 }}
               className="border-b border-amber-200 bg-amber-50"
             >
-              {invites.map((inv: { id: string; mentor_id: string; profiles: { full_name: string } | null }) => (
+              {invites.map((inv) => (
                 <div key={inv.id} className="flex items-center gap-4 px-8 py-3">
                   <Bell className="w-4 h-4 text-amber-600 shrink-0" />
                   <p className="text-sm text-amber-800 flex-1">
-                    <span className="font-semibold">
-                      {inv.profiles?.full_name ?? 'מנטור'}
-                    </span>{' '}
-                    הזמין אותך להצטרף לקהילה שלו!
+                    <span className="font-semibold">{inv.mentorName}</span>{' '}
+                    הוזמנת להצטרף לקהילת {inv.mentorName}
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -241,7 +296,7 @@ export default function StudentDashboard() {
                     </button>
                     <button
                       onClick={() => declineInvite.mutate(inv.id)}
-                      className="h-8 px-3 bg-white border border-amber-200 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-50 transition-all"
+                      className="h-8 px-3 bg-card border border-amber-200 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-50 transition-all"
                     >
                       דחה
                     </button>
@@ -276,7 +331,7 @@ export default function StudentDashboard() {
                   <div className="mb-8">
                     <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {lessons.length} שיעורים זמינים · {progress.filter((p: { completed: boolean }) => p.completed).length} הושלמו
+                      {lessons.length} שיעורים זמינים · {progress.filter((p) => p.completed).length} הושלמו
                     </p>
                   </div>
 
@@ -295,6 +350,7 @@ export default function StudentDashboard() {
                               src={selectedLessonData.video_url.replace('watch?v=', 'embed/')}
                               className="w-full h-full"
                               allowFullScreen
+                              title={selectedLessonData.title}
                             />
                           ) : (
                             <div className="text-center text-slate-500">
@@ -321,11 +377,11 @@ export default function StudentDashboard() {
 
                   {/* Course content */}
                   <div className="space-y-3">
-                    {categories.map((cat: { id: string; title: string }) => {
-                      const catLessons = lessons.filter((l: { category_id: string }) => l.category_id === cat.id);
+                    {categories.map((cat) => {
+                      const catLessons = lessons.filter((l) => l.category_id === cat.id);
                       if (catLessons.length === 0) return null;
                       const isExpanded = expandedCats.has(cat.id);
-                      const completedCount = catLessons.filter((l: { id: string }) => getProgress(l.id)?.completed).length;
+                      const completedCount = catLessons.filter((l) => getProgress(l.id)?.completed).length;
 
                       return (
                         <div key={cat.id} className="bg-card rounded-xl card-shadow overflow-hidden">
@@ -353,7 +409,7 @@ export default function StudentDashboard() {
                                 className="overflow-hidden"
                               >
                                 <div className="border-t border-border">
-                                  {catLessons.map((lesson: { id: string; title: string; lesson_type: string; duration_minutes: number | null }) => {
+                                  {catLessons.map((lesson) => {
                                     const prog = getProgress(lesson.id);
                                     return (
                                       <motion.div
@@ -396,7 +452,7 @@ export default function StudentDashboard() {
                     })}
 
                     {/* Uncategorized lessons */}
-                    {lessons.filter((l: { category_id: string | null }) => !l.category_id).map((lesson: { id: string; title: string; lesson_type: string; duration_minutes: number | null }) => {
+                    {lessons.filter((l) => !l.category_id).map((lesson) => {
                       const prog = getProgress(lesson.id);
                       return (
                         <motion.div
@@ -438,9 +494,7 @@ export default function StudentDashboard() {
             >
               <div className="mb-8">
                 <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  עדכונים מהמנטור שלך
-                </p>
+                <p className="text-sm text-muted-foreground mt-1">עדכונים מהמנטור שלך</p>
               </div>
 
               {!mentorId ? (
@@ -456,7 +510,7 @@ export default function StudentDashboard() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {posts.map((post: { id: string; content: string; created_at: string; profiles: { full_name: string } | null }) => (
+                  {posts.map((post) => (
                     <motion.div
                       key={post.id}
                       initial={{ opacity: 0, y: 8 }}
@@ -465,10 +519,10 @@ export default function StudentDashboard() {
                     >
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-                          {post.profiles?.full_name?.[0]?.toUpperCase() ?? 'M'}
+                          {post.mentorName[0]?.toUpperCase() ?? 'M'}
                         </div>
                         <div>
-                          <div className="text-sm font-semibold text-foreground">{post.profiles?.full_name ?? 'מנטור'}</div>
+                          <div className="text-sm font-semibold text-foreground">{post.mentorName}</div>
                           <div className="text-xs text-muted-foreground">
                             {new Date(post.created_at).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
                           </div>
