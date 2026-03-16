@@ -220,8 +220,8 @@ export default function LiveViewer({ sessionId, mentorId, userId, sessionTitle, 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-card">
           <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-sm font-bold text-red-500 uppercase tracking-wide">LIVE</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
+            <span className="text-sm font-bold text-destructive uppercase tracking-wide">LIVE</span>
             <span className="text-sm font-medium text-foreground">{sessionTitle}</span>
           </div>
           <div className="flex items-center gap-3">
