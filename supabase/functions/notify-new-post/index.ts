@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     const mentorName = mentorProfile?.full_name ?? 'המנטור שלך';
 
-    // Fetch all community members with their notification preferences
+    // Fetch all community members
     const { data: members } = await supabase
       .from('community_members')
       .select('student_id')
@@ -120,20 +120,49 @@ Deno.serve(async (req) => {
       console.log('Twilio not configured — skipping SMS notifications');
     }
 
-    // ─── Email ────────────────────────────────────────────────────────────────
-    // Email notifications will be sent once an email domain is configured.
-    // For now, log which users would receive emails.
+    // ─── Email via Lovable send-transactional-email ───────────────────────────
     const emailRecipients = profiles.filter((p) => p.notify_email && p.email);
-    for (const profile of emailRecipients) {
-      // TODO: Wire to send-transactional-email once email domain is set up
-      console.log(`Would send email to: ${profile.email} — ${messageBody}`);
-      emailResults.push(profile.user_id);
+
+    if (emailRecipients.length > 0) {
+      // Try to call send-transactional-email edge function if it exists
+      const projectId = Deno.env.get('SUPABASE_URL')?.match(/https:\/\/([^.]+)\./)?.[1];
+
+      for (const profile of emailRecipients) {
+        try {
+          const emailHtml = `
+            <div dir="rtl" style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #111;">
+              <h2 style="color: #111; margin-bottom: 8px;">פוסט חדש מ${mentorName}</h2>
+              <p style="color: #555; line-height: 1.6; white-space: pre-wrap;">${postPreview}</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+              <p style="font-size: 12px; color: #aaa;">קיבלת אימייל זה כי הפעלת התראות אימייל בפרופיל שלך ב-TradeLearn.</p>
+            </div>
+          `;
+
+          const { error: emailError } = await supabase.functions.invoke('send-transactional-email', {
+            body: {
+              to: profile.email!,
+              subject: `פוסט חדש מ${mentorName} בקהילה`,
+              html: emailHtml,
+              message_id: `new-post-${post_id}-${profile.user_id}`,
+              template_name: 'new-community-post',
+            },
+          });
+
+          if (emailError) {
+            console.error(`Email invoke error for ${profile.user_id}:`, emailError);
+          } else {
+            emailResults.push(profile.user_id);
+          }
+        } catch (e) {
+          console.error(`Email error for ${profile.user_id}:`, e);
+        }
+      }
     }
 
     return new Response(
       JSON.stringify({
         sms_sent: smsResults.length,
-        email_queued: emailResults.length,
+        email_sent: emailResults.length,
         sms_recipients: smsResults,
         email_recipients: emailResults,
       }),
