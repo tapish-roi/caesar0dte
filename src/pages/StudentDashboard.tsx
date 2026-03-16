@@ -330,6 +330,7 @@ export default function StudentDashboard() {
   const [showPassword, setShowPassword] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [notifyState, setNotifyState] = useState({ notify_sms: false, notify_email: false });
 
   // ── Queries ──────────────────────────────────────────────────────────────────
 
@@ -392,6 +393,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (profile) {
       setProfileForm({ full_name: profile.full_name ?? '', phone: profile.phone ?? '' });
+      setNotifyState({ notify_sms: profile.notify_sms ?? false, notify_email: profile.notify_email ?? false });
     }
   }, [profile]);
 
@@ -550,12 +552,22 @@ export default function StudentDashboard() {
     mutationFn: async (prefs: { notify_sms: boolean; notify_email: boolean }) => {
       const { error } = await supabase.from('profiles').update(prefs).eq('user_id', user!.id);
       if (error) throw error;
+      return prefs;
     },
-    onSuccess: () => {
+    onMutate: (prefs) => {
+      // Optimistic update
+      setNotifyState(prefs);
+    },
+    onSuccess: (prefs) => {
+      setNotifyState(prefs);
       qc.invalidateQueries({ queryKey: ['student-profile'] });
       toast({ title: 'ההעדפות נשמרו!' });
     },
-    onError: () => toast({ title: 'שגיאה בשמירת ההעדפות', variant: 'destructive' }),
+    onError: () => {
+      // Revert on error
+      setNotifyState({ notify_sms: profile?.notify_sms ?? false, notify_email: profile?.notify_email ?? false });
+      toast({ title: 'שגיאה בשמירת ההעדפות', variant: 'destructive' });
+    },
   });
 
   const uploadAvatar = async (file: File) => {
@@ -856,8 +868,8 @@ export default function StudentDashboard() {
                           <span className="text-xs text-foreground">SMS / נייד</span>
                         </div>
                         <Switch
-                          checked={profile?.notify_sms ?? false}
-                          onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: val, notify_email: profile?.notify_email ?? false })}
+                          checked={notifyState.notify_sms}
+                          onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: val, notify_email: notifyState.notify_email })}
                           disabled={saveNotifications.isPending}
                         />
                       </div>
@@ -867,8 +879,8 @@ export default function StudentDashboard() {
                           <span className="text-xs text-foreground">אימייל</span>
                         </div>
                         <Switch
-                          checked={profile?.notify_email ?? false}
-                          onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: profile?.notify_sms ?? false, notify_email: val })}
+                          checked={notifyState.notify_email}
+                          onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: notifyState.notify_sms, notify_email: val })}
                           disabled={saveNotifications.isPending}
                         />
                       </div>
