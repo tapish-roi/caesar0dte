@@ -15,6 +15,7 @@ import LiveBroadcast from '@/components/LiveBroadcast';
 
 type SidebarTab = 'lessons' | 'community' | 'students';
 type PostType = 'discussion' | 'media' | 'live';
+type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
 interface Category {
   id: string;
@@ -65,6 +66,8 @@ export default function MentorDashboard() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showLessonPanel, setShowLessonPanel] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [lessonViewMode, setLessonViewMode] = useState<LessonViewMode>(null);
+  const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const [newCatTitle, setNewCatTitle] = useState('');
   const [inviteContact, setInviteContact] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -544,52 +547,111 @@ export default function MentorDashboard() {
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
       {/* Sidebar */}
       <aside className="w-64 bg-sidebar border-l border-sidebar-border flex flex-col shrink-0 h-full">
-        <div className="p-5 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
-              <div className="text-xs text-muted-foreground">מנטור</div>
-            </div>
-          </div>
-        </div>
+        <AnimatePresence mode="wait">
+          {lessonViewMode ? (
+            /* ── Lesson View Mode Sidebar ── */
+            <motion.div key="lesson-sidebar" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.18 }} className="flex flex-col h-full">
+              <div className="p-4 border-b border-sidebar-border">
+                <button
+                  onClick={() => { setLessonViewMode(null); setSelectedLesson(null); }}
+                  className="flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity mb-3"
+                >
+                  <ChevronDown className="w-4 h-4 rotate-90" />
+                  חזור לתפריט הראשי
+                </button>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <BookOpen className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-bold text-sidebar-foreground truncate">{lessonViewMode.categoryTitle}</h3>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto py-2">
+                {(() => {
+                  const catLessons = lessons.filter(l => l.category_id === lessonViewMode.categoryId);
+                  if (catLessons.length === 0) return <div className="px-4 py-8 text-center text-xs text-muted-foreground">אין שיעורים בקטגוריה זו</div>;
+                  return catLessons.map((lesson, idx) => {
+                    const isSelected = selectedLesson === lesson.id;
+                    return (
+                      <button
+                        key={lesson.id}
+                        onClick={() => setSelectedLesson(isSelected ? null : lesson.id)}
+                        className={`w-full text-right flex items-start gap-3 px-4 py-3 transition-all hover:bg-sidebar-accent/60 ${isSelected ? 'bg-sidebar-accent border-r-2 border-primary' : ''}`}
+                      >
+                        <span className="w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-muted-foreground">{idx + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-medium leading-tight truncate ${isSelected ? 'text-primary' : 'text-sidebar-foreground'}`}>{lesson.title}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            {lesson.duration_minutes && <span className="text-[10px] text-muted-foreground">{lesson.duration_minutes} דק'</span>}
+                            {lesson.attachment_url && <span className="inline-flex items-center gap-0.5 text-[10px] text-primary/70"><Paperclip className="w-2.5 h-2.5" />צירוף</span>}
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${lesson.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>{lesson.is_published ? 'פורסם' : 'טיוטה'}</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+              <div className="p-3 border-t border-sidebar-border">
+                <div className="flex items-center gap-3 px-2 py-2">
+                  <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">{user?.email?.[0]?.toUpperCase()}</div>
+                  <div className="flex-1 min-w-0"><div className="text-xs font-medium text-foreground truncate">{mentorProfile?.full_name || user?.email}</div></div>
+                  <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors"><LogOut className="w-4 h-4" /></button>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            /* ── Normal Sidebar ── */
+            <motion.div key="main-sidebar" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }} transition={{ duration: 0.18 }} className="flex flex-col h-full">
+              <div className="p-5 border-b border-sidebar-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
+                    <div className="text-xs text-muted-foreground">מנטור</div>
+                  </div>
+                </div>
+              </div>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {([
-            { key: 'lessons', label: 'שיעורים', icon: BookOpen },
-            { key: 'community', label: 'קהילה', icon: Users },
-            { key: 'students', label: 'תלמידים', icon: GraduationCap },
-          ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === key
-                  ? 'bg-sidebar-accent text-sidebar-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </button>
-          ))}
-        </nav>
+              <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+                {([
+                  { key: 'lessons', label: 'שיעורים', icon: BookOpen },
+                  { key: 'community', label: 'קהילה', icon: Users },
+                  { key: 'students', label: 'תלמידים', icon: GraduationCap },
+                ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === key
+                        ? 'bg-sidebar-accent text-sidebar-foreground'
+                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </nav>
 
-        <div className="p-3 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 px-2 py-2">
-            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">
-              {user?.email?.[0]?.toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-foreground truncate">{user?.email}</div>
-            </div>
-            <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors">
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+              <div className="p-3 border-t border-sidebar-border">
+                <div className="flex items-center gap-3 px-2 py-2">
+                  <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">
+                    {user?.email?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-foreground truncate">{user?.email}</div>
+                  </div>
+                  <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors">
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </aside>
 
       {/* Main */}
@@ -598,7 +660,79 @@ export default function MentorDashboard() {
 
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
-            <motion.div key="lessons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-4xl">
+            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-4xl">
+
+              {/* ── Lesson View Mode (player in main area, list in sidebar) ── */}
+              {lessonViewMode ? (
+                <AnimatePresence mode="wait">
+                  {selectedLesson ? (() => {
+                    const lesson = lessons.find(l => l.id === selectedLesson);
+                    if (!lesson) return null;
+                    return (
+                      <motion.div key={lesson.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-card rounded-xl card-shadow overflow-hidden">
+                        {/* Video area */}
+                        <div className="aspect-video bg-foreground/5 border-b border-border flex items-center justify-center">
+                          {lesson.video_url ? (
+                            <video src={lesson.video_url} className="w-full h-full" controls />
+                          ) : (
+                            <div className="text-center">
+                              <Video className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />
+                              <p className="text-sm text-muted-foreground">אין קובץ וידאו</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-6">
+                          <div className="flex items-start justify-between gap-4">
+                            <h2 className="text-xl font-bold text-foreground">{lesson.title}</h2>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${lesson.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
+                                {lesson.is_published ? 'פורסם' : 'טיוטה'}
+                              </span>
+                              <button
+                                onClick={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
+                                className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-foreground hover:bg-muted transition-all"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />ערוך
+                              </button>
+                            </div>
+                          </div>
+                          {lesson.description && <p className="text-sm text-muted-foreground mt-2">{lesson.description}</p>}
+                          {lesson.duration_minutes && (
+                            <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
+                              <span>{lesson.duration_minutes} דקות</span>
+                            </div>
+                          )}
+                        </div>
+                        {/* Inline attachment viewer */}
+                        {lesson.attachment_url && (() => {
+                          const url = lesson.attachment_url!;
+                          const name = lesson.attachment_name ?? '';
+                          const ext = (url.split('?')[0].split('.').pop() ?? '').toLowerCase();
+                          const isPdf = ext === 'pdf';
+                          const isImage = ['png','jpg','jpeg','gif','webp','svg'].includes(ext);
+                          return (
+                            <div className="border-t border-border">
+                              <div className="flex items-center justify-between px-6 py-3 bg-primary/5">
+                                <div className="flex items-center gap-2 text-sm font-medium text-foreground"><Paperclip className="w-4 h-4 text-primary" /><span>{name || 'קובץ מצורף'}</span></div>
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:opacity-80">פתח בחלון נפרד ↗</a>
+                              </div>
+                              {isPdf && <div className="w-full" style={{ height: '520px' }}><iframe src={`${url}#toolbar=1&navpanes=0`} className="w-full h-full" title={name} /></div>}
+                              {isImage && <div className="px-6 pb-6 pt-2"><img src={url} alt={name} className="w-full max-h-[480px] object-contain rounded-lg border border-border bg-muted/30" /></div>}
+                            </div>
+                          );
+                        })()}
+                      </motion.div>
+                    );
+                  })() : (
+                    <div className="text-center py-24 text-muted-foreground">
+                      <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <p className="font-medium">בחר שיעור מהרשימה</p>
+                      <p className="text-sm mt-1">לחץ על שיעור בסרגל הצד כדי לצפות בו</p>
+                    </div>
+                  )}
+                </AnimatePresence>
+              ) : (
+                <>
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">שיעורים וקורסים</h1>
@@ -669,6 +803,7 @@ export default function MentorDashboard() {
                                   onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                                   onDelete={() => deleteLesson.mutate(lesson.id)}
                                   onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
+                                  onView={() => { setLessonViewMode({ categoryId: cat.id, categoryTitle: cat.title }); setSelectedLesson(lesson.id); }}
                                   typeIcon={typeIcon} typeLabel={typeLabel}
                                 />
                               ))}
@@ -691,6 +826,7 @@ export default function MentorDashboard() {
                           onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                           onDelete={() => deleteLesson.mutate(lesson.id)}
                           onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
+                          onView={() => { setLessonViewMode({ categoryId: '', categoryTitle: 'ללא קטגוריה' }); setSelectedLesson(lesson.id); }}
                           typeIcon={typeIcon} typeLabel={typeLabel}
                         />
                       ))}
@@ -706,6 +842,8 @@ export default function MentorDashboard() {
                   </div>
                 )}
               </div>
+              </>
+              )}
             </motion.div>
           )}
 
@@ -1405,17 +1543,18 @@ export default function MentorDashboard() {
 
 // ─── LessonRow ────────────────────────────────────────────────────────────────
 function LessonRow({
-  lesson, onTogglePublish, onDelete, onEdit, typeIcon, typeLabel,
+  lesson, onTogglePublish, onDelete, onEdit, onView, typeIcon, typeLabel,
 }: {
   lesson: Lesson;
   onTogglePublish: () => void;
   onDelete: () => void;
   onEdit: () => void;
+  onView: () => void;
   typeIcon: (t: string) => React.ReactNode;
   typeLabel: (t: string) => string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group">
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={onView}>
       <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
         {typeIcon(lesson.lesson_type)}
       </div>
@@ -1424,14 +1563,12 @@ function LessonRow({
           <span className="text-sm font-medium text-foreground truncate">{lesson.title}</span>
           {lesson.lesson_type === 'live' && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
-              <Radio className="w-2.5 h-2.5" />
-              הוקלט בלייב
+              <Radio className="w-2.5 h-2.5" />הוקלט בלייב
             </span>
           )}
           {lesson.attachment_url && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
-              <Paperclip className="w-2.5 h-2.5" />
-              צירוף
+              <Paperclip className="w-2.5 h-2.5" />צירוף
             </span>
           )}
         </div>
@@ -1440,23 +1577,17 @@ function LessonRow({
       {lesson.duration_minutes && (
         <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
       )}
-      <button
-        onClick={onEdit}
-        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
-        title="ערוך שיעור"
-      >
+      <button onClick={e => { e.stopPropagation(); onEdit(); }}
+        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="ערוך שיעור">
         <Pencil className="w-3.5 h-3.5" />
       </button>
-      <button
-        onClick={onTogglePublish}
-        className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
-          lesson.is_published ? 'text-accent hover:bg-accent/10' : 'text-muted-foreground hover:bg-muted'
-        }`}
-        title={lesson.is_published ? 'הסתר שיעור' : 'פרסם שיעור'}
-      >
+      <button onClick={e => { e.stopPropagation(); onTogglePublish(); }}
+        className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${lesson.is_published ? 'text-accent hover:bg-accent/10' : 'text-muted-foreground hover:bg-muted'}`}
+        title={lesson.is_published ? 'הסתר שיעור' : 'פרסם שיעור'}>
         {lesson.is_published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
       </button>
-      <button onClick={onDelete} className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+      <button onClick={e => { e.stopPropagation(); onDelete(); }}
+        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
     </div>
