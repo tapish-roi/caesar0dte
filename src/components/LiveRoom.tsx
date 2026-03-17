@@ -94,6 +94,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const micTestContextRef = useRef<AudioContext | null>(null);
   const micTestAnimRef = useRef<number | null>(null);
 
+  // ── Sound (output) test ──
+  const [soundTesting, setSoundTesting] = useState(false);
+  const soundTestContextRef = useRef<AudioContext | null>(null);
+  const soundTestIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // ── Speaking detection ──
   const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
   const localAnalyserRef = useRef<AnalyserNode | null>(null);
