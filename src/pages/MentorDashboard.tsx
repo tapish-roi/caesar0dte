@@ -547,52 +547,111 @@ export default function MentorDashboard() {
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
       {/* Sidebar */}
       <aside className="w-64 bg-sidebar border-l border-sidebar-border flex flex-col shrink-0 h-full">
-        <div className="p-5 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
-              <div className="text-xs text-muted-foreground">מנטור</div>
-            </div>
-          </div>
-        </div>
+        <AnimatePresence mode="wait">
+          {lessonViewMode ? (
+            /* ── Lesson View Mode Sidebar ── */
+            <motion.div key="lesson-sidebar" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.18 }} className="flex flex-col h-full">
+              <div className="p-4 border-b border-sidebar-border">
+                <button
+                  onClick={() => { setLessonViewMode(null); setSelectedLesson(null); }}
+                  className="flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity mb-3"
+                >
+                  <ChevronDown className="w-4 h-4 rotate-90" />
+                  חזור לתפריט הראשי
+                </button>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <BookOpen className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-bold text-sidebar-foreground truncate">{lessonViewMode.categoryTitle}</h3>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto py-2">
+                {(() => {
+                  const catLessons = lessons.filter(l => l.category_id === lessonViewMode.categoryId);
+                  if (catLessons.length === 0) return <div className="px-4 py-8 text-center text-xs text-muted-foreground">אין שיעורים בקטגוריה זו</div>;
+                  return catLessons.map((lesson, idx) => {
+                    const isSelected = selectedLesson === lesson.id;
+                    return (
+                      <button
+                        key={lesson.id}
+                        onClick={() => setSelectedLesson(isSelected ? null : lesson.id)}
+                        className={`w-full text-right flex items-start gap-3 px-4 py-3 transition-all hover:bg-sidebar-accent/60 ${isSelected ? 'bg-sidebar-accent border-r-2 border-primary' : ''}`}
+                      >
+                        <span className="w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-muted-foreground">{idx + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-medium leading-tight truncate ${isSelected ? 'text-primary' : 'text-sidebar-foreground'}`}>{lesson.title}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            {lesson.duration_minutes && <span className="text-[10px] text-muted-foreground">{lesson.duration_minutes} דק'</span>}
+                            {lesson.attachment_url && <span className="inline-flex items-center gap-0.5 text-[10px] text-primary/70"><Paperclip className="w-2.5 h-2.5" />צירוף</span>}
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${lesson.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>{lesson.is_published ? 'פורסם' : 'טיוטה'}</span>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+              <div className="p-3 border-t border-sidebar-border">
+                <div className="flex items-center gap-3 px-2 py-2">
+                  <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">{user?.email?.[0]?.toUpperCase()}</div>
+                  <div className="flex-1 min-w-0"><div className="text-xs font-medium text-foreground truncate">{mentorProfile?.full_name || user?.email}</div></div>
+                  <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors"><LogOut className="w-4 h-4" /></button>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            /* ── Normal Sidebar ── */
+            <motion.div key="main-sidebar" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }} transition={{ duration: 0.18 }} className="flex flex-col h-full">
+              <div className="p-5 border-b border-sidebar-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
+                    <div className="text-xs text-muted-foreground">מנטור</div>
+                  </div>
+                </div>
+              </div>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {([
-            { key: 'lessons', label: 'שיעורים', icon: BookOpen },
-            { key: 'community', label: 'קהילה', icon: Users },
-            { key: 'students', label: 'תלמידים', icon: GraduationCap },
-          ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === key
-                  ? 'bg-sidebar-accent text-sidebar-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </button>
-          ))}
-        </nav>
+              <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+                {([
+                  { key: 'lessons', label: 'שיעורים', icon: BookOpen },
+                  { key: 'community', label: 'קהילה', icon: Users },
+                  { key: 'students', label: 'תלמידים', icon: GraduationCap },
+                ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === key
+                        ? 'bg-sidebar-accent text-sidebar-foreground'
+                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                ))}
+              </nav>
 
-        <div className="p-3 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 px-2 py-2">
-            <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">
-              {user?.email?.[0]?.toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-foreground truncate">{user?.email}</div>
-            </div>
-            <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors">
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+              <div className="p-3 border-t border-sidebar-border">
+                <div className="flex items-center gap-3 px-2 py-2">
+                  <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">
+                    {user?.email?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-foreground truncate">{user?.email}</div>
+                  </div>
+                  <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors">
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </aside>
 
       {/* Main */}
