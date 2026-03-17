@@ -1753,6 +1753,9 @@ function MentorPostCard({
             >
               {post.is_pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
             </button>
+            <button onClick={onEdit} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="ערוך פוסט">
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
             <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
