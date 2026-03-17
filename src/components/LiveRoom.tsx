@@ -320,29 +320,20 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const captureFrame = () => {
       const video = screenVideoRef.current;
       if (!video || video.readyState < 2) return;
-      const w = video.videoWidth || 1280;
-      const h = video.videoHeight || 720;
+      // Limit to 640px wide to stay within Supabase Realtime payload limits (~256KB)
+      const MAX_W = 640;
+      const origW = video.videoWidth || 640;
+      const origH = video.videoHeight || 360;
+      const scale = Math.min(1, MAX_W / origW);
+      const w = Math.round(origW * scale);
+      const h = Math.round(origH * scale);
       offscreen.width = w;
       offscreen.height = h;
       const ctx = offscreen.getContext('2d');
       if (!ctx) return;
       ctx.drawImage(video, 0, 0, w, h);
-
-      // Scale strokes from drawing-canvas CSS pixels → video resolution pixels
-      const drawCanvas = canvasRef.current;
-      const scaleX = drawCanvas && drawCanvas.offsetWidth > 0 ? w / drawCanvas.offsetWidth : 1;
-      const scaleY = drawCanvas && drawCanvas.offsetHeight > 0 ? h / drawCanvas.offsetHeight : 1;
-      const scaledStrokes = strokesRef.current.map(s => ({
-        ...s,
-        points: s.points.map(p => ({ x: p.x * scaleX, y: p.y * scaleY })),
-        textX: s.textX != null ? s.textX * scaleX : s.textX,
-        textY: s.textY != null ? s.textY * scaleY : s.textY,
-        size: s.size * Math.min(scaleX, scaleY),
-        fontSize: s.fontSize != null ? s.fontSize * Math.min(scaleX, scaleY) : s.fontSize,
-      }));
-      renderStrokesOnCtx(ctx, w, h, scaledStrokes);
-
-      const dataUrl = offscreen.toDataURL('image/jpeg', 0.5);
+      // Don't bake strokes — each client renders them locally via the drawing canvas overlay
+      const dataUrl = offscreen.toDataURL('image/jpeg', 0.35);
       screenFrameChannelRef.current?.send({
         type: 'broadcast', event: 'screen_frame',
         payload: { dataUrl, sharerId: userId, sharerName: userName },
@@ -576,7 +567,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     if (!isScreenVisible) return;
 
     const syncSize = () => {
-      // Use the visible screen container (remote canvas or local video)
+      // Sharer syncs to local video; viewers sync to remote canvas
       const el = screenSharing ? screenVideoRef.current : remoteScreenCanvasRef.current;
       const canvas = canvasRef.current;
       if (!el || !canvas) return;
@@ -587,8 +578,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const ro = new ResizeObserver(syncSize);
     const target = screenSharing ? screenVideoRef.current : remoteScreenCanvasRef.current;
     if (target) ro.observe(target);
+    // Also sync on video loadedmetadata for the sharer
+    const vid = screenVideoRef.current;
+    if (screenSharing && vid) vid.addEventListener('loadedmetadata', syncSize);
     syncSize();
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (screenSharing && vid) vid.removeEventListener('loadedmetadata', syncSize);
+    };
   }, [screenSharing, remoteScreenActive, renderCanvas]);
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -975,28 +972,31 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           <div className="flex-1 relative flex items-center justify-center min-h-0 overflow-hidden">
 
             {isScreenVisible ? (
-              /* ── Screen share (shown to ALL participants) ── */
+              /* ── Screen share ── */
               <div className="relative w-full h-full">
 
-                {/* Remote screen canvas — everyone sees this (including sharer who sees their own broadcast) */}
+                {/* Sharer sees their own local video directly (no network roundtrip) */}
+                <video
+                  ref={screenVideoRef}
+                  autoPlay playsInline muted
+                  className="w-full h-full object-contain bg-black"
+                  style={{ display: screenSharing ? 'block' : 'none' }}
+                />
+
+                {/* Viewers see broadcast canvas — hidden for the sharer */}
                 <canvas
                   ref={remoteScreenCanvasRef}
                   className="w-full h-full object-contain bg-black"
-                  style={{ display: 'block' }}
+                  style={{ display: screenSharing ? 'none' : 'block' }}
                 />
 
-                {/* Hidden local video for capturing frames */}
-                <video ref={screenVideoRef} autoPlay playsInline muted className="hidden" />
-
                 {/* Screen share owner label */}
-                {remoteScreenSharer && (
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur px-3 py-1.5 rounded-full border border-white/10">
-                    <Monitor className="w-3.5 h-3.5 text-green-400" />
-                    <span className="text-xs text-white/80 font-medium">
-                      {remoteScreenSharer === userName ? 'אתה משתף את המסך' : `${remoteScreenSharer} משתף את המסך`}
-                    </span>
-                  </div>
-                )}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur px-3 py-1.5 rounded-full border border-white/10">
+                  <Monitor className="w-3.5 h-3.5 text-green-400" />
+                  <span className="text-xs text-white/80 font-medium">
+                    {screenSharing ? 'אתה משתף את המסך' : `${remoteScreenSharer} משתף את המסך`}
+                  </span>
+                </div>
 
                 {/* Drawing canvas overlay */}
                 <canvas
