@@ -614,7 +614,10 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
             userName={userName}
             sessionTitle={activeSession.title}
             isMentor={true}
-            onClose={() => setActiveSession(null)}
+            onClose={() => {
+              endLiveSession(activeSession.id);
+            }}
+            onSessionEnd={(blob, dur) => handleSessionEnd(blob, dur, activeSession)}
           />
         )}
       </AnimatePresence>
