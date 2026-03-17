@@ -362,6 +362,17 @@ export default function MentorDashboard() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
   });
 
+  const reorderLessons = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map((id, idx) =>
+          supabase.from('lessons').update({ position: idx }).eq('id', id)
+        )
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lessons'] }),
+  });
+
   const sendInvite = useMutation({
     mutationFn: async (contact: string) => {
       const { error } = await supabase.from('community_invites').insert({ mentor_id: user!.id, invited_by: user!.id, contact: contact.trim() });
