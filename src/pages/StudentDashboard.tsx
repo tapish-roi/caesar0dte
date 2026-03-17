@@ -1105,10 +1105,12 @@ export default function StudentDashboard() {
                       >
                         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
                         <span className="font-semibold text-foreground flex-1">{cat.title}</span>
-                        <span className="text-xs text-muted-foreground">{completedCount}/{catLessons.length} הושלמו</span>
-                        {completedCount === catLessons.length && catLessons.length > 0 && (
-                          <CheckCircle2 className="w-4 h-4 text-accent" />
-                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">{completedCount}/{catLessons.length} הושלמו</span>
+                          {completedCount === catLessons.length && catLessons.length > 0 && (
+                            <CheckCircle2 className="w-4 h-4 text-accent" />
+                          )}
+                        </div>
                       </div>
                       <AnimatePresence>
                         {isExpanded && (
@@ -1119,8 +1121,11 @@ export default function StudentDashboard() {
                                 return (
                                    <div
                                     key={lesson.id}
-                                    onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
-                                    className={`flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${selectedLesson === lesson.id ? 'bg-accent/5' : ''}`}
+                                    onClick={() => {
+                                      setLessonViewMode({ categoryId: cat.id, categoryTitle: cat.title });
+                                      setSelectedLesson(lesson.id);
+                                    }}
+                                    className="flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
                                   >
                                     <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
                                       {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : typeIcon(lesson.lesson_type)}
