@@ -59,6 +59,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [participants, setParticipants] = useState<Participant[]>([]);
 
+  // Force-mute state (set by mentor signal)
+  const [isForceMuted, setIsForceMuted] = useState(false);
+  // Mentor-side: track which user IDs are force-muted
+  const [forceMutedUsers, setForceMutedUsers] = useState<Set<string>>(new Set());
+
   // Chat & members panels
   const [showChat, setShowChat] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
