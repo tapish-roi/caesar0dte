@@ -94,6 +94,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const micTestContextRef = useRef<AudioContext | null>(null);
   const micTestAnimRef = useRef<number | null>(null);
 
+  // ── Sound (output) test ──
+  const [soundTesting, setSoundTesting] = useState(false);
+  const soundTestContextRef = useRef<AudioContext | null>(null);
+  const soundTestIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // ── Speaking detection ──
   const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
   const localAnalyserRef = useRef<AnalyserNode | null>(null);
@@ -815,8 +820,42 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     setMicTesting(false); setMicTestLevel(0);
   }, []);
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Sound (output) test — plays short beeps every 2s so user can verify output
+  // ─────────────────────────────────────────────────────────────────────────────
+  const playBeep = useCallback((ctx: AudioContext) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.18);
+  }, []);
+
+  const startSoundTest = useCallback(() => {
+    try {
+      const ctx = new AudioContext();
+      soundTestContextRef.current = ctx;
+      playBeep(ctx);
+      soundTestIntervalRef.current = setInterval(() => playBeep(ctx), 2000);
+      setSoundTesting(true);
+    } catch { toast({ title: 'לא ניתן להפעיל בדיקת שמע', variant: 'destructive' }); }
+  }, [playBeep, toast]);
+
+  const stopSoundTest = useCallback(() => {
+    if (soundTestIntervalRef.current) { clearInterval(soundTestIntervalRef.current); soundTestIntervalRef.current = null; }
+    soundTestContextRef.current?.close();
+    soundTestContextRef.current = null;
+    setSoundTesting(false);
+  }, []);
+
   useEffect(() => { if (!showSettings && micTesting) stopMicTest(); }, [showSettings, micTesting, stopMicTest]);
-  useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!showSettings && soundTesting) stopSoundTest(); }, [showSettings, soundTesting, stopSoundTest]);
+  useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); stopSoundTest(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Leave
@@ -1294,6 +1333,39 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                               <span className="text-sm font-bold text-white/70 w-10 text-center shrink-0">{volume}%</span>
                             </div>
                           </div>
+                          <div className="border-t border-white/8 pt-5">
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בדיקת שמע</p>
+                            <div className="bg-[#2b2d31] rounded-xl p-4 space-y-3">
+                              <p className="text-xs text-white/50 leading-relaxed">
+                                {soundTesting
+                                  ? 'בדיקה פעילה — אתה שומע צפצופים כל 2 שניות. בדוק שהשמע מגיע לחיבור הנכון.'
+                                  : 'לחץ לשמוע צפצופי בדיקה. וודא שאתה שומע בחיבור השמע שבחרת.'}
+                              </p>
+                              {soundTesting && (
+                                <div className="flex items-center gap-2">
+                                  <div className="flex gap-0.5 items-end h-5">
+                                    {[3,5,7,5,3].map((h, i) => (
+                                      <motion.div
+                                        key={i}
+                                        className="w-1.5 rounded-full bg-indigo-400"
+                                        animate={{ height: [`${h * 3}px`, `${h * 5}px`, `${h * 3}px`] }}
+                                        transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-[11px] text-indigo-300 font-medium">מנגן...</span>
+                                </div>
+                              )}
+                              <button
+                                onClick={soundTesting ? stopSoundTest : startSoundTest}
+                                className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-semibold transition-all ${soundTesting ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}
+                              >
+                                {soundTesting
+                                  ? <><StopCircle className="w-4 h-4" />הפסק בדיקה</>
+                                  : <><Volume2 className="w-4 h-4" />בדוק שמע</>}
+                              </button>
+                            </div>
+                          </div>
                         </>
                       )}
                       {settingsTab === 'camera' && (
@@ -1337,19 +1409,24 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   const isMe = p.userId === userId;
                   const isMentorEntry = p.userId === mentorId;
                   const forceMuted = forceMutedUsers.has(p.userId);
+                  // For the local user, derive speaking from speakingUsers set (audio detection)
+                  // For remote users, we don't have audio data so isSpeaking will only be true if
+                  // they happen to be in our local speakingUsers (same browser session testing)
                   const isSpeaking = speakingUsers.has(p.userId);
                   const userColor = getColorForUser(p.userId);
+                  // Show speaking ring only when audio is actually detected (not force-muted / deafened)
+                  const showSpeakingRing = isSpeaking && !forceMuted && !p.isDeafened;
                   return (
                     <div key={p.userId} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
                       <div className="relative shrink-0">
-                        {isSpeaking && !p.isMuted && (
+                        {showSpeakingRing && (
                           <>
                             <span className="absolute -inset-1 rounded-full border-2 border-green-500 animate-ping opacity-60" />
                             <span className="absolute -inset-1 rounded-full border-2 border-green-500 opacity-80" />
                           </>
                         )}
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all ${isSpeaking && !p.isMuted ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-[#2b2d31]' : ''}`}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all ${showSpeakingRing ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-[#2b2d31]' : ''}`}
                           style={{ background: `linear-gradient(135deg, ${userColor}bb, ${userColor})` }}
                         >
                           {initials(p.name)}
@@ -1362,7 +1439,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           {isMe && <span className="text-[10px] text-white/30 mr-1">(אתה)</span>}
                           {isMentorEntry && !isMe && <span className="text-[10px] text-indigo-400 mr-1">מנטור</span>}
                         </p>
-                        <p className={`text-[10px] transition-colors ${isSpeaking && !p.isMuted ? 'text-green-400' : 'text-white/30'}`}>
+                        <p className={`text-[10px] transition-colors ${showSpeakingRing ? 'text-green-400' : 'text-white/30'}`}>
                           {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מושתק' : isSpeaking ? 'מדבר...' : 'פעיל'}
                         </p>
                       </div>
