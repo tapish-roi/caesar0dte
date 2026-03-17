@@ -449,26 +449,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
           {/* ── Controls bar (Discord style) ── */}
           <div className="shrink-0 bg-[#292b2f] border-t border-white/5 py-4 px-6 flex items-center justify-center gap-3">
-            {/* Mic button with settings arrow */}
-            <div className="flex items-center">
-              <button
-                onClick={toggleMic}
-                disabled={deafened}
-                title={micEnabled ? 'השתק מיקרופון' : 'הפעל מיקרופון'}
-                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg disabled:opacity-40 ${
-                  micEnabled ? 'bg-[#4e5058] hover:bg-[#6d6f78] text-white' : 'bg-red-500/90 hover:bg-red-500 text-white'
-                }`}
-              >
-                {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-              </button>
-              <button
-                onClick={() => setShowSettings(v => !v)}
-                className="w-5 h-5 flex items-center justify-center text-white/30 hover:text-white/70 transition-colors ml-0.5"
-                title="הגדרות מיקרופון"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            {/* Mic */}
+            <button
+              onClick={toggleMic}
+              disabled={deafened}
+              title={micEnabled ? 'השתק מיקרופון' : 'הפעל מיקרופון'}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg disabled:opacity-40 ${
+                micEnabled ? 'bg-[#4e5058] hover:bg-[#6d6f78] text-white' : 'bg-red-500/90 hover:bg-red-500 text-white'
+              }`}
+            >
+              {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+            </button>
 
             {/* Deafen */}
             <button
@@ -503,13 +494,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               {screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
             </button>
 
-            {/* Settings */}
+            {/* Settings — opens modal */}
             <button
-              onClick={() => setShowSettings(v => !v)}
+              onClick={() => { setShowSettings(true); setSettingsTab('mic'); }}
               title="הגדרות"
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
-                showSettings ? 'bg-white/10 text-white' : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50'
-              }`}
+              className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg bg-[#4e5058] hover:bg-[#6d6f78] text-white/50 hover:text-white"
             >
               <Settings className="w-5 h-5" />
             </button>
@@ -527,42 +516,195 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               {isMentor ? 'סיים שידור' : 'צא'}
             </button>
           </div>
+        </div>
 
-          {/* Settings panel (slides up) */}
-          <AnimatePresence>
-            {showSettings && (
+        {/* ── Settings Modal ── */}
+        <AnimatePresence>
+          {showSettings && (
+            <>
+              {/* Backdrop */}
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden bg-[#2b2d31] border-t border-white/5"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+                onClick={() => setShowSettings(false)}
+              />
+              {/* Modal */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.93, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.93, y: 12 }}
+                transition={{ duration: 0.18 }}
+                className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none"
               >
-                <div className="p-5 grid grid-cols-3 gap-5">
-                  <div>
-                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-2">מיקרופון</label>
-                    <select value={selectedMic} onChange={e => setSelectedMic(e.target.value)}
-                      className="w-full h-9 px-3 bg-[#1e1f22] ring-1 ring-white/10 rounded-lg text-xs text-white/80 focus:outline-none text-right">
-                      {audioDevices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `מיק ${d.deviceId.slice(0, 6)}`}</option>)}
-                    </select>
+                <div className="pointer-events-auto w-[520px] bg-[#1e1f22] rounded-2xl shadow-2xl border border-white/10 overflow-hidden" dir="rtl">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+                    <h2 className="text-base font-bold text-white">הגדרות שיחה</h2>
+                    <button
+                      onClick={() => setShowSettings(false)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/8 transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-2">מצלמה</label>
-                    <select value={selectedCamera} onChange={e => setSelectedCamera(e.target.value)}
-                      className="w-full h-9 px-3 bg-[#1e1f22] ring-1 ring-white/10 rounded-lg text-xs text-white/80 focus:outline-none text-right">
-                      {videoDevices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `מצלמה ${d.deviceId.slice(0, 6)}`}</option>)}
-                    </select>
+
+                  <div className="flex min-h-0">
+                    {/* Sidebar tabs */}
+                    <div className="w-44 bg-[#2b2d31] p-3 flex flex-col gap-1 shrink-0">
+                      <button
+                        onClick={() => setSettingsTab('mic')}
+                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right ${
+                          settingsTab === 'mic' ? 'bg-[#404249] text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+                        }`}
+                      >
+                        <Mic className="w-4 h-4 shrink-0" />
+                        מיקרופון
+                      </button>
+                      <button
+                        onClick={() => setSettingsTab('audio')}
+                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right ${
+                          settingsTab === 'audio' ? 'bg-[#404249] text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+                        }`}
+                      >
+                        <Headphones className="w-4 h-4 shrink-0" />
+                        אוזניות / שמע
+                      </button>
+                      <button
+                        onClick={() => setSettingsTab('camera')}
+                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right ${
+                          settingsTab === 'camera' ? 'bg-[#404249] text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+                        }`}
+                      >
+                        <Video className="w-4 h-4 shrink-0" />
+                        מצלמה
+                      </button>
+                    </div>
+
+                    {/* Tab content */}
+                    <div className="flex-1 p-6 space-y-5">
+                      {settingsTab === 'mic' && (
+                        <>
+                          <div>
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בחירת מיקרופון</p>
+                            <div className="space-y-2">
+                              {audioDevices.length === 0 && (
+                                <p className="text-xs text-white/30 italic">לא נמצאו מיקרופונים</p>
+                              )}
+                              {audioDevices.map(d => (
+                                <button
+                                  key={d.deviceId}
+                                  onClick={() => setSelectedMic(d.deviceId)}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${
+                                    selectedMic === d.deviceId
+                                      ? 'border-indigo-500/60 bg-indigo-500/10 text-white'
+                                      : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'
+                                  }`}
+                                >
+                                  <Mic className={`w-4 h-4 shrink-0 ${selectedMic === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
+                                  <span className="truncate">{d.label || `מיקרופון ${d.deviceId.slice(0, 8)}`}</span>
+                                  {selectedMic === d.deviceId && (
+                                    <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {settingsTab === 'audio' && (
+                        <>
+                          <div>
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">חיבור שמע יוצא</p>
+                            <div className="space-y-2">
+                              {outputDevices.length === 0 && (
+                                <p className="text-xs text-white/30 italic">לא נמצאו התקני שמע (הדפדפן לא תומך בבחירת שמע יוצא)</p>
+                              )}
+                              {outputDevices.map(d => (
+                                <button
+                                  key={d.deviceId}
+                                  onClick={() => setSelectedOutput(d.deviceId)}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${
+                                    selectedOutput === d.deviceId
+                                      ? 'border-indigo-500/60 bg-indigo-500/10 text-white'
+                                      : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'
+                                  }`}
+                                >
+                                  <Headphones className={`w-4 h-4 shrink-0 ${selectedOutput === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
+                                  <span className="truncate">{d.label || `התקן ${d.deviceId.slice(0, 8)}`}</span>
+                                  {selectedOutput === d.deviceId && (
+                                    <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">עוצמת שמע — שאר המשתתפים</p>
+                            <div className="flex items-center gap-4 bg-[#2b2d31] rounded-xl px-4 py-3">
+                              <VolumeX className="w-4 h-4 text-white/30 shrink-0" />
+                              <input
+                                type="range" min={0} max={100} value={volume}
+                                onChange={e => setVolume(Number(e.target.value))}
+                                className="flex-1 accent-indigo-500 h-1.5"
+                              />
+                              <Volume2 className="w-4 h-4 text-white/60 shrink-0" />
+                              <span className="text-sm font-bold text-white/70 w-10 text-center shrink-0">{volume}%</span>
+                            </div>
+                            <p className="text-[11px] text-white/25 mt-2 text-right">שינוי רמת השמע שאתה שומע את שאר המשתתפים בשיחה</p>
+                          </div>
+                        </>
+                      )}
+
+                      {settingsTab === 'camera' && (
+                        <>
+                          <div>
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בחירת מצלמה</p>
+                            <div className="space-y-2">
+                              {videoDevices.length === 0 && (
+                                <p className="text-xs text-white/30 italic">לא נמצאו מצלמות</p>
+                              )}
+                              {videoDevices.map(d => (
+                                <button
+                                  key={d.deviceId}
+                                  onClick={() => setSelectedCamera(d.deviceId)}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${
+                                    selectedCamera === d.deviceId
+                                      ? 'border-indigo-500/60 bg-indigo-500/10 text-white'
+                                      : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'
+                                  }`}
+                                >
+                                  <Video className={`w-4 h-4 shrink-0 ${selectedCamera === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
+                                  <span className="truncate">{d.label || `מצלמה ${d.deviceId.slice(0, 8)}`}</span>
+                                  {selectedCamera === d.deviceId && (
+                                    <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wide mb-2">עוצמת שמע: {volume}%</label>
-                    <input type="range" min={0} max={100} value={volume}
-                      onChange={e => setVolume(Number(e.target.value))}
-                      className="w-full accent-indigo-500 mt-2" />
+
+                  {/* Footer */}
+                  <div className="px-6 py-3 border-t border-white/8 flex justify-start">
+                    <button
+                      onClick={() => setShowSettings(false)}
+                      className="h-9 px-5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-all"
+                    >
+                      סגור
+                    </button>
                   </div>
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* ── Members panel ── */}
         <AnimatePresence>
