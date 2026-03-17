@@ -849,7 +849,10 @@ export default function StudentDashboard() {
               className="flex flex-col h-full"
             >
               <div className="p-5 border-b border-sidebar-border">
-                <div className="flex items-center gap-3">
+                <button
+                  onClick={() => supabase.auth.signOut()}
+                  className="flex items-center gap-3 w-full text-right hover:opacity-75 transition-opacity cursor-pointer"
+                >
                   <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
                     <TrendingUp className="w-5 h-5 text-primary-foreground" />
                   </div>
@@ -857,7 +860,7 @@ export default function StudentDashboard() {
                     <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
                     <div className="text-xs text-muted-foreground">תלמיד</div>
                   </div>
-                </div>
+                </button>
               </div>
 
               {mentorName && (
