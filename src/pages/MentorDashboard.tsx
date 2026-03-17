@@ -1579,9 +1579,18 @@ export default function MentorDashboard() {
 
 // ─── LessonRow ────────────────────────────────────────────────────────────────
 function LessonRow({
-  lesson, onTogglePublish, onDelete, onEdit, onView, typeIcon, typeLabel,
+  lesson, index, isDragging, isDragOver,
+  onDragStart, onDragOver, onDrop, onDragEnd,
+  onTogglePublish, onDelete, onEdit, onView, typeIcon, typeLabel,
 }: {
   lesson: Lesson;
+  index?: number;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  onDragStart?: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: () => void;
+  onDragEnd?: () => void;
   onTogglePublish: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -1590,7 +1599,33 @@ function LessonRow({
   typeLabel: (t: string) => string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={onView}>
+    <div
+      draggable={!!onDragStart}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer select-none
+        ${isDragOver ? 'border-t-2 border-primary bg-primary/5' : ''}
+        ${isDragging ? 'opacity-40' : 'opacity-100'}
+      `}
+      onClick={onView}
+    >
+      {/* Drag handle + number */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <div
+          className="opacity-0 group-hover:opacity-60 hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity text-muted-foreground"
+          onMouseDown={e => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </div>
+        {index !== undefined && (
+          <span className="w-5 h-5 flex items-center justify-center text-xs font-bold text-muted-foreground">
+            {index}
+          </span>
+        )}
+      </div>
       <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
         {typeIcon(lesson.lesson_type)}
       </div>
