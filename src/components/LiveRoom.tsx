@@ -123,10 +123,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     navigator.mediaDevices.enumerateDevices().then(devices => {
       const mics = devices.filter(d => d.kind === 'audioinput');
       const cams = devices.filter(d => d.kind === 'videoinput');
+      const outputs = devices.filter(d => d.kind === 'audiooutput');
       setAudioDevices(mics);
       setVideoDevices(cams);
+      setOutputDevices(outputs);
       if (mics.length) setSelectedMic(mics[0].deviceId);
       if (cams.length) setSelectedCamera(cams[0].deviceId);
+      if (outputs.length) setSelectedOutput(outputs[0].deviceId);
     });
   }, []);
 
