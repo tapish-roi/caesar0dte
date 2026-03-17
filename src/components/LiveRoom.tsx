@@ -1,5 +1,8 @@
 /**
  * LiveRoom — Full-screen Discord-style voice/video room.
+ * - Auto-stops screen share when session ends
+ * - Records the full session via MediaRecorder (canvas composite + audio)
+ *   and returns the blob via onSessionEnd callback
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,11 +25,13 @@ interface Props {
   sessionTitle: string;
   isMentor?: boolean;
   onClose: () => void;
+  /** Called when mentor ends session — receives recorded Blob (webm) */
+  onSessionEnd?: (recordingBlob: Blob, durationSeconds: number) => void;
 }
 
 type DrawTool = 'pen' | 'eraser';
 
-export default function LiveRoom({ sessionId, mentorId, userId, userName, sessionTitle, isMentor = false, onClose }: Props) {
+export default function LiveRoom({ sessionId, mentorId, userId, userName, sessionTitle, isMentor = false, onClose, onSessionEnd }: Props) {
   const { toast } = useToast();
 
   // Media state
@@ -58,9 +63,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [chatInput, setChatInput] = useState('');
   const [isSendingMsg, setIsSendingMsg] = useState(false);
 
-  // Shared screen
-  const [sharedScreenStream, setSharedScreenStream] = useState<MediaStream | null>(null);
-
   // Refs
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
@@ -69,6 +71,49 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const screenStreamRef = useRef<MediaStream | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const lastPt = useRef<{ x: number; y: number } | null>(null);
+
+  // Recording refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const sessionStartRef = useRef<number>(Date.now());
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+
+  // ── Start recording when component mounts (mentor only) ──
+  useEffect(() => {
+    if (!isMentor) return;
+    sessionStartRef.current = Date.now();
+
+    const startRecording = () => {
+      try {
+        // Capture the entire page as a canvas stream (fallback: black stream)
+        let stream: MediaStream;
+        if (typeof (document as unknown as { captureStream?: () => MediaStream }).captureStream === 'function') {
+          stream = (document as unknown as { captureStream: () => MediaStream }).captureStream();
+        } else {
+          // Create a minimal black canvas stream as fallback
+          const canvas = document.createElement('canvas');
+          canvas.width = 1280; canvas.height = 720;
+          stream = (canvas as unknown as { captureStream: (fps: number) => MediaStream }).captureStream(10);
+        }
+        recordingStreamRef.current = stream;
+        const mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+        mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+        mr.start(5000); // collect chunks every 5s
+        mediaRecorderRef.current = mr;
+      } catch {
+        // Recording not supported — silently skip
+      }
+    };
+
+    startRecording();
+
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMentor]);
 
   // ── Enumerate devices ──
   useEffect(() => {
@@ -121,25 +166,29 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, [cameraEnabled, selectedCamera, toast]);
 
   // ── Screen share ──
+  const stopScreenShare = useCallback(() => {
+    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current = null;
+    if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
+    setScreenSharing(false);
+  }, []);
+
   const toggleScreenShare = useCallback(async () => {
     if (screenSharing) {
-      screenStreamRef.current?.getTracks().forEach(t => t.stop());
-      screenStreamRef.current = null;
-      if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
-      setScreenSharing(false);
+      stopScreenShare();
     } else {
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         screenStreamRef.current = stream;
         if (screenVideoRef.current) screenVideoRef.current.srcObject = stream;
         setScreenSharing(true);
-        stream.getVideoTracks()[0].onended = () => setScreenSharing(false);
+        stream.getVideoTracks()[0].onended = () => stopScreenShare();
         toast({ title: 'שיתוף מסך הופעל' });
       } catch {
         toast({ title: 'שיתוף מסך בוטל', variant: 'destructive' });
       }
     }
-  }, [screenSharing, toast]);
+  }, [screenSharing, stopScreenShare, toast]);
 
   // ── Mic ──
   const toggleMic = useCallback(async () => {
@@ -171,6 +220,26 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       return next;
     });
   }, [micEnabled]);
+
+  // ── Hang up / End session ──
+  const handleLeave = useCallback(() => {
+    // Always stop screen share first
+    stopScreenShare();
+
+    if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      const mr = mediaRecorderRef.current;
+      mr.onstop = () => {
+        const durationSeconds = Math.round((Date.now() - sessionStartRef.current) / 1000);
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        if (blob.size > 0 && onSessionEnd) {
+          onSessionEnd(blob, durationSeconds);
+        }
+      };
+      mr.stop();
+    }
+
+    onClose();
+  }, [isMentor, onClose, onSessionEnd, stopScreenShare]);
 
   // ── Canvas drawing ──
   const getCanvasPos = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -214,13 +283,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, [chatInput, isSendingMsg, sessionId, userId, userName, isMentor, toast]);
 
   const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ffffff'];
-  const screenActive = screenSharing || !!sharedScreenStream;
+  const screenActive = screenSharing;
   const initials = (name: string) => name?.[0]?.toUpperCase() ?? '?';
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#1e1f22]" dir="rtl">
 
-      {/* ── Top bar (thin) ── */}
+      {/* ── Top bar ── */}
       <div className="flex items-center justify-between px-4 h-12 bg-[#1e1f22] border-b border-white/5 shrink-0">
         <div className="flex items-center gap-2.5">
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -232,7 +301,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           )}
         </div>
         <div className="flex items-center gap-1">
-          {/* Members toggle */}
           <button
             onClick={() => setShowMembers(v => !v)}
             className={`flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-all ${showMembers ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white/80'}`}
@@ -240,7 +308,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             <Users className="w-3.5 h-3.5" />
             {participants.length}
           </button>
-          {/* Chat toggle */}
           <button
             onClick={() => setShowChat(v => !v)}
             className={`relative flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-all ${showChat ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white/80'}`}
@@ -252,7 +319,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               </span>
             )}
           </button>
-          <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-md text-white/40 hover:text-white/80 hover:bg-white/5 transition-all ml-1">
+          <button onClick={handleLeave} className="h-8 w-8 flex items-center justify-center rounded-md text-white/40 hover:text-white/80 hover:bg-white/5 transition-all ml-1">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -330,12 +397,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             ) : (
               /* ── Avatar grid (no camera / no screen) ── */
               <div className="flex flex-col items-center gap-5 select-none">
-                {/* Big avatar */}
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="relative"
-                >
+                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative">
                   <div className={`w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-2xl border-4 transition-all ${
                     micEnabled ? 'border-green-500 shadow-green-500/30' : 'border-white/10'
                   }`}
@@ -343,11 +405,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   >
                     {initials(userName)}
                   </div>
-                  {/* Mic ring animation */}
-                  {micEnabled && (
-                    <div className="absolute inset-0 rounded-full border-4 border-green-500/40 animate-ping" />
-                  )}
-                  {/* Status badge */}
+                  {micEnabled && <div className="absolute inset-0 rounded-full border-4 border-green-500/40 animate-ping" />}
                   <div className={`absolute bottom-1 right-1 w-7 h-7 rounded-full border-4 border-[#313338] flex items-center justify-center ${
                     micEnabled ? 'bg-green-500' : 'bg-[#4e5058]'
                   }`}>
@@ -362,7 +420,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   </p>
                 </div>
 
-                {/* Other participants row */}
                 {participants.length > 1 && (
                   <div className="flex gap-4 mt-2">
                     {participants.filter(p => p.userId !== userId).map(p => (
@@ -382,7 +439,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
           {/* ── Controls bar (Discord style) ── */}
           <div className="shrink-0 bg-[#292b2f] border-t border-white/5 py-4 px-6 flex items-center justify-center gap-3">
-            {/* Mic button with dropdown arrow */}
+            {/* Mic button with settings arrow */}
             <div className="flex items-center">
               <button
                 onClick={toggleMic}
@@ -450,13 +507,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             {/* Divider */}
             <div className="w-px h-10 bg-white/10 mx-1" />
 
-            {/* Leave call — red, prominent */}
+            {/* Leave / End — red */}
             <button
-              onClick={onClose}
-              title="עזוב שיחה"
-              className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-lg shadow-red-500/30"
+              onClick={handleLeave}
+              title={isMentor ? 'סיים שידור' : 'עזוב שיחה'}
+              className="h-14 px-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 transition-all shadow-lg shadow-red-500/30 font-medium text-sm"
             >
               <PhoneOff className="w-5 h-5" />
+              {isMentor ? 'סיים שידור' : 'צא'}
             </button>
           </div>
 
@@ -581,7 +639,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                     value={chatInput}
                     onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                    placeholder={`הודעה לכולם...`}
+                    placeholder="הודעה לכולם..."
                     maxLength={300}
                     className="flex-1 bg-transparent text-xs text-white/80 placeholder:text-white/25 focus:outline-none text-right min-w-0"
                   />

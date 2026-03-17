@@ -1,10 +1,10 @@
 /**
  * LiveHubMentor — Mentor's Live section:
  *   1. Manage scheduled lives (create/edit/delete)
- *   2. Manage recordings (upload/edit/delete)
+ *   2. Manage recordings ("לייבים מוקלטים") — auto-saved after session ends
  *   3. Start/host live session (Discord-style)
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -47,6 +47,17 @@ interface Props {
 }
 
 type SubTab = 'live' | 'scheduled' | 'recordings';
+
+// Upload a blob (auto-recorded session) to storage and return public URL
+async function uploadRecordingBlob(mentorId: string, blob: Blob): Promise<string> {
+  const path = `live-recordings/${mentorId}/${Date.now()}.webm`;
+  const { data, error } = await supabase.storage.from('lesson-assets').upload(path, blob, {
+    contentType: 'video/webm', upsert: false,
+  });
+  if (error) throw error;
+  const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+  return publicUrl;
+}
 
 export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
   const { toast } = useToast();
@@ -197,6 +208,27 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
     onError: () => toast({ title: 'שגיאה בפתיחת שידור', variant: 'destructive' }),
   });
 
+  const handleSessionEnd = useCallback(async (recordingBlob: Blob, durationSeconds: number, sessionRef: ActiveSession | null) => {
+    if (!sessionRef) return;
+    try {
+      toast({ title: '⏳ שומר את הלייב המוקלט...' });
+      const url = await uploadRecordingBlob(mentorId, recordingBlob);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('live_recordings') as any).insert({
+        mentor_id: mentorId,
+        live_session_id: sessionRef.id,
+        title: sessionRef.title,
+        recording_url: url,
+        duration_minutes: Math.round(durationSeconds / 60) || null,
+      });
+      qc.invalidateQueries({ queryKey: ['live-recordings-mentor', mentorId] });
+      toast({ title: '✅ הלייב נשמר ב"לייבים מוקלטים"' });
+    } catch {
+      toast({ title: 'שגיאה בשמירת ההקלטה', variant: 'destructive' });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mentorId, qc, toast]);
+
   const endLiveSession = async (sessionId: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from('live_sessions') as any).update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', sessionId);
@@ -222,7 +254,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
   const tabs: { key: SubTab; label: string; icon: typeof Radio }[] = [
     { key: 'live', label: 'שידור חי', icon: Radio },
     { key: 'scheduled', label: 'לוח מודעות', icon: CalendarDays },
-    { key: 'recordings', label: 'הקלטות', icon: Video },
+    { key: 'recordings', label: 'לייבים מוקלטים', icon: Video },
   ];
 
   const openSchedEdit = (item: ScheduledLive) => {
@@ -582,7 +614,10 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
             userName={userName}
             sessionTitle={activeSession.title}
             isMentor={true}
-            onClose={() => setActiveSession(null)}
+            onClose={() => {
+              endLiveSession(activeSession.id);
+            }}
+            onSessionEnd={(blob, dur) => handleSessionEnd(blob, dur, activeSession)}
           />
         )}
       </AnimatePresence>

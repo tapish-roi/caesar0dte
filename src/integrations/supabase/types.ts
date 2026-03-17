@@ -348,6 +348,38 @@ export type Database = {
           },
         ]
       }
+      live_reminders: {
+        Row: {
+          created_at: string
+          id: string
+          mentor_id: string
+          scheduled_live_id: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mentor_id: string
+          scheduled_live_id: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mentor_id?: string
+          scheduled_live_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_reminders_scheduled_live_id_fkey"
+            columns: ["scheduled_live_id"]
+            isOneToOne: false
+            referencedRelation: "live_scheduled"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_scheduled: {
         Row: {
           created_at: string
