@@ -1,6 +1,8 @@
 /**
  * LiveRoom — Full-screen Discord-style voice/video room.
- * Collaborative drawing on screen share via Supabase Realtime Broadcast.
+ * - Screen share broadcasts to all participants (canvas frame streaming via Realtime)
+ * - Collaborative drawing with per-user cursor + name indicators
+ * - Mic test, speaking detection, force-mute
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,7 +12,7 @@ import {
   Mic, MicOff, Volume2, VolumeX, Video, VideoOff,
   Monitor, MonitorOff, Settings, X, Users, PhoneOff,
   Pencil, Eraser, RotateCcw, MessageSquare, Send, Headphones,
-  FlaskConical, StopCircle, Type, Zap, Minus, Plus, ChevronUp,
+  FlaskConical, StopCircle, Type, Zap, Minus, Plus,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,16 +25,26 @@ interface DrawPoint { x: number; y: number; }
 interface DrawStroke {
   id: string;
   userId: string;
+  userName: string;
+  userColor: string;
   tool: DrawToolType;
   points: DrawPoint[];
   color: string;
   size: number;
-  /** text tool */
   text?: string;
   textX?: number;
   textY?: number;
   fontSize?: number;
   createdAt: number;
+}
+
+interface RemoteCursor {
+  userId: string;
+  userName: string;
+  color: string;
+  x: number;
+  y: number;
+  updatedAt: number;
 }
 
 interface Props {
@@ -49,6 +61,9 @@ interface Props {
 const USER_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7','#ec4899','#06b6d4'];
 const getColorForUser = (uid: string) => USER_COLORS[uid.charCodeAt(0) % USER_COLORS.length];
 
+// How many ms between screen-share frame broadcasts
+const FRAME_INTERVAL_MS = 100; // ~10fps for low bandwidth
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LiveRoom({ sessionId, mentorId, userId, userName, sessionTitle, isMentor = false, onClose, onSessionEnd }: Props) {
   const { toast } = useToast();
@@ -58,6 +73,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [deafened, setDeafened] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
+  // Is someone else sharing screen?
+  const [remoteScreenActive, setRemoteScreenActive] = useState(false);
+  const [remoteScreenSharer, setRemoteScreenSharer] = useState<string>('');
   const [showSettings, setShowSettings] = useState(false);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
@@ -91,11 +109,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [fontSize, setFontSize] = useState(20);
   const [strokes, setStrokes] = useState<DrawStroke[]>([]);
   const [isDrawingOnCanvas, setIsDrawingOnCanvas] = useState(false);
-  // Text input state
   const [textInput, setTextInput] = useState('');
   const [textPos, setTextPos] = useState<DrawPoint | null>(null);
   const [showTextInput, setShowTextInput] = useState(false);
-  // In-progress stroke (local only, not yet committed)
+  const [remoteCursors, setRemoteCursors] = useState<Map<string, RemoteCursor>>(new Map());
   const currentStrokeRef = useRef<DrawStroke | null>(null);
   const strokesRef = useRef<DrawStroke[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -117,7 +134,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   // ── Refs ──
   const localVideoRef = useRef<HTMLVideoElement>(null);
-  const screenVideoRef = useRef<HTMLVideoElement>(null);
+  const screenVideoRef = useRef<HTMLVideoElement>(null);       // local sharer
+  const remoteScreenCanvasRef = useRef<HTMLCanvasElement>(null); // remote screen display
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -125,6 +143,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const recordedChunksRef = useRef<Blob[]>([]);
   const sessionStartRef = useRef<number>(Date.now());
   const recordingStreamRef = useRef<MediaStream | null>(null);
+
+  // ── Screen share frame streaming ──
+  const screenFrameChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const screenFrameTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Recording (mentor only)
@@ -231,6 +254,148 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, [sessionId, userId, mentorId, isMentor, userName]);
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Screen share — frame broadcast channel
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const ch = supabase.channel(`screen-share-${sessionId}`, { config: { broadcast: { self: true } } });
+
+    // Receive remote frames
+    ch.on('broadcast', { event: 'screen_frame' }, ({ payload }) => {
+      const { dataUrl, sharerId, sharerName } = payload as { dataUrl: string; sharerId: string; sharerName: string };
+      // Show on remote canvas for everyone (including the sharer who sees their own broadcast)
+      const canvas = remoteScreenCanvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = dataUrl;
+      setRemoteScreenActive(true);
+      setRemoteScreenSharer(sharerName || sharerId);
+    });
+
+    ch.on('broadcast', { event: 'screen_share_start' }, ({ payload }) => {
+      const { sharerId, sharerName } = payload as { sharerId: string; sharerName: string };
+      setRemoteScreenActive(true);
+      setRemoteScreenSharer(sharerName || sharerId);
+      setParticipants(prev => prev.map(p => p.userId === sharerId ? { ...p, hasScreen: true } : p));
+    });
+
+    ch.on('broadcast', { event: 'screen_share_stop' }, ({ payload }) => {
+      const { sharerId } = payload as { sharerId: string };
+      setRemoteScreenActive(false);
+      setRemoteScreenSharer('');
+      setParticipants(prev => prev.map(p => p.userId === sharerId ? { ...p, hasScreen: false } : p));
+      // Clear remote canvas
+      const canvas = remoteScreenCanvasRef.current;
+      if (canvas) { const ctx = canvas.getContext('2d'); ctx?.clearRect(0, 0, canvas.width, canvas.height); }
+    });
+
+    ch.subscribe();
+    screenFrameChannelRef.current = ch;
+    return () => { supabase.removeChannel(ch); };
+  }, [sessionId]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Broadcast screen frames while sharing
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!screenSharing) {
+      if (screenFrameTimerRef.current) { clearInterval(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
+      return;
+    }
+    // Create offscreen canvas for frame capture
+    if (!offscreenCanvasRef.current) offscreenCanvasRef.current = document.createElement('canvas');
+    const offscreen = offscreenCanvasRef.current;
+
+    const captureFrame = () => {
+      const video = screenVideoRef.current;
+      if (!video || video.readyState < 2) return;
+      const w = video.videoWidth || 1280;
+      const h = video.videoHeight || 720;
+      offscreen.width = w;
+      offscreen.height = h;
+      const ctx = offscreen.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0, w, h);
+      // Also draw current drawing strokes on top
+      renderStrokesOnCtx(ctx, w, h, strokesRef.current);
+      const dataUrl = offscreen.toDataURL('image/jpeg', 0.5);
+      screenFrameChannelRef.current?.send({
+        type: 'broadcast', event: 'screen_frame',
+        payload: { dataUrl, sharerId: userId, sharerName: userName },
+      });
+    };
+
+    screenFrameTimerRef.current = setInterval(captureFrame, FRAME_INTERVAL_MS);
+    return () => { if (screenFrameTimerRef.current) clearInterval(screenFrameTimerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screenSharing, userId, userName]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Helper: render strokes on any ctx (used for frame broadcast)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const renderStrokesOnCtx = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number, stks: DrawStroke[]) => {
+    const now = Date.now();
+    for (const stroke of stks) {
+      if (stroke.tool === 'text') {
+        ctx.globalAlpha = 1;
+        ctx.font = `bold ${stroke.fontSize ?? 20}px sans-serif`;
+        ctx.fillStyle = stroke.color;
+        ctx.fillText(stroke.text ?? '', (stroke.textX ?? 0) / (canvasRef.current?.width || w) * w, (stroke.textY ?? 0) / (canvasRef.current?.height || h) * h);
+        continue;
+      }
+      if (stroke.tool === 'laser') {
+        const age = now - stroke.createdAt;
+        const FADE_END = 5000;
+        if (age > FADE_END) continue;
+        const alpha = age < 3000 ? 1 : 1 - (age - 3000) / 2000;
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.shadowBlur = 8; ctx.shadowColor = stroke.color;
+        ctx.globalCompositeOperation = 'source-over';
+        if (stroke.points.length >= 2) {
+          ctx.beginPath();
+          ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+          stroke.points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        continue;
+      }
+      ctx.globalAlpha = 1;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      if (stroke.tool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = stroke.size;
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+      }
+      if (stroke.points.length >= 2) {
+        ctx.beginPath();
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        stroke.points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.stroke();
+      } else if (stroke.points.length === 1) {
+        ctx.beginPath();
+        ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.size / 2, 0, Math.PI * 2);
+        ctx.fillStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.globalAlpha = 1;
+  }, []);
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Collaborative Drawing — Broadcast channel
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -253,10 +418,41 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       setStrokes([]);
     });
 
+    // Remote cursor positions
+    ch.on('broadcast', { event: 'cursor_move' }, ({ payload }) => {
+      const { cursorUserId, cursorUserName, color, x, y } = payload as { cursorUserId: string; cursorUserName: string; color: string; x: number; y: number };
+      setRemoteCursors(prev => {
+        const next = new Map(prev);
+        next.set(cursorUserId, { userId: cursorUserId, userName: cursorUserName, color, x, y, updatedAt: Date.now() });
+        return next;
+      });
+    });
+
+    ch.on('broadcast', { event: 'cursor_leave' }, ({ payload }) => {
+      const { cursorUserId } = payload as { cursorUserId: string };
+      setRemoteCursors(prev => { const next = new Map(prev); next.delete(cursorUserId); return next; });
+    });
+
     ch.subscribe();
     drawBroadcastChannelRef.current = ch;
     return () => { supabase.removeChannel(ch); };
   }, [sessionId]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Clean up stale cursors after 3s of inactivity
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      setRemoteCursors(prev => {
+        let changed = false;
+        const next = new Map(prev);
+        for (const [uid, cur] of next) { if (now - cur.updatedAt > 3000) { next.delete(uid); changed = true; } }
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Canvas render — redraws whenever strokes change (also handles laser fade)
@@ -274,7 +470,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
     for (const stroke of allStrokes) {
       if (stroke.tool === 'text') {
-        const age = now - stroke.createdAt;
         ctx.globalAlpha = 1;
         ctx.font = `bold ${stroke.fontSize ?? 20}px sans-serif`;
         ctx.fillStyle = stroke.color;
@@ -334,7 +529,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   useEffect(() => { renderCanvas(); }, [strokes, renderCanvas]);
 
-  // Laser fade loop — only runs when there are laser strokes
+  // Laser fade loop
   useEffect(() => {
     const hasLaser = strokes.some(s => s.tool === 'laser');
     if (!hasLaser) {
@@ -343,7 +538,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     }
     const tick = () => {
       renderCanvas();
-      // Remove fully expired laser strokes
       const now = Date.now();
       const expired = strokesRef.current.filter(s => s.tool === 'laser' && now - s.createdAt > 5000);
       if (expired.length > 0) {
@@ -357,23 +551,27 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, [strokes, renderCanvas]);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Canvas size sync
+  // Canvas size sync — to the active screen area (local or remote)
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!screenSharing) return;
+    const isScreenVisible = screenSharing || remoteScreenActive;
+    if (!isScreenVisible) return;
+
     const syncSize = () => {
-      const video = screenVideoRef.current;
+      // Use the visible screen container (remote canvas or local video)
+      const el = screenSharing ? screenVideoRef.current : remoteScreenCanvasRef.current;
       const canvas = canvasRef.current;
-      if (!video || !canvas) return;
-      canvas.width = video.offsetWidth;
-      canvas.height = video.offsetHeight;
+      if (!el || !canvas) return;
+      canvas.width = el.offsetWidth;
+      canvas.height = el.offsetHeight;
       renderCanvas();
     };
     const ro = new ResizeObserver(syncSize);
-    if (screenVideoRef.current) ro.observe(screenVideoRef.current);
+    const target = screenSharing ? screenVideoRef.current : remoteScreenCanvasRef.current;
+    if (target) ro.observe(target);
     syncSize();
     return () => ro.disconnect();
-  }, [screenSharing, renderCanvas]);
+  }, [screenSharing, remoteScreenActive, renderCanvas]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Canvas input helpers
@@ -389,6 +587,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     setStrokes(s => [...s, stroke]);
   }, []);
 
+  const broadcastCursor = useCallback((x: number, y: number) => {
+    drawBroadcastChannelRef.current?.send({
+      type: 'broadcast', event: 'cursor_move',
+      payload: { cursorUserId: userId, cursorUserName: userName, color: getColorForUser(userId), x, y },
+    });
+  }, [userId, userName]);
+
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!showDrawToolbar) return;
     const pt = getPos(e);
@@ -402,7 +607,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
     const stroke: DrawStroke = {
       id: `${userId}-${Date.now()}-${Math.random()}`,
-      userId, tool: activeTool,
+      userId, userName,
+      userColor: getColorForUser(userId),
+      tool: activeTool,
       points: [pt],
       color: activeTool === 'eraser' ? '#000' : activeTool === 'laser' ? '#ff4d4d' : drawColor,
       size: activeTool === 'eraser' ? eraserSize : activeTool === 'laser' ? 4 : penSize,
@@ -410,18 +617,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     };
     currentStrokeRef.current = stroke;
     setIsDrawingOnCanvas(true);
+    broadcastCursor(pt.x, pt.y);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showDrawToolbar, activeTool, userId, drawColor, penSize, eraserSize]);
+  }, [showDrawToolbar, activeTool, userId, userName, drawColor, penSize, eraserSize, broadcastCursor]);
 
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawingOnCanvas || !currentStrokeRef.current) return;
     const pt = getPos(e);
-    currentStrokeRef.current = {
-      ...currentStrokeRef.current,
-      points: [...currentStrokeRef.current.points, pt],
-    };
+    if (showDrawToolbar) broadcastCursor(pt.x, pt.y);
+    if (!isDrawingOnCanvas || !currentStrokeRef.current) return;
+    currentStrokeRef.current = { ...currentStrokeRef.current, points: [...currentStrokeRef.current.points, pt] };
     renderCanvas();
-  }, [isDrawingOnCanvas, renderCanvas]);
+  }, [isDrawingOnCanvas, renderCanvas, showDrawToolbar, broadcastCursor]);
 
   const handleCanvasMouseUp = useCallback(() => {
     if (!isDrawingOnCanvas || !currentStrokeRef.current) return;
@@ -431,11 +637,18 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     broadcastStroke(stroke);
   }, [isDrawingOnCanvas, broadcastStroke]);
 
+  const handleCanvasMouseLeave = useCallback(() => {
+    handleCanvasMouseUp();
+    drawBroadcastChannelRef.current?.send({ type: 'broadcast', event: 'cursor_leave', payload: { cursorUserId: userId } });
+  }, [handleCanvasMouseUp, userId]);
+
   const handleTextConfirm = useCallback(() => {
     if (!textInput.trim() || !textPos) { setShowTextInput(false); return; }
     const stroke: DrawStroke = {
       id: `${userId}-${Date.now()}`,
-      userId, tool: 'text',
+      userId, userName,
+      userColor: getColorForUser(userId),
+      tool: 'text',
       points: [], color: drawColor, size: fontSize,
       text: textInput, textX: textPos.x, textY: textPos.y, fontSize,
       createdAt: Date.now(),
@@ -444,7 +657,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     setShowTextInput(false);
     setTextInput('');
     setTextPos(null);
-  }, [textInput, textPos, userId, drawColor, fontSize, broadcastStroke]);
+  }, [textInput, textPos, userId, userName, drawColor, fontSize, broadcastStroke]);
 
   const handleUndo = useCallback(() => {
     const myStrokes = strokesRef.current.filter(s => s.userId === userId);
@@ -528,7 +741,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
     setScreenSharing(false);
     setShowDrawToolbar(false);
-  }, []);
+    // Notify others
+    screenFrameChannelRef.current?.send({
+      type: 'broadcast', event: 'screen_share_stop',
+      payload: { sharerId: userId },
+    });
+  }, [userId]);
 
   const toggleScreenShare = useCallback(async () => {
     if (screenSharing) { stopScreenShare(); return; }
@@ -538,9 +756,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       if (screenVideoRef.current) screenVideoRef.current.srcObject = stream;
       setScreenSharing(true);
       stream.getVideoTracks()[0].onended = () => stopScreenShare();
+      // Notify others
+      screenFrameChannelRef.current?.send({
+        type: 'broadcast', event: 'screen_share_start',
+        payload: { sharerId: userId, sharerName: userName },
+      });
       toast({ title: 'שיתוף מסך הופעל' });
     } catch { toast({ title: 'שיתוף מסך בוטל', variant: 'destructive' }); }
-  }, [screenSharing, stopScreenShare, toast]);
+  }, [screenSharing, stopScreenShare, userId, userName, toast]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Camera
@@ -650,6 +873,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const initials = (name: string) => name?.[0]?.toUpperCase() ?? '?';
   const myColor = getColorForUser(userId);
 
+  // Is screen visible in center? (either I'm sharing or someone else is)
+  const isScreenVisible = screenSharing || remoteScreenActive;
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────────
@@ -696,12 +922,31 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {/* Video / avatar area */}
           <div className="flex-1 relative flex items-center justify-center min-h-0 overflow-hidden">
 
-            {screenSharing ? (
-              /* ── Screen share ── */
+            {isScreenVisible ? (
+              /* ── Screen share (shown to ALL participants) ── */
               <div className="relative w-full h-full">
-                <video ref={screenVideoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
 
-                {/* Drawing canvas */}
+                {/* Remote screen canvas — everyone sees this (including sharer who sees their own broadcast) */}
+                <canvas
+                  ref={remoteScreenCanvasRef}
+                  className="w-full h-full object-contain bg-black"
+                  style={{ display: 'block' }}
+                />
+
+                {/* Hidden local video for capturing frames */}
+                <video ref={screenVideoRef} autoPlay playsInline muted className="hidden" />
+
+                {/* Screen share owner label */}
+                {remoteScreenSharer && (
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur px-3 py-1.5 rounded-full border border-white/10">
+                    <Monitor className="w-3.5 h-3.5 text-green-400" />
+                    <span className="text-xs text-white/80 font-medium">
+                      {remoteScreenSharer === userName ? 'אתה משתף את המסך' : `${remoteScreenSharer} משתף את המסך`}
+                    </span>
+                  </div>
+                )}
+
+                {/* Drawing canvas overlay */}
                 <canvas
                   ref={canvasRef}
                   className={`absolute inset-0 w-full h-full ${showDrawToolbar ? (activeTool === 'text' ? 'cursor-text' : 'cursor-crosshair') : 'pointer-events-none'}`}
@@ -709,8 +954,27 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   onMouseDown={handleCanvasMouseDown}
                   onMouseMove={handleCanvasMouseMove}
                   onMouseUp={handleCanvasMouseUp}
-                  onMouseLeave={handleCanvasMouseUp}
+                  onMouseLeave={handleCanvasMouseLeave}
                 />
+
+                {/* Remote cursor indicators */}
+                {Array.from(remoteCursors.values()).map(cursor => (
+                  <div
+                    key={cursor.userId}
+                    className="absolute pointer-events-none z-30 flex flex-col items-start"
+                    style={{ left: cursor.x, top: cursor.y, transform: 'translate(4px, 4px)' }}
+                  >
+                    {/* Cursor dot */}
+                    <div className="w-3 h-3 rounded-full border-2 border-white shadow-lg" style={{ backgroundColor: cursor.color }} />
+                    {/* Name tag */}
+                    <div
+                      className="mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold text-white shadow-lg whitespace-nowrap"
+                      style={{ backgroundColor: cursor.color + 'cc' }}
+                    >
+                      {cursor.userName}
+                    </div>
+                  </div>
+                ))}
 
                 {/* Text input overlay */}
                 {showTextInput && textPos && (
@@ -741,7 +1005,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   <Pencil className="w-4 h-4" />
                 </button>
 
-                {/* ── Drawing toolbar (expands upward from bottom-left) ── */}
+                {/* ── Drawing toolbar ── */}
                 <AnimatePresence>
                   {showDrawToolbar && (
                     <motion.div
@@ -779,7 +1043,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         {{ pen: 'עיפרון', text: 'טקסט', laser: 'לייזר (נמחק תוך 5 שנ׳)', eraser: 'מחק' }[activeTool]}
                       </p>
 
-                      {/* Color row (pen / text / laser) */}
+                      {/* Color row */}
                       {activeTool !== 'eraser' && (
                         <div className="flex gap-1 flex-wrap justify-center mb-1">
                           {['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7','#ffffff','#000000'].map(c => (
@@ -794,7 +1058,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                       )}
 
                       {/* Size control */}
-                      {(activeTool === 'pen') && (
+                      {activeTool === 'pen' && (
                         <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
                           <button onClick={() => setPenSize(s => Math.max(1, s - 1))} className="text-white/50 hover:text-white"><Minus className="w-3 h-3" /></button>
                           <div className="flex-1 text-center text-[11px] text-white/70 font-bold">{penSize}px</div>
@@ -816,23 +1080,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         </div>
                       )}
 
-                      {/* Divider */}
                       <div className="border-t border-white/8 my-1" />
 
                       {/* Actions row */}
                       <div className="flex gap-1">
-                        <button
-                          onClick={handleUndo}
-                          title="בטל ציור אחרון (שלי)"
-                          className="flex-1 h-7 flex items-center justify-center gap-1 rounded-lg text-[10px] text-white/50 hover:text-white hover:bg-white/10 transition-all"
-                        >
+                        <button onClick={handleUndo} title="בטל ציור אחרון (שלי)"
+                          className="flex-1 h-7 flex items-center justify-center gap-1 rounded-lg text-[10px] text-white/50 hover:text-white hover:bg-white/10 transition-all">
                           <RotateCcw className="w-3 h-3" /> בטל
                         </button>
-                        <button
-                          onClick={handleClearAll}
-                          title="נקה הכל"
-                          className="flex-1 h-7 flex items-center justify-center gap-1 rounded-lg text-[10px] text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-all"
-                        >
+                        <button onClick={handleClearAll} title="נקה הכל"
+                          className="flex-1 h-7 flex items-center justify-center gap-1 rounded-lg text-[10px] text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-all">
                           <X className="w-3 h-3" /> נקה
                         </button>
                       </div>
@@ -1081,6 +1338,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   const isMentorEntry = p.userId === mentorId;
                   const forceMuted = forceMutedUsers.has(p.userId);
                   const isSpeaking = speakingUsers.has(p.userId);
+                  const userColor = getColorForUser(p.userId);
                   return (
                     <div key={p.userId} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
                       <div className="relative shrink-0">
@@ -1090,8 +1348,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                             <span className="absolute -inset-1 rounded-full border-2 border-green-500 opacity-80" />
                           </>
                         )}
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all ${isSpeaking && !p.isMuted ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-[#2b2d31]' : ''}`}
-                          style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
+                        <div
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all ${isSpeaking && !p.isMuted ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-[#2b2d31]' : ''}`}
+                          style={{ background: `linear-gradient(135deg, ${userColor}bb, ${userColor})` }}
+                        >
                           {initials(p.name)}
                         </div>
                         <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#2b2d31] ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
