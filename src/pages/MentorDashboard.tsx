@@ -1027,6 +1027,12 @@ export default function MentorDashboard() {
                     onAddComment={() => { const t = commentTexts[post.id]?.trim(); if (t) addComment.mutate({ postId: post.id, content: t }); }}
                     onDelete={() => deletePost.mutate(post.id)}
                     onTogglePin={() => togglePin.mutate({ id: post.id, is_pinned: post.is_pinned })}
+                    onEdit={() => {
+                      setEditPost(post);
+                      setEditPostContent(post.content);
+                      setEditPostMediaUrl(post.media_url ?? '');
+                      setEditPostMediaType(post.media_type ?? '');
+                    }}
                     postTypeLabel={postTypeLabel}
                     postTypeIcon={postTypeIcon}
                     postTypeBg={postTypeBg}
