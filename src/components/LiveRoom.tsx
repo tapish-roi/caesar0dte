@@ -1409,19 +1409,24 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   const isMe = p.userId === userId;
                   const isMentorEntry = p.userId === mentorId;
                   const forceMuted = forceMutedUsers.has(p.userId);
+                  // For the local user, derive speaking from speakingUsers set (audio detection)
+                  // For remote users, we don't have audio data so isSpeaking will only be true if
+                  // they happen to be in our local speakingUsers (same browser session testing)
                   const isSpeaking = speakingUsers.has(p.userId);
                   const userColor = getColorForUser(p.userId);
+                  // Show speaking ring only when audio is actually detected (not force-muted / deafened)
+                  const showSpeakingRing = isSpeaking && !forceMuted && !p.isDeafened;
                   return (
                     <div key={p.userId} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
                       <div className="relative shrink-0">
-                        {isSpeaking && !p.isMuted && (
+                        {showSpeakingRing && (
                           <>
                             <span className="absolute -inset-1 rounded-full border-2 border-green-500 animate-ping opacity-60" />
                             <span className="absolute -inset-1 rounded-full border-2 border-green-500 opacity-80" />
                           </>
                         )}
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all ${isSpeaking && !p.isMuted ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-[#2b2d31]' : ''}`}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all ${showSpeakingRing ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-[#2b2d31]' : ''}`}
                           style={{ background: `linear-gradient(135deg, ${userColor}bb, ${userColor})` }}
                         >
                           {initials(p.name)}
@@ -1434,7 +1439,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           {isMe && <span className="text-[10px] text-white/30 mr-1">(אתה)</span>}
                           {isMentorEntry && !isMe && <span className="text-[10px] text-indigo-400 mr-1">מנטור</span>}
                         </p>
-                        <p className={`text-[10px] transition-colors ${isSpeaking && !p.isMuted ? 'text-green-400' : 'text-white/30'}`}>
+                        <p className={`text-[10px] transition-colors ${showSpeakingRing ? 'text-green-400' : 'text-white/30'}`}>
                           {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מושתק' : isSpeaking ? 'מדבר...' : 'פעיל'}
                         </p>
                       </div>
