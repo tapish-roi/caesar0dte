@@ -1256,6 +1256,26 @@ export default function StudentDashboard() {
             </motion.div>
           )}
 
+          {/* ──────── LIVE ──────── */}
+          {activeTab === 'live' && mentorId && (
+            <motion.div key="live" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <LiveHubStudent
+                mentorId={mentorId}
+                mentorName={mentorName ?? ''}
+                userId={user!.id}
+                userName={profile?.full_name || user?.email || 'תלמיד'}
+                userProfile={profile}
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'live' && !mentorId && (
+            <motion.div key="live-no-mentor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 text-center text-muted-foreground">
+              <Radio className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">לא נבחרה קהילה</p>
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </main>
 
