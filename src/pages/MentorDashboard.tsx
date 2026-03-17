@@ -708,23 +708,9 @@ export default function MentorDashboard() {
                           )}
                         </div>
                         {/* Inline attachment viewer */}
-                        {lesson.attachment_url && (() => {
-                          const url = lesson.attachment_url!;
-                          const name = lesson.attachment_name ?? '';
-                          const ext = (url.split('?')[0].split('.').pop() ?? '').toLowerCase();
-                          const isPdf = ext === 'pdf';
-                          const isImage = ['png','jpg','jpeg','gif','webp','svg'].includes(ext);
-                          return (
-                            <div className="border-t border-border">
-                              <div className="flex items-center justify-between px-6 py-3 bg-primary/5">
-                                <div className="flex items-center gap-2 text-sm font-medium text-foreground"><Paperclip className="w-4 h-4 text-primary" /><span>{name || 'קובץ מצורף'}</span></div>
-                                <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:opacity-80">פתח בחלון נפרד ↗</a>
-                              </div>
-                              {isPdf && <div className="w-full" style={{ height: '520px' }}><iframe src={`${url}#toolbar=1&navpanes=0`} className="w-full h-full" title={name} /></div>}
-                              {isImage && <div className="px-6 pb-6 pt-2"><img src={url} alt={name} className="w-full max-h-[480px] object-contain rounded-lg border border-border bg-muted/30" /></div>}
-                            </div>
-                          );
-                        })()}
+                        {lesson.attachment_url && (
+                          <AttachmentViewer url={lesson.attachment_url} name={lesson.attachment_name ?? ''} />
+                        )}
                       </motion.div>
                     );
                   })() : (
