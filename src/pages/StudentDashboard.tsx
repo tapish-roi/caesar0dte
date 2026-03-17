@@ -22,6 +22,7 @@ import LiveViewer from '@/components/LiveViewer';
 
 type SidebarTab = 'lessons' | 'community';
 type PostType = 'discussion' | 'media' | 'live';
+type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
 interface InviteItem {
   id: string;
