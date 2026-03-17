@@ -12,6 +12,7 @@ import {
   Mic, MicOff, Volume2, VolumeX, Video, VideoOff,
   Monitor, MonitorOff, Settings, X, Users, PhoneOff,
   Pencil, Eraser, RotateCcw, MessageSquare, Send, Headphones,
+  FlaskConical, StopCircle,
 } from 'lucide-react';
 
 interface ChatMessage { id: string; user_id: string; display_name: string; message: string; created_at: string; }
@@ -48,6 +49,20 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [selectedOutput, setSelectedOutput] = useState('');
   const [volume, setVolume] = useState(100);
   const [settingsTab, setSettingsTab] = useState<'mic' | 'audio' | 'camera'>('mic');
+
+  // Mic test state
+  const [micTesting, setMicTesting] = useState(false);
+  const [micTestLevel, setMicTestLevel] = useState(0);
+  const micTestStreamRef = useRef<MediaStream | null>(null);
+  const micTestLoopbackRef = useRef<AudioNode | null>(null);
+  const micTestContextRef = useRef<AudioContext | null>(null);
+  const micTestAnimRef = useRef<number | null>(null);
+
+  // Speaking detection — maps userId → isSpeaking
+  const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
+  const localAnalyserRef = useRef<AnalyserNode | null>(null);
+  const speakingAnimRef = useRef<number | null>(null);
+  const localMicStreamForAnalysis = useRef<MediaStream | null>(null);
 
   // Drawing state
   const [drawing, setDrawing] = useState(false);
@@ -93,12 +108,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
     const startRecording = () => {
       try {
-        // Capture the entire page as a canvas stream (fallback: black stream)
         let stream: MediaStream;
         if (typeof (document as unknown as { captureStream?: () => MediaStream }).captureStream === 'function') {
           stream = (document as unknown as { captureStream: () => MediaStream }).captureStream();
         } else {
-          // Create a minimal black canvas stream as fallback
           const canvas = document.createElement('canvas');
           canvas.width = 1280; canvas.height = 720;
           stream = (canvas as unknown as { captureStream: (fps: number) => MediaStream }).captureStream(10);
@@ -106,7 +119,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         recordingStreamRef.current = stream;
         const mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
         mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
-        mr.start(5000); // collect chunks every 5s
+        mr.start(5000);
         mediaRecorderRef.current = mr;
       } catch {
         // Recording not supported — silently skip
@@ -163,7 +176,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   // ── Presence: announce join & track other participants via signals ──
   useEffect(() => {
-    // Announce our presence
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('live_signals') as any).insert({
       session_id: sessionId,
@@ -173,7 +185,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       payload: { name: userName, isMentor },
     }).then(() => {});
 
-    // Listen for presence + mute signals
     const ch = supabase.channel(`live-signals-${sessionId}-${userId}`)
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'live_signals',
@@ -181,7 +192,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }, (payload) => {
         const sig = payload.new as { signal_type: string; from_user_id: string; to_user_id: string; payload: Record<string,unknown> };
 
-        // Handle presence (mentor builds participant list)
         if (sig.signal_type === 'presence' && isMentor) {
           setParticipants(prev => {
             const exists = prev.find(p => p.userId === sig.from_user_id);
@@ -194,7 +204,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           });
         }
 
-        // Handle force_mute (student receives)
         if (sig.signal_type === 'force_mute' && sig.to_user_id === userId) {
           setIsForceMuted(true);
           setMicEnabled(false);
@@ -202,13 +211,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           toast({ title: 'הושתקת על ידי המנטור', description: 'אתה יכול להסיר את ההשתקה בעצמך' });
         }
 
-        // Handle force_unmute (student receives)
         if (sig.signal_type === 'force_unmute' && sig.to_user_id === userId) {
           setIsForceMuted(false);
           toast({ title: 'המנטור הסיר את ההשתקה שלך' });
         }
 
-        // Handle mute_ack — mentor updates participant list
         if (sig.signal_type === 'mute_ack' && isMentor) {
           const targetId = sig.from_user_id;
           const muted = sig.payload.muted as boolean;
@@ -266,10 +273,46 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     }
   }, [screenSharing, stopScreenShare, toast]);
 
+  // ── Speaking detection (local mic) ──
+  const startSpeakingDetection = useCallback((stream: MediaStream) => {
+    if (speakingAnimRef.current) cancelAnimationFrame(speakingAnimRef.current);
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.4;
+      source.connect(analyser);
+      localAnalyserRef.current = analyser;
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const THRESHOLD = 18;
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        setSpeakingUsers(prev => {
+          const next = new Set(prev);
+          if (avg > THRESHOLD) next.add(userId);
+          else next.delete(userId);
+          return next;
+        });
+        speakingAnimRef.current = requestAnimationFrame(tick);
+      };
+      speakingAnimRef.current = requestAnimationFrame(tick);
+    } catch { /* noop */ }
+  }, [userId]);
+
+  const stopSpeakingDetection = useCallback(() => {
+    if (speakingAnimRef.current) { cancelAnimationFrame(speakingAnimRef.current); speakingAnimRef.current = null; }
+    localAnalyserRef.current = null;
+    setSpeakingUsers(prev => { const next = new Set(prev); next.delete(userId); return next; });
+  }, [userId]);
+
   // ── Mic ──
   const toggleMic = useCallback(async () => {
     if (micEnabled) {
       localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
+      localMicStreamForAnalysis.current = null;
+      stopSpeakingDetection();
       setMicEnabled(false);
     } else {
       try {
@@ -277,13 +320,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           audio: selectedMic ? { deviceId: { exact: selectedMic } } : true,
         });
         stream.getAudioTracks().forEach(t => localStreamRef.current?.addTrack(t));
+        localMicStreamForAnalysis.current = stream;
+        startSpeakingDetection(stream);
         setMicEnabled(true);
         if (deafened) setDeafened(false);
       } catch {
         toast({ title: 'לא ניתן לגשת למיקרופון', variant: 'destructive' });
       }
     }
-  }, [micEnabled, selectedMic, deafened, toast]);
+  }, [micEnabled, selectedMic, deafened, toast, startSpeakingDetection, stopSpeakingDetection]);
 
   // ── Deafen ──
   const toggleDeafen = useCallback(() => {
@@ -299,14 +344,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   // ── Hang up / End session ──
   const handleLeave = useCallback(() => {
-    // Always stop screen share first
     stopScreenShare();
+    stopSpeakingDetection();
+    stopMicTest();
 
     if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       const mr = mediaRecorderRef.current;
       const durationSeconds = Math.round((Date.now() - sessionStartRef.current) / 1000);
       mr.onstop = () => {
-        // Flush any remaining data after stop
         const allChunks = [...recordedChunksRef.current];
         const blob = new Blob(allChunks, { type: 'video/webm' });
         if (blob.size > 0 && onSessionEnd) {
@@ -316,10 +361,73 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       };
       mr.stop();
     } else {
-      // Non-mentor or no recorder — close immediately
       onClose();
     }
-  }, [isMentor, onClose, onSessionEnd, stopScreenShare]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMentor, onClose, onSessionEnd, stopScreenShare, stopSpeakingDetection]);
+
+  // ── Mic test ──
+  const startMicTest = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: selectedMic ? { deviceId: { exact: selectedMic } } : true,
+      });
+      micTestStreamRef.current = stream;
+
+      const ctx = new AudioContext();
+      micTestContextRef.current = ctx;
+      const source = ctx.createMediaStreamSource(stream);
+
+      // Loopback: user hears themselves
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = 1;
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      micTestLoopbackRef.current = gainNode;
+
+      // Level meter
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        setMicTestLevel(Math.min(100, (avg / 60) * 100));
+        micTestAnimRef.current = requestAnimationFrame(tick);
+      };
+      micTestAnimRef.current = requestAnimationFrame(tick);
+
+      setMicTesting(true);
+    } catch {
+      toast({ title: 'לא ניתן לגשת למיקרופון לבדיקה', variant: 'destructive' });
+    }
+  }, [selectedMic, toast]);
+
+  const stopMicTest = useCallback(() => {
+    if (micTestAnimRef.current) { cancelAnimationFrame(micTestAnimRef.current); micTestAnimRef.current = null; }
+    micTestStreamRef.current?.getTracks().forEach(t => t.stop());
+    micTestStreamRef.current = null;
+    micTestContextRef.current?.close();
+    micTestContextRef.current = null;
+    micTestLoopbackRef.current = null;
+    setMicTesting(false);
+    setMicTestLevel(0);
+  }, []);
+
+  // Stop mic test when settings modal closes
+  useEffect(() => {
+    if (!showSettings && micTesting) stopMicTest();
+  }, [showSettings, micTesting, stopMicTest]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopMicTest();
+      stopSpeakingDetection();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Canvas drawing ──
   const getCanvasPos = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -373,7 +481,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       signal_type: signalType,
       payload: { muted: !currentlyMuted },
     });
-    // Optimistically update local state
     setForceMutedUsers(prev => {
       const next = new Set(prev);
       if (currentlyMuted) next.delete(targetUserId); else next.add(targetUserId);
@@ -710,6 +817,58 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                               ))}
                             </div>
                           </div>
+
+                          {/* ── Mic test ── */}
+                          <div className="border-t border-white/8 pt-5">
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בדיקת מיקרופון</p>
+                            <div className="bg-[#2b2d31] rounded-xl p-4 space-y-3">
+                              <p className="text-xs text-white/50 leading-relaxed">
+                                {micTesting
+                                  ? 'בדיקה פעילה — אתה שומע את עצמך. שאר המשתמשים לא שומעים אותך כרגע.'
+                                  : 'לחץ על "בדוק מיקרופון" כדי לשמוע את עצמך. בזמן הבדיקה לא תשמע ולא תישמע לאחרים.'}
+                              </p>
+
+                              {/* Level meter */}
+                              {micTesting && (
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] text-white/30">עוצמת קלט</span>
+                                    <span className="text-[10px] text-green-400 font-bold">{Math.round(micTestLevel)}%</span>
+                                  </div>
+                                  <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                                    <motion.div
+                                      className="h-full rounded-full"
+                                      style={{
+                                        width: `${micTestLevel}%`,
+                                        background: micTestLevel > 70
+                                          ? 'linear-gradient(90deg, #22c55e, #ef4444)'
+                                          : micTestLevel > 35
+                                          ? 'linear-gradient(90deg, #22c55e, #eab308)'
+                                          : '#22c55e',
+                                      }}
+                                      animate={{ width: `${micTestLevel}%` }}
+                                      transition={{ duration: 0.05 }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                onClick={micTesting ? stopMicTest : startMicTest}
+                                className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-semibold transition-all ${
+                                  micTesting
+                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                                    : 'bg-indigo-500 hover:bg-indigo-600 text-white'
+                                }`}
+                              >
+                                {micTesting ? (
+                                  <><StopCircle className="w-4 h-4" /> הפסק בדיקה</>
+                                ) : (
+                                  <><FlaskConical className="w-4 h-4" /> בדוק מיקרופון</>
+                                )}
+                              </button>
+                            </div>
+                          </div>
                         </>
                       )}
 
@@ -826,10 +985,20 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   const isMe = p.userId === userId;
                   const isMentorEntry = p.userId === mentorId;
                   const forceMuted = forceMutedUsers.has(p.userId);
+                  const isSpeaking = speakingUsers.has(p.userId);
                   return (
                     <div key={p.userId} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
                       <div className="relative shrink-0">
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                        {/* Speaking ring — green pulsing border */}
+                        {isSpeaking && !p.isMuted && (
+                          <>
+                            <span className="absolute -inset-1 rounded-full border-2 border-green-500 animate-ping opacity-60" />
+                            <span className="absolute -inset-1 rounded-full border-2 border-green-500 opacity-80" />
+                          </>
+                        )}
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all ${
+                          isSpeaking && !p.isMuted ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-[#2b2d31]' : ''
+                        }`}
                           style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
                           {initials(p.name)}
                         </div>
@@ -841,8 +1010,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           {isMe && <span className="text-[10px] text-white/30 mr-1">(אתה)</span>}
                           {isMentorEntry && !isMe && <span className="text-[10px] text-indigo-400 mr-1">מנטור</span>}
                         </p>
-                        <p className="text-[10px] text-white/30">
-                          {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מושתק' : 'פעיל'}
+                        <p className={`text-[10px] transition-colors ${isSpeaking && !p.isMuted ? 'text-green-400' : 'text-white/30'}`}>
+                          {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מושתק' : isSpeaking ? 'מדבר...' : 'פעיל'}
                         </p>
                       </div>
                       {/* Mentor-only mute button (not for self) */}
