@@ -541,17 +541,24 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
           {/* ── Controls bar (Discord style) ── */}
           <div className="shrink-0 bg-[#292b2f] border-t border-white/5 py-4 px-6 flex items-center justify-center gap-3">
-            {/* Mic */}
-            <button
-              onClick={toggleMic}
-              disabled={deafened}
-              title={micEnabled ? 'השתק מיקרופון' : 'הפעל מיקרופון'}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg disabled:opacity-40 ${
-                micEnabled ? 'bg-[#4e5058] hover:bg-[#6d6f78] text-white' : 'bg-red-500/90 hover:bg-red-500 text-white'
-              }`}
-            >
-              {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-            </button>
+            {/* Mic — shows orange ring when force-muted by mentor */}
+            <div className="relative">
+              <button
+                onClick={toggleMic}
+                disabled={deafened}
+                title={isForceMuted ? 'הושתקת על ידי המנטור — לחץ להסרת ההשתקה' : micEnabled ? 'השתק מיקרופון' : 'הפעל מיקרופון'}
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg disabled:opacity-40 ${
+                  micEnabled ? 'bg-[#4e5058] hover:bg-[#6d6f78] text-white' : 'bg-red-500/90 hover:bg-red-500 text-white'
+                } ${isForceMuted ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-[#292b2f]' : ''}`}
+              >
+                {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              </button>
+              {isForceMuted && (
+                <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full w-4 h-4 flex items-center justify-center" title="הושתקת על ידי המנטור">
+                  <span className="text-white text-[8px] font-bold">M</span>
+                </div>
+              )}
+            </div>
 
             {/* Deafen */}
             <button
