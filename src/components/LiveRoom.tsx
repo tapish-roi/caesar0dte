@@ -1,8 +1,6 @@
 /**
  * LiveRoom — Full-screen Discord-style voice/video room.
- * - Auto-stops screen share when session ends
- * - Records the full session via MediaRecorder (canvas composite + audio)
- *   and returns the blob via onSessionEnd callback
+ * Collaborative drawing on screen share via Supabase Realtime Broadcast.
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,11 +10,30 @@ import {
   Mic, MicOff, Volume2, VolumeX, Video, VideoOff,
   Monitor, MonitorOff, Settings, X, Users, PhoneOff,
   Pencil, Eraser, RotateCcw, MessageSquare, Send, Headphones,
-  FlaskConical, StopCircle,
+  FlaskConical, StopCircle, Type, Zap, Minus, Plus, ChevronUp,
 } from 'lucide-react';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface ChatMessage { id: string; user_id: string; display_name: string; message: string; created_at: string; }
 interface Participant { userId: string; name: string; stream?: MediaStream; isMuted: boolean; isDeafened: boolean; hasCamera: boolean; hasScreen: boolean; isForceMuted?: boolean; }
+
+type DrawToolType = 'pen' | 'eraser' | 'text' | 'laser';
+
+interface DrawPoint { x: number; y: number; }
+interface DrawStroke {
+  id: string;
+  userId: string;
+  tool: DrawToolType;
+  points: DrawPoint[];
+  color: string;
+  size: number;
+  /** text tool */
+  text?: string;
+  textX?: number;
+  textY?: number;
+  fontSize?: number;
+  createdAt: number;
+}
 
 interface Props {
   sessionId: string;
@@ -26,16 +43,17 @@ interface Props {
   sessionTitle: string;
   isMentor?: boolean;
   onClose: () => void;
-  /** Called when mentor ends session — receives recorded Blob (webm) */
   onSessionEnd?: (recordingBlob: Blob, durationSeconds: number) => void;
 }
 
-type DrawTool = 'pen' | 'eraser';
+const USER_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7','#ec4899','#06b6d4'];
+const getColorForUser = (uid: string) => USER_COLORS[uid.charCodeAt(0) % USER_COLORS.length];
 
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function LiveRoom({ sessionId, mentorId, userId, userName, sessionTitle, isMentor = false, onClose, onSessionEnd }: Props) {
   const { toast } = useToast();
 
-  // Media state
+  // ── Media state ──
   const [micEnabled, setMicEnabled] = useState(false);
   const [deafened, setDeafened] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
@@ -50,7 +68,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [volume, setVolume] = useState(100);
   const [settingsTab, setSettingsTab] = useState<'mic' | 'audio' | 'camera'>('mic');
 
-  // Mic test state
+  // ── Mic test ──
   const [micTesting, setMicTesting] = useState(false);
   const [micTestLevel, setMicTestLevel] = useState(0);
   const micTestStreamRef = useRef<MediaStream | null>(null);
@@ -58,243 +76,408 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const micTestContextRef = useRef<AudioContext | null>(null);
   const micTestAnimRef = useRef<number | null>(null);
 
-  // Speaking detection — maps userId → isSpeaking
+  // ── Speaking detection ──
   const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
   const localAnalyserRef = useRef<AnalyserNode | null>(null);
   const speakingAnimRef = useRef<number | null>(null);
   const localMicStreamForAnalysis = useRef<MediaStream | null>(null);
 
-  // Drawing state
-  const [drawing, setDrawing] = useState(false);
-  const [drawTool, setDrawTool] = useState<DrawTool>('pen');
+  // ── Collaborative drawing state ──
+  const [showDrawToolbar, setShowDrawToolbar] = useState(false);
+  const [activeTool, setActiveTool] = useState<DrawToolType>('pen');
   const [drawColor, setDrawColor] = useState('#ef4444');
-  const [isDrawingActive, setIsDrawingActive] = useState(false);
+  const [penSize, setPenSize] = useState(3);
+  const [eraserSize, setEraserSize] = useState(24);
+  const [fontSize, setFontSize] = useState(20);
+  const [strokes, setStrokes] = useState<DrawStroke[]>([]);
+  const [isDrawingOnCanvas, setIsDrawingOnCanvas] = useState(false);
+  // Text input state
+  const [textInput, setTextInput] = useState('');
+  const [textPos, setTextPos] = useState<DrawPoint | null>(null);
+  const [showTextInput, setShowTextInput] = useState(false);
+  // In-progress stroke (local only, not yet committed)
+  const currentStrokeRef = useRef<DrawStroke | null>(null);
+  const strokesRef = useRef<DrawStroke[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const laserAnimRef = useRef<number | null>(null);
+  const drawBroadcastChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Connection
+  // ── Connection / participants ──
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [participants, setParticipants] = useState<Participant[]>([]);
-
-  // Force-mute state (set by mentor signal)
   const [isForceMuted, setIsForceMuted] = useState(false);
-  // Mentor-side: track which user IDs are force-muted
   const [forceMutedUsers, setForceMutedUsers] = useState<Set<string>>(new Set());
 
-  // Chat & members panels
+  // ── Chat ──
   const [showChat, setShowChat] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSendingMsg, setIsSendingMsg] = useState(false);
 
-  // Refs
+  // ── Refs ──
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const lastPt = useRef<{ x: number; y: number } | null>(null);
-
-  // Recording refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const sessionStartRef = useRef<number>(Date.now());
   const recordingStreamRef = useRef<MediaStream | null>(null);
 
-  // ── Start recording when component mounts (mentor only) ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Recording (mentor only)
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isMentor) return;
     sessionStartRef.current = Date.now();
-
-    const startRecording = () => {
-      try {
-        let stream: MediaStream;
-        if (typeof (document as unknown as { captureStream?: () => MediaStream }).captureStream === 'function') {
-          stream = (document as unknown as { captureStream: () => MediaStream }).captureStream();
-        } else {
-          const canvas = document.createElement('canvas');
-          canvas.width = 1280; canvas.height = 720;
-          stream = (canvas as unknown as { captureStream: (fps: number) => MediaStream }).captureStream(10);
-        }
-        recordingStreamRef.current = stream;
-        const mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
-        mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
-        mr.start(5000);
-        mediaRecorderRef.current = mr;
-      } catch {
-        // Recording not supported — silently skip
+    try {
+      let stream: MediaStream;
+      if (typeof (document as unknown as { captureStream?: () => MediaStream }).captureStream === 'function') {
+        stream = (document as unknown as { captureStream: () => MediaStream }).captureStream();
+      } else {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1280; canvas.height = 720;
+        stream = (canvas as unknown as { captureStream: (fps: number) => MediaStream }).captureStream(10);
       }
-    };
-
-    startRecording();
-
-    return () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
-      }
-    };
+      recordingStreamRef.current = stream;
+      const mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+      mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+      mr.start(5000);
+      mediaRecorderRef.current = mr;
+    } catch { /* skip */ }
+    return () => { mediaRecorderRef.current?.state !== 'inactive' && mediaRecorderRef.current?.stop(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMentor]);
 
-  // ── Enumerate devices ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Device enumeration
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     navigator.mediaDevices.enumerateDevices().then(devices => {
       const mics = devices.filter(d => d.kind === 'audioinput');
       const cams = devices.filter(d => d.kind === 'videoinput');
-      const outputs = devices.filter(d => d.kind === 'audiooutput');
-      setAudioDevices(mics);
-      setVideoDevices(cams);
-      setOutputDevices(outputs);
+      const outs = devices.filter(d => d.kind === 'audiooutput');
+      setAudioDevices(mics); setVideoDevices(cams); setOutputDevices(outs);
       if (mics.length) setSelectedMic(mics[0].deviceId);
       if (cams.length) setSelectedCamera(cams[0].deviceId);
-      if (outputs.length) setSelectedOutput(outputs[0].deviceId);
+      if (outs.length) setSelectedOutput(outs[0].deviceId);
     });
   }, []);
 
-  // ── Chat ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Chat
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('live_chat_messages') as any)
       .select('*').eq('session_id', sessionId).order('created_at')
       .then(({ data }: { data: ChatMessage[] | null }) => { if (data) setChatMessages(data); });
-
     const ch = supabase.channel(`live-chat-${sessionId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_chat_messages', filter: `session_id=eq.${sessionId}` },
         (payload) => setChatMessages(prev => [...prev, payload.new as ChatMessage]))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [sessionId]);
-
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
 
-  // ── Self participant ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Self participant init
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    setParticipants([{ userId, name: userName || 'אתה', isMuted: !micEnabled, isDeafened: deafened, hasCamera: cameraEnabled, hasScreen: screenSharing }]);
+    setParticipants([{ userId, name: userName || 'אתה', isMuted: true, isDeafened: false, hasCamera: false, hasScreen: false }]);
     setConnectionStatus('connected');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Presence: announce join & track other participants via signals ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Presence & signal channel
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase.from('live_signals') as any).insert({
-      session_id: sessionId,
-      from_user_id: userId,
-      to_user_id: mentorId,
-      signal_type: 'presence',
-      payload: { name: userName, isMentor },
+      session_id: sessionId, from_user_id: userId, to_user_id: mentorId,
+      signal_type: 'presence', payload: { name: userName, isMentor },
     }).then(() => {});
 
     const ch = supabase.channel(`live-signals-${sessionId}-${userId}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'live_signals',
-        filter: `session_id=eq.${sessionId}`,
-      }, (payload) => {
-        const sig = payload.new as { signal_type: string; from_user_id: string; to_user_id: string; payload: Record<string,unknown> };
-
-        if (sig.signal_type === 'presence' && isMentor) {
-          setParticipants(prev => {
-            const exists = prev.find(p => p.userId === sig.from_user_id);
-            if (exists) return prev;
-            return [...prev, {
-              userId: sig.from_user_id,
-              name: String(sig.payload.name || 'משתמש'),
-              isMuted: false, isDeafened: false, hasCamera: false, hasScreen: false,
-            }];
-          });
-        }
-
-        if (sig.signal_type === 'force_mute' && sig.to_user_id === userId) {
-          setIsForceMuted(true);
-          setMicEnabled(false);
-          localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
-          toast({ title: 'הושתקת על ידי המנטור', description: 'אתה יכול להסיר את ההשתקה בעצמך' });
-        }
-
-        if (sig.signal_type === 'force_unmute' && sig.to_user_id === userId) {
-          setIsForceMuted(false);
-          toast({ title: 'המנטור הסיר את ההשתקה שלך' });
-        }
-
-        if (sig.signal_type === 'mute_ack' && isMentor) {
-          const targetId = sig.from_user_id;
-          const muted = sig.payload.muted as boolean;
-          setParticipants(prev => prev.map(p => p.userId === targetId ? { ...p, isMuted: muted, isForceMuted: muted } : p));
-          setForceMutedUsers(prev => {
-            const next = new Set(prev);
-            if (muted) next.add(targetId); else next.delete(targetId);
-            return next;
-          });
-        }
-      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_signals', filter: `session_id=eq.${sessionId}` },
+        (payload) => {
+          const sig = payload.new as { signal_type: string; from_user_id: string; to_user_id: string; payload: Record<string, unknown> };
+          if (sig.signal_type === 'presence' && isMentor) {
+            setParticipants(prev => {
+              if (prev.find(p => p.userId === sig.from_user_id)) return prev;
+              return [...prev, { userId: sig.from_user_id, name: String(sig.payload.name || 'משתמש'), isMuted: false, isDeafened: false, hasCamera: false, hasScreen: false }];
+            });
+          }
+          if (sig.signal_type === 'force_mute' && sig.to_user_id === userId) {
+            setIsForceMuted(true); setMicEnabled(false);
+            localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
+            toast({ title: 'הושתקת על ידי המנטור', description: 'אתה יכול להסיר את ההשתקה בעצמך' });
+          }
+          if (sig.signal_type === 'force_unmute' && sig.to_user_id === userId) {
+            setIsForceMuted(false); toast({ title: 'המנטור הסיר את ההשתקה שלך' });
+          }
+          if (sig.signal_type === 'mute_ack' && isMentor) {
+            const muted = sig.payload.muted as boolean;
+            setParticipants(prev => prev.map(p => p.userId === sig.from_user_id ? { ...p, isMuted: muted, isForceMuted: muted } : p));
+            setForceMutedUsers(prev => { const n = new Set(prev); muted ? n.add(sig.from_user_id) : n.delete(sig.from_user_id); return n; });
+          }
+        })
       .subscribe();
-
     return () => { supabase.removeChannel(ch); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, userId, mentorId, isMentor, userName]);
 
-  // ── Camera ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Collaborative Drawing — Broadcast channel
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (cameraEnabled) {
-      navigator.mediaDevices.getUserMedia({ video: selectedCamera ? { deviceId: { exact: selectedCamera } } : true })
-        .then(stream => {
-          localStreamRef.current = stream;
-          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-        })
-        .catch(() => { toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' }); setCameraEnabled(false); });
-    } else {
-      localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
-      if (localVideoRef.current) localVideoRef.current.srcObject = null;
-    }
-  }, [cameraEnabled, selectedCamera, toast]);
+    const ch = supabase.channel(`drawing-${sessionId}`, { config: { broadcast: { self: false } } });
 
-  // ── Screen share ──
-  const stopScreenShare = useCallback(() => {
-    screenStreamRef.current?.getTracks().forEach(t => t.stop());
-    screenStreamRef.current = null;
-    if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
-    setScreenSharing(false);
+    ch.on('broadcast', { event: 'stroke_add' }, ({ payload }) => {
+      const stroke = payload.stroke as DrawStroke;
+      strokesRef.current = [...strokesRef.current, stroke];
+      setStrokes(s => [...s, stroke]);
+    });
+
+    ch.on('broadcast', { event: 'stroke_undo' }, ({ payload }) => {
+      const { strokeId } = payload as { strokeId: string };
+      strokesRef.current = strokesRef.current.filter(s => s.id !== strokeId);
+      setStrokes(s => s.filter(st => st.id !== strokeId));
+    });
+
+    ch.on('broadcast', { event: 'canvas_clear' }, () => {
+      strokesRef.current = [];
+      setStrokes([]);
+    });
+
+    ch.subscribe();
+    drawBroadcastChannelRef.current = ch;
+    return () => { supabase.removeChannel(ch); };
+  }, [sessionId]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Canvas render — redraws whenever strokes change (also handles laser fade)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const renderCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const now = Date.now();
+
+    const allStrokes = [...strokesRef.current];
+    if (currentStrokeRef.current) allStrokes.push(currentStrokeRef.current);
+
+    for (const stroke of allStrokes) {
+      if (stroke.tool === 'text') {
+        const age = now - stroke.createdAt;
+        ctx.globalAlpha = 1;
+        ctx.font = `bold ${stroke.fontSize ?? 20}px sans-serif`;
+        ctx.fillStyle = stroke.color;
+        ctx.fillText(stroke.text ?? '', stroke.textX ?? 0, stroke.textY ?? 0);
+        continue;
+      }
+
+      if (stroke.tool === 'laser') {
+        const age = now - stroke.createdAt;
+        const FADE_START = 3000; const FADE_END = 5000;
+        if (age > FADE_END) continue;
+        const alpha = age < FADE_START ? 1 : 1 - (age - FADE_START) / (FADE_END - FADE_START);
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = stroke.color;
+        if (stroke.points.length >= 2) {
+          ctx.beginPath();
+          ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+          for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+          ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+        continue;
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      if (stroke.tool === 'eraser') {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = stroke.size;
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+      }
+      if (stroke.points.length >= 2) {
+        ctx.beginPath();
+        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+        for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        ctx.stroke();
+      } else if (stroke.points.length === 1) {
+        ctx.beginPath();
+        ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.size / 2, 0, Math.PI * 2);
+        ctx.fillStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.globalAlpha = 1;
   }, []);
 
-  const toggleScreenShare = useCallback(async () => {
-    if (screenSharing) {
-      stopScreenShare();
-    } else {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-        screenStreamRef.current = stream;
-        if (screenVideoRef.current) screenVideoRef.current.srcObject = stream;
-        setScreenSharing(true);
-        stream.getVideoTracks()[0].onended = () => stopScreenShare();
-        toast({ title: 'שיתוף מסך הופעל' });
-      } catch {
-        toast({ title: 'שיתוף מסך בוטל', variant: 'destructive' });
-      }
-    }
-  }, [screenSharing, stopScreenShare, toast]);
+  useEffect(() => { renderCanvas(); }, [strokes, renderCanvas]);
 
-  // ── Speaking detection (local mic) ──
+  // Laser fade loop — only runs when there are laser strokes
+  useEffect(() => {
+    const hasLaser = strokes.some(s => s.tool === 'laser');
+    if (!hasLaser) {
+      if (laserAnimRef.current) { cancelAnimationFrame(laserAnimRef.current); laserAnimRef.current = null; }
+      return;
+    }
+    const tick = () => {
+      renderCanvas();
+      // Remove fully expired laser strokes
+      const now = Date.now();
+      const expired = strokesRef.current.filter(s => s.tool === 'laser' && now - s.createdAt > 5000);
+      if (expired.length > 0) {
+        strokesRef.current = strokesRef.current.filter(s => !(s.tool === 'laser' && now - s.createdAt > 5000));
+        setStrokes(strokesRef.current.slice());
+      }
+      laserAnimRef.current = requestAnimationFrame(tick);
+    };
+    laserAnimRef.current = requestAnimationFrame(tick);
+    return () => { if (laserAnimRef.current) cancelAnimationFrame(laserAnimRef.current); };
+  }, [strokes, renderCanvas]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Canvas size sync
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!screenSharing) return;
+    const syncSize = () => {
+      const video = screenVideoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas) return;
+      canvas.width = video.offsetWidth;
+      canvas.height = video.offsetHeight;
+      renderCanvas();
+    };
+    const ro = new ResizeObserver(syncSize);
+    if (screenVideoRef.current) ro.observe(screenVideoRef.current);
+    syncSize();
+    return () => ro.disconnect();
+  }, [screenSharing, renderCanvas]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Canvas input helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+  const getPos = (e: React.MouseEvent<HTMLCanvasElement>): DrawPoint => {
+    const r = canvasRef.current!.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+
+  const broadcastStroke = useCallback((stroke: DrawStroke) => {
+    drawBroadcastChannelRef.current?.send({ type: 'broadcast', event: 'stroke_add', payload: { stroke } });
+    strokesRef.current = [...strokesRef.current, stroke];
+    setStrokes(s => [...s, stroke]);
+  }, []);
+
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!showDrawToolbar) return;
+    const pt = getPos(e);
+
+    if (activeTool === 'text') {
+      setTextPos(pt);
+      setTextInput('');
+      setShowTextInput(true);
+      return;
+    }
+
+    const stroke: DrawStroke = {
+      id: `${userId}-${Date.now()}-${Math.random()}`,
+      userId, tool: activeTool,
+      points: [pt],
+      color: activeTool === 'eraser' ? '#000' : activeTool === 'laser' ? '#ff4d4d' : drawColor,
+      size: activeTool === 'eraser' ? eraserSize : activeTool === 'laser' ? 4 : penSize,
+      createdAt: Date.now(),
+    };
+    currentStrokeRef.current = stroke;
+    setIsDrawingOnCanvas(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDrawToolbar, activeTool, userId, drawColor, penSize, eraserSize]);
+
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawingOnCanvas || !currentStrokeRef.current) return;
+    const pt = getPos(e);
+    currentStrokeRef.current = {
+      ...currentStrokeRef.current,
+      points: [...currentStrokeRef.current.points, pt],
+    };
+    renderCanvas();
+  }, [isDrawingOnCanvas, renderCanvas]);
+
+  const handleCanvasMouseUp = useCallback(() => {
+    if (!isDrawingOnCanvas || !currentStrokeRef.current) return;
+    const stroke = currentStrokeRef.current;
+    currentStrokeRef.current = null;
+    setIsDrawingOnCanvas(false);
+    broadcastStroke(stroke);
+  }, [isDrawingOnCanvas, broadcastStroke]);
+
+  const handleTextConfirm = useCallback(() => {
+    if (!textInput.trim() || !textPos) { setShowTextInput(false); return; }
+    const stroke: DrawStroke = {
+      id: `${userId}-${Date.now()}`,
+      userId, tool: 'text',
+      points: [], color: drawColor, size: fontSize,
+      text: textInput, textX: textPos.x, textY: textPos.y, fontSize,
+      createdAt: Date.now(),
+    };
+    broadcastStroke(stroke);
+    setShowTextInput(false);
+    setTextInput('');
+    setTextPos(null);
+  }, [textInput, textPos, userId, drawColor, fontSize, broadcastStroke]);
+
+  const handleUndo = useCallback(() => {
+    const myStrokes = strokesRef.current.filter(s => s.userId === userId);
+    if (!myStrokes.length) return;
+    const last = myStrokes[myStrokes.length - 1];
+    drawBroadcastChannelRef.current?.send({ type: 'broadcast', event: 'stroke_undo', payload: { strokeId: last.id } });
+    strokesRef.current = strokesRef.current.filter(s => s.id !== last.id);
+    setStrokes(strokesRef.current.slice());
+  }, [userId]);
+
+  const handleClearAll = useCallback(() => {
+    drawBroadcastChannelRef.current?.send({ type: 'broadcast', event: 'canvas_clear', payload: {} });
+    strokesRef.current = [];
+    setStrokes([]);
+  }, []);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Speaking detection
+  // ─────────────────────────────────────────────────────────────────────────────
   const startSpeakingDetection = useCallback((stream: MediaStream) => {
     if (speakingAnimRef.current) cancelAnimationFrame(speakingAnimRef.current);
     try {
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.4;
+      analyser.fftSize = 512; analyser.smoothingTimeConstant = 0.4;
       source.connect(analyser);
       localAnalyserRef.current = analyser;
       const data = new Uint8Array(analyser.frequencyBinCount);
-      const THRESHOLD = 18;
       const tick = () => {
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        setSpeakingUsers(prev => {
-          const next = new Set(prev);
-          if (avg > THRESHOLD) next.add(userId);
-          else next.delete(userId);
-          return next;
-        });
+        setSpeakingUsers(prev => { const n = new Set(prev); avg > 18 ? n.add(userId) : n.delete(userId); return n; });
         speakingAnimRef.current = requestAnimationFrame(tick);
       };
       speakingAnimRef.current = requestAnimationFrame(tick);
@@ -304,10 +487,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const stopSpeakingDetection = useCallback(() => {
     if (speakingAnimRef.current) { cancelAnimationFrame(speakingAnimRef.current); speakingAnimRef.current = null; }
     localAnalyserRef.current = null;
-    setSpeakingUsers(prev => { const next = new Set(prev); next.delete(userId); return next; });
+    setSpeakingUsers(prev => { const n = new Set(prev); n.delete(userId); return n; });
   }, [userId]);
 
-  // ── Mic ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Mic
+  // ─────────────────────────────────────────────────────────────────────────────
   const toggleMic = useCallback(async () => {
     if (micEnabled) {
       localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
@@ -316,92 +501,85 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       setMicEnabled(false);
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: selectedMic ? { deviceId: { exact: selectedMic } } : true,
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: selectedMic ? { deviceId: { exact: selectedMic } } : true });
         stream.getAudioTracks().forEach(t => localStreamRef.current?.addTrack(t));
         localMicStreamForAnalysis.current = stream;
         startSpeakingDetection(stream);
         setMicEnabled(true);
         if (deafened) setDeafened(false);
-      } catch {
-        toast({ title: 'לא ניתן לגשת למיקרופון', variant: 'destructive' });
-      }
+      } catch { toast({ title: 'לא ניתן לגשת למיקרופון', variant: 'destructive' }); }
     }
   }, [micEnabled, selectedMic, deafened, toast, startSpeakingDetection, stopSpeakingDetection]);
 
-  // ── Deafen ──
   const toggleDeafen = useCallback(() => {
     setDeafened(v => {
       const next = !v;
-      if (next && micEnabled) {
-        localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; });
-        setMicEnabled(false);
-      }
+      if (next && micEnabled) { localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; }); setMicEnabled(false); }
       return next;
     });
   }, [micEnabled]);
 
-  // ── Hang up / End session ──
-  const handleLeave = useCallback(() => {
-    stopScreenShare();
-    stopSpeakingDetection();
-    stopMicTest();
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Screen share
+  // ─────────────────────────────────────────────────────────────────────────────
+  const stopScreenShare = useCallback(() => {
+    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current = null;
+    if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
+    setScreenSharing(false);
+    setShowDrawToolbar(false);
+  }, []);
 
-    if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      const mr = mediaRecorderRef.current;
-      const durationSeconds = Math.round((Date.now() - sessionStartRef.current) / 1000);
-      mr.onstop = () => {
-        const allChunks = [...recordedChunksRef.current];
-        const blob = new Blob(allChunks, { type: 'video/webm' });
-        if (blob.size > 0 && onSessionEnd) {
-          onSessionEnd(blob, durationSeconds);
-        }
-        onClose();
-      };
-      mr.stop();
+  const toggleScreenShare = useCallback(async () => {
+    if (screenSharing) { stopScreenShare(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      screenStreamRef.current = stream;
+      if (screenVideoRef.current) screenVideoRef.current.srcObject = stream;
+      setScreenSharing(true);
+      stream.getVideoTracks()[0].onended = () => stopScreenShare();
+      toast({ title: 'שיתוף מסך הופעל' });
+    } catch { toast({ title: 'שיתוף מסך בוטל', variant: 'destructive' }); }
+  }, [screenSharing, stopScreenShare, toast]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Camera
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (cameraEnabled) {
+      navigator.mediaDevices.getUserMedia({ video: selectedCamera ? { deviceId: { exact: selectedCamera } } : true })
+        .then(stream => { localStreamRef.current = stream; if (localVideoRef.current) localVideoRef.current.srcObject = stream; })
+        .catch(() => { toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' }); setCameraEnabled(false); });
     } else {
-      onClose();
+      localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
+      if (localVideoRef.current) localVideoRef.current.srcObject = null;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMentor, onClose, onSessionEnd, stopScreenShare, stopSpeakingDetection]);
+  }, [cameraEnabled, selectedCamera, toast]);
 
-  // ── Mic test ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Mic test
+  // ─────────────────────────────────────────────────────────────────────────────
   const startMicTest = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: selectedMic ? { deviceId: { exact: selectedMic } } : true,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: selectedMic ? { deviceId: { exact: selectedMic } } : true });
       micTestStreamRef.current = stream;
-
       const ctx = new AudioContext();
       micTestContextRef.current = ctx;
       const source = ctx.createMediaStreamSource(stream);
-
-      // Loopback: user hears themselves
-      const gainNode = ctx.createGain();
-      gainNode.gain.value = 1;
-      source.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      micTestLoopbackRef.current = gainNode;
-
-      // Level meter
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 512;
+      const gain = ctx.createGain(); gain.gain.value = 1;
+      source.connect(gain); gain.connect(ctx.destination);
+      micTestLoopbackRef.current = gain;
+      const analyser = ctx.createAnalyser(); analyser.fftSize = 512;
       source.connect(analyser);
       const data = new Uint8Array(analyser.frequencyBinCount);
       const tick = () => {
         analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        setMicTestLevel(Math.min(100, (avg / 60) * 100));
+        setMicTestLevel(Math.min(100, (data.reduce((a, b) => a + b, 0) / data.length / 60) * 100));
         micTestAnimRef.current = requestAnimationFrame(tick);
       };
       micTestAnimRef.current = requestAnimationFrame(tick);
-
       setMicTesting(true);
-    } catch {
-      toast({ title: 'לא ניתן לגשת למיקרופון לבדיקה', variant: 'destructive' });
-    }
+    } catch { toast({ title: 'לא ניתן לגשת למיקרופון לבדיקה', variant: 'destructive' }); }
   }, [selectedMic, toast]);
 
   const stopMicTest = useCallback(() => {
@@ -411,50 +589,46 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     micTestContextRef.current?.close();
     micTestContextRef.current = null;
     micTestLoopbackRef.current = null;
-    setMicTesting(false);
-    setMicTestLevel(0);
+    setMicTesting(false); setMicTestLevel(0);
   }, []);
 
-  // Stop mic test when settings modal closes
-  useEffect(() => {
-    if (!showSettings && micTesting) stopMicTest();
-  }, [showSettings, micTesting, stopMicTest]);
+  useEffect(() => { if (!showSettings && micTesting) stopMicTest(); }, [showSettings, micTesting, stopMicTest]);
+  useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      stopMicTest();
-      stopSpeakingDetection();
-    };
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Leave
+  // ─────────────────────────────────────────────────────────────────────────────
+  const handleLeave = useCallback(() => {
+    stopScreenShare(); stopSpeakingDetection(); stopMicTest();
+    if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      const mr = mediaRecorderRef.current;
+      const dur = Math.round((Date.now() - sessionStartRef.current) / 1000);
+      mr.onstop = () => {
+        const blob = new Blob([...recordedChunksRef.current], { type: 'video/webm' });
+        if (blob.size > 0 && onSessionEnd) onSessionEnd(blob, dur);
+        onClose();
+      };
+      mr.stop();
+    } else { onClose(); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isMentor, onClose, onSessionEnd, stopScreenShare, stopSpeakingDetection]);
 
-  // ── Canvas drawing ──
-  const getCanvasPos = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  };
-  const onCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => { if (!isDrawingActive) return; setDrawing(true); lastPt.current = getCanvasPos(e); };
-  const onCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!drawing || !isDrawingActive || !canvasRef.current || !lastPt.current) return;
-    const ctx = canvasRef.current.getContext('2d');
-    if (!ctx) return;
-    const pt = getCanvasPos(e);
-    ctx.beginPath();
-    if (drawTool === 'eraser') { ctx.globalCompositeOperation = 'destination-out'; ctx.lineWidth = 24; }
-    else { ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = drawColor; ctx.lineWidth = 3; }
-    ctx.lineCap = 'round';
-    ctx.moveTo(lastPt.current.x, lastPt.current.y);
-    ctx.lineTo(pt.x, pt.y);
-    ctx.stroke();
-    lastPt.current = pt;
-  };
-  const onCanvasMouseUp = () => { setDrawing(false); lastPt.current = null; };
-  const clearCanvas = () => { const c = canvasRef.current; if (c) c.getContext('2d')?.clearRect(0, 0, c.width, c.height); };
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Force mute (mentor)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const toggleForceMute = useCallback(async (targetId: string, muted: boolean) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('live_signals') as any).insert({
+      session_id: sessionId, from_user_id: userId, to_user_id: targetId,
+      signal_type: muted ? 'force_unmute' : 'force_mute', payload: { muted: !muted },
+    });
+    setForceMutedUsers(prev => { const n = new Set(prev); muted ? n.delete(targetId) : n.add(targetId); return n; });
+    setParticipants(prev => prev.map(p => p.userId === targetId ? { ...p, isMuted: !muted, isForceMuted: !muted } : p));
+  }, [sessionId, userId]);
 
-  // ── Send message ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Send chat
+  // ─────────────────────────────────────────────────────────────────────────────
   const sendMessage = useCallback(async () => {
     const text = chatInput.trim();
     if (!text || isSendingMsg) return;
@@ -470,31 +644,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     finally { setIsSendingMsg(false); }
   }, [chatInput, isSendingMsg, sessionId, userId, userName, isMentor, toast]);
 
-  // ── Mentor: force mute/unmute participant ──
-  const toggleForceMute = useCallback(async (targetUserId: string, currentlyMuted: boolean) => {
-    const signalType = currentlyMuted ? 'force_unmute' : 'force_mute';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('live_signals') as any).insert({
-      session_id: sessionId,
-      from_user_id: userId,
-      to_user_id: targetUserId,
-      signal_type: signalType,
-      payload: { muted: !currentlyMuted },
-    });
-    setForceMutedUsers(prev => {
-      const next = new Set(prev);
-      if (currentlyMuted) next.delete(targetUserId); else next.add(targetUserId);
-      return next;
-    });
-    setParticipants(prev => prev.map(p => p.userId === targetUserId
-      ? { ...p, isMuted: !currentlyMuted, isForceMuted: !currentlyMuted }
-      : p));
-  }, [sessionId, userId]);
-
-  const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ffffff'];
-  const screenActive = screenSharing;
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Helpers
+  // ─────────────────────────────────────────────────────────────────────────────
   const initials = (name: string) => name?.[0]?.toUpperCase() ?? '?';
+  const myColor = getColorForUser(userId);
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#1e1f22]" dir="rtl">
 
@@ -510,17 +668,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setShowMembers(v => !v)}
-            className={`flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-all ${showMembers ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white/80'}`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            {participants.length}
+          <button onClick={() => setShowMembers(v => !v)}
+            className={`flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-all ${showMembers ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white/80'}`}>
+            <Users className="w-3.5 h-3.5" />{participants.length}
           </button>
-          <button
-            onClick={() => setShowChat(v => !v)}
-            className={`relative flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-all ${showChat ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white/80'}`}
-          >
+          <button onClick={() => setShowChat(v => !v)}
+            className={`relative flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-all ${showChat ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white/80'}`}>
             <MessageSquare className="w-3.5 h-3.5" />
             {chatMessages.length > 0 && !showChat && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold">
@@ -543,55 +696,165 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {/* Video / avatar area */}
           <div className="flex-1 relative flex items-center justify-center min-h-0 overflow-hidden">
 
-            {screenActive ? (
+            {screenSharing ? (
               /* ── Screen share ── */
               <div className="relative w-full h-full">
                 <video ref={screenVideoRef} autoPlay playsInline muted className="w-full h-full object-contain" />
+
                 {/* Drawing canvas */}
                 <canvas
                   ref={canvasRef}
-                  className={`absolute inset-0 w-full h-full ${isDrawingActive ? 'cursor-crosshair' : 'pointer-events-none'}`}
+                  className={`absolute inset-0 w-full h-full ${showDrawToolbar ? (activeTool === 'text' ? 'cursor-text' : 'cursor-crosshair') : 'pointer-events-none'}`}
                   style={{ touchAction: 'none' }}
-                  onMouseDown={onCanvasMouseDown}
-                  onMouseMove={onCanvasMouseMove}
-                  onMouseUp={onCanvasMouseUp}
-                  onMouseLeave={onCanvasMouseUp}
+                  onMouseDown={handleCanvasMouseDown}
+                  onMouseMove={handleCanvasMouseMove}
+                  onMouseUp={handleCanvasMouseUp}
+                  onMouseLeave={handleCanvasMouseUp}
                 />
-                {/* Drawing toolbar */}
-                <div className="absolute top-3 right-3 flex flex-col gap-2 bg-[#2b2d31]/90 backdrop-blur-sm border border-white/10 rounded-xl p-2 shadow-xl">
-                  <button onClick={() => setIsDrawingActive(v => !v)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${isDrawingActive ? 'bg-indigo-500 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}
-                    title="ציור">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                  {isDrawingActive && (
-                    <>
-                      <button onClick={() => setDrawTool(t => t === 'eraser' ? 'pen' : 'eraser')}
-                        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${drawTool === 'eraser' ? 'bg-white/20 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'}`}>
-                        <Eraser className="w-3.5 h-3.5" />
-                      </button>
-                      <div className="space-y-1">
-                        {COLORS.map(c => (
-                          <button key={c} onClick={() => { setDrawColor(c); setDrawTool('pen'); }}
-                            className={`w-5 h-5 rounded-full border-2 mx-auto block transition-all ${drawColor === c && drawTool === 'pen' ? 'border-white scale-125' : 'border-transparent'}`}
-                            style={{ backgroundColor: c }} />
+
+                {/* Text input overlay */}
+                {showTextInput && textPos && (
+                  <div className="absolute z-30" style={{ left: textPos.x, top: textPos.y - fontSize }}>
+                    <input
+                      autoFocus
+                      value={textInput}
+                      onChange={e => setTextInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleTextConfirm(); if (e.key === 'Escape') { setShowTextInput(false); setTextPos(null); } }}
+                      onBlur={handleTextConfirm}
+                      className="bg-transparent border-b border-white/60 text-white outline-none min-w-[80px]"
+                      style={{ color: drawColor, fontSize: `${fontSize}px`, fontWeight: 'bold' }}
+                      placeholder="הקלד..."
+                    />
+                  </div>
+                )}
+
+                {/* ── Drawing toolbar toggle button (bottom-left) ── */}
+                <button
+                  onClick={() => setShowDrawToolbar(v => !v)}
+                  title="כלי ציור"
+                  className={`absolute bottom-4 left-4 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-all border ${
+                    showDrawToolbar
+                      ? 'bg-indigo-500 border-indigo-400 text-white shadow-indigo-500/40'
+                      : 'bg-[#1e1f22]/90 border-white/20 text-white/60 hover:text-white hover:bg-[#2b2d31]'
+                  }`}
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+
+                {/* ── Drawing toolbar (expands upward from bottom-left) ── */}
+                <AnimatePresence>
+                  {showDrawToolbar && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 12, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 12, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute bottom-16 left-4 z-20 flex flex-col gap-1 bg-[#1e1f22]/95 backdrop-blur border border-white/10 rounded-2xl p-3 shadow-2xl w-52"
+                    >
+                      {/* Tool selector row */}
+                      <div className="flex gap-1 mb-1">
+                        {([
+                          { id: 'pen', icon: <Pencil className="w-3.5 h-3.5" />, label: 'עיפרון' },
+                          { id: 'text', icon: <Type className="w-3.5 h-3.5" />, label: 'טקסט' },
+                          { id: 'laser', icon: <Zap className="w-3.5 h-3.5" />, label: 'לייזר' },
+                          { id: 'eraser', icon: <Eraser className="w-3.5 h-3.5" />, label: 'מחק' },
+                        ] as const).map(t => (
+                          <button
+                            key={t.id}
+                            onClick={() => setActiveTool(t.id)}
+                            title={t.label}
+                            className={`flex-1 h-8 flex items-center justify-center rounded-lg transition-all text-xs ${
+                              activeTool === t.id
+                                ? 'bg-indigo-500 text-white'
+                                : 'text-white/50 hover:text-white hover:bg-white/10'
+                            }`}
+                          >
+                            {t.icon}
+                          </button>
                         ))}
                       </div>
-                      <button onClick={clearCanvas}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-all">
-                        <RotateCcw className="w-3.5 h-3.5" />
-                      </button>
-                    </>
+
+                      {/* Tool label */}
+                      <p className="text-[10px] text-white/30 text-center mb-1">
+                        {{ pen: 'עיפרון', text: 'טקסט', laser: 'לייזר (נמחק תוך 5 שנ׳)', eraser: 'מחק' }[activeTool]}
+                      </p>
+
+                      {/* Color row (pen / text / laser) */}
+                      {activeTool !== 'eraser' && (
+                        <div className="flex gap-1 flex-wrap justify-center mb-1">
+                          {['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7','#ffffff','#000000'].map(c => (
+                            <button
+                              key={c}
+                              onClick={() => setDrawColor(c)}
+                              className={`w-5 h-5 rounded-full border-2 transition-all ${drawColor === c ? 'border-white scale-125' : 'border-transparent'}`}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Size control */}
+                      {(activeTool === 'pen') && (
+                        <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
+                          <button onClick={() => setPenSize(s => Math.max(1, s - 1))} className="text-white/50 hover:text-white"><Minus className="w-3 h-3" /></button>
+                          <div className="flex-1 text-center text-[11px] text-white/70 font-bold">{penSize}px</div>
+                          <button onClick={() => setPenSize(s => Math.min(30, s + 1))} className="text-white/50 hover:text-white"><Plus className="w-3 h-3" /></button>
+                        </div>
+                      )}
+                      {activeTool === 'eraser' && (
+                        <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
+                          <button onClick={() => setEraserSize(s => Math.max(8, s - 4))} className="text-white/50 hover:text-white"><Minus className="w-3 h-3" /></button>
+                          <div className="flex-1 text-center text-[11px] text-white/70 font-bold">{eraserSize}px</div>
+                          <button onClick={() => setEraserSize(s => Math.min(80, s + 4))} className="text-white/50 hover:text-white"><Plus className="w-3 h-3" /></button>
+                        </div>
+                      )}
+                      {activeTool === 'text' && (
+                        <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
+                          <button onClick={() => setFontSize(s => Math.max(10, s - 2))} className="text-white/50 hover:text-white"><Minus className="w-3 h-3" /></button>
+                          <div className="flex-1 text-center text-[11px] text-white/70 font-bold">{fontSize}px</div>
+                          <button onClick={() => setFontSize(s => Math.min(72, s + 2))} className="text-white/50 hover:text-white"><Plus className="w-3 h-3" /></button>
+                        </div>
+                      )}
+
+                      {/* Divider */}
+                      <div className="border-t border-white/8 my-1" />
+
+                      {/* Actions row */}
+                      <div className="flex gap-1">
+                        <button
+                          onClick={handleUndo}
+                          title="בטל ציור אחרון (שלי)"
+                          className="flex-1 h-7 flex items-center justify-center gap-1 rounded-lg text-[10px] text-white/50 hover:text-white hover:bg-white/10 transition-all"
+                        >
+                          <RotateCcw className="w-3 h-3" /> בטל
+                        </button>
+                        <button
+                          onClick={handleClearAll}
+                          title="נקה הכל"
+                          className="flex-1 h-7 flex items-center justify-center gap-1 rounded-lg text-[10px] text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                        >
+                          <X className="w-3 h-3" /> נקה
+                        </button>
+                      </div>
+
+                      {/* My color indicator */}
+                      <div className="flex items-center justify-center gap-1.5 mt-1">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: myColor }} />
+                        <span className="text-[9px] text-white/25">הצבע שלך בציורים</span>
+                      </div>
+                    </motion.div>
                   )}
-                </div>
+                </AnimatePresence>
+
                 {/* Camera PiP */}
                 {cameraEnabled && (
-                  <div className="absolute bottom-20 left-4 w-36 h-24 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
+                  <div className="absolute bottom-20 right-4 w-36 h-24 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
                     <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                     <div className="absolute bottom-1 right-1 text-[10px] text-white bg-black/60 px-1.5 rounded font-medium">{userName}</div>
                   </div>
                 )}
               </div>
+
             ) : cameraEnabled ? (
               /* ── Camera on ── */
               <div className="relative w-full h-full flex items-center justify-center">
@@ -603,40 +866,30 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   </div>
                 </div>
               </div>
+
             ) : (
-              /* ── Avatar grid (no camera / no screen) ── */
+              /* ── Avatar grid ── */
               <div className="flex flex-col items-center gap-5 select-none">
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative">
-                  <div className={`w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-2xl border-4 transition-all ${
-                    micEnabled ? 'border-green-500 shadow-green-500/30' : 'border-white/10'
-                  }`}
-                    style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}
-                  >
+                  <div className={`w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-2xl border-4 transition-all ${micEnabled ? 'border-green-500 shadow-green-500/30' : 'border-white/10'}`}
+                    style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
                     {initials(userName)}
                   </div>
                   {micEnabled && <div className="absolute inset-0 rounded-full border-4 border-green-500/40 animate-ping" />}
-                  <div className={`absolute bottom-1 right-1 w-7 h-7 rounded-full border-4 border-[#313338] flex items-center justify-center ${
-                    micEnabled ? 'bg-green-500' : 'bg-[#4e5058]'
-                  }`}>
+                  <div className={`absolute bottom-1 right-1 w-7 h-7 rounded-full border-4 border-[#313338] flex items-center justify-center ${micEnabled ? 'bg-green-500' : 'bg-[#4e5058]'}`}>
                     {micEnabled ? <Mic className="w-3 h-3 text-white" /> : <MicOff className="w-3 h-3 text-white/60" />}
                   </div>
                 </motion.div>
-
                 <div className="text-center">
                   <p className="text-xl font-bold text-white">{userName}</p>
-                  <p className="text-sm text-white/40 mt-0.5">
-                    {deafened ? 'מושתק לחלוטין' : micEnabled ? 'מדבר...' : 'מיקרופון כבוי'}
-                  </p>
+                  <p className="text-sm text-white/40 mt-0.5">{deafened ? 'מושתק לחלוטין' : micEnabled ? 'מדבר...' : 'מיקרופון כבוי'}</p>
                 </div>
-
                 {participants.length > 1 && (
                   <div className="flex gap-4 mt-2">
                     {participants.filter(p => p.userId !== userId).map(p => (
                       <div key={p.userId} className="flex flex-col items-center gap-2">
                         <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white border-2 ${p.isMuted ? 'border-white/10' : 'border-green-500'}`}
-                          style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
-                          {initials(p.name)}
-                        </div>
+                          style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>{initials(p.name)}</div>
                         <p className="text-xs text-white/60">{p.name}</p>
                       </div>
                     ))}
@@ -646,78 +899,39 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             )}
           </div>
 
-          {/* ── Controls bar (Discord style) ── */}
+          {/* ── Controls bar ── */}
           <div className="shrink-0 bg-[#292b2f] border-t border-white/5 py-4 px-6 flex items-center justify-center gap-3">
-            {/* Mic — shows orange ring when force-muted by mentor */}
             <div className="relative">
-              <button
-                onClick={toggleMic}
-                disabled={deafened}
-                title={isForceMuted ? 'הושתקת על ידי המנטור — לחץ להסרת ההשתקה' : micEnabled ? 'השתק מיקרופון' : 'הפעל מיקרופון'}
-                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg disabled:opacity-40 ${
-                  micEnabled ? 'bg-[#4e5058] hover:bg-[#6d6f78] text-white' : 'bg-red-500/90 hover:bg-red-500 text-white'
-                } ${isForceMuted ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-[#292b2f]' : ''}`}
-              >
+              <button onClick={toggleMic} disabled={deafened}
+                title={isForceMuted ? 'הושתקת ע"י המנטור' : micEnabled ? 'השתק מיקרופון' : 'הפעל מיקרופון'}
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg disabled:opacity-40 ${micEnabled ? 'bg-[#4e5058] hover:bg-[#6d6f78] text-white' : 'bg-red-500/90 hover:bg-red-500 text-white'} ${isForceMuted ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-[#292b2f]' : ''}`}>
                 {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
               </button>
               {isForceMuted && (
-                <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full w-4 h-4 flex items-center justify-center" title="הושתקת על ידי המנטור">
+                <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full w-4 h-4 flex items-center justify-center">
                   <span className="text-white text-[8px] font-bold">M</span>
                 </div>
               )}
             </div>
-
-            {/* Deafen */}
-            <button
-              onClick={toggleDeafen}
-              title={deafened ? 'בטל השתקה' : 'השתק לחלוטין'}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
-                deafened ? 'bg-red-500/90 hover:bg-red-500 text-white' : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white'
-              }`}
-            >
+            <button onClick={toggleDeafen} title={deafened ? 'בטל השתקה' : 'השתק לחלוטין'}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${deafened ? 'bg-red-500/90 hover:bg-red-500 text-white' : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white'}`}>
               {deafened ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
             </button>
-
-            {/* Camera */}
-            <button
-              onClick={() => setCameraEnabled(v => !v)}
-              title={cameraEnabled ? 'כבה מצלמה' : 'הפעל מצלמה'}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
-                cameraEnabled ? 'bg-[#4e5058] hover:bg-[#6d6f78] text-white' : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50'
-              }`}
-            >
-              {cameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+            <button onClick={() => setCameraEnabled(v => !v)} title={cameraEnabled ? 'כבה מצלמה' : 'הפעל מצלמה'}
+              className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg bg-[#4e5058] hover:bg-[#6d6f78] text-white">
+              {cameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5 opacity-50" />}
             </button>
-
-            {/* Screen share */}
-            <button
-              onClick={toggleScreenShare}
-              title={screenSharing ? 'הפסק שיתוף מסך' : 'שתף מסך'}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
-                screenSharing ? 'bg-green-500/90 hover:bg-green-500 text-white' : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50'
-              }`}
-            >
+            <button onClick={toggleScreenShare} title={screenSharing ? 'הפסק שיתוף מסך' : 'שתף מסך'}
+              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${screenSharing ? 'bg-green-500/90 hover:bg-green-500 text-white' : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50'}`}>
               {screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
             </button>
-
-            {/* Settings — opens modal */}
-            <button
-              onClick={() => { setShowSettings(true); setSettingsTab('mic'); }}
-              title="הגדרות"
-              className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg bg-[#4e5058] hover:bg-[#6d6f78] text-white/50 hover:text-white"
-            >
+            <button onClick={() => { setShowSettings(true); setSettingsTab('mic'); }} title="הגדרות"
+              className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg bg-[#4e5058] hover:bg-[#6d6f78] text-white/50 hover:text-white">
               <Settings className="w-5 h-5" />
             </button>
-
-            {/* Divider */}
             <div className="w-px h-10 bg-white/10 mx-1" />
-
-            {/* Leave / End — red */}
-            <button
-              onClick={handleLeave}
-              title={isMentor ? 'סיים שידור' : 'עזוב שיחה'}
-              className="h-14 px-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 transition-all shadow-lg shadow-red-500/30 font-medium text-sm"
-            >
+            <button onClick={handleLeave} title={isMentor ? 'סיים שידור' : 'עזוב שיחה'}
+              className="h-14 px-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 transition-all shadow-lg shadow-red-500/30 font-medium text-sm">
               <PhoneOff className="w-5 h-5" />
               {isMentor ? 'סיים שידור' : 'צא'}
             </button>
@@ -728,107 +942,55 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         <AnimatePresence>
           {showSettings && (
             <>
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
-                onClick={() => setShowSettings(false)}
-              />
-              {/* Modal */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.93, y: 12 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.93, y: 12 }}
-                transition={{ duration: 0.18 }}
-                className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={() => setShowSettings(false)} />
+              <motion.div initial={{ opacity: 0, scale: 0.93, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.93, y: 12 }} transition={{ duration: 0.18 }}
+                className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
                 <div className="pointer-events-auto w-[520px] bg-[#1e1f22] rounded-2xl shadow-2xl border border-white/10 overflow-hidden" dir="rtl">
-                  {/* Header */}
                   <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
                     <h2 className="text-base font-bold text-white">הגדרות שיחה</h2>
-                    <button
-                      onClick={() => setShowSettings(false)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/8 transition-all"
-                    >
+                    <button onClick={() => setShowSettings(false)}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/8 transition-all">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-
                   <div className="flex min-h-0">
-                    {/* Sidebar tabs */}
                     <div className="w-44 bg-[#2b2d31] p-3 flex flex-col gap-1 shrink-0">
-                      <button
-                        onClick={() => setSettingsTab('mic')}
-                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right ${
-                          settingsTab === 'mic' ? 'bg-[#404249] text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'
-                        }`}
-                      >
-                        <Mic className="w-4 h-4 shrink-0" />
-                        מיקרופון
-                      </button>
-                      <button
-                        onClick={() => setSettingsTab('audio')}
-                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right ${
-                          settingsTab === 'audio' ? 'bg-[#404249] text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'
-                        }`}
-                      >
-                        <Headphones className="w-4 h-4 shrink-0" />
-                        אוזניות / שמע
-                      </button>
-                      <button
-                        onClick={() => setSettingsTab('camera')}
-                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right ${
-                          settingsTab === 'camera' ? 'bg-[#404249] text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'
-                        }`}
-                      >
-                        <Video className="w-4 h-4 shrink-0" />
-                        מצלמה
-                      </button>
+                      {([
+                        { id: 'mic', icon: <Mic className="w-4 h-4 shrink-0" />, label: 'מיקרופון' },
+                        { id: 'audio', icon: <Headphones className="w-4 h-4 shrink-0" />, label: 'אוזניות / שמע' },
+                        { id: 'camera', icon: <Video className="w-4 h-4 shrink-0" />, label: 'מצלמה' },
+                      ] as const).map(t => (
+                        <button key={t.id} onClick={() => setSettingsTab(t.id)}
+                          className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right ${settingsTab === t.id ? 'bg-[#404249] text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'}`}>
+                          {t.icon}{t.label}
+                        </button>
+                      ))}
                     </div>
-
-                    {/* Tab content */}
                     <div className="flex-1 p-6 space-y-5">
                       {settingsTab === 'mic' && (
                         <>
                           <div>
                             <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בחירת מיקרופון</p>
                             <div className="space-y-2">
-                              {audioDevices.length === 0 && (
-                                <p className="text-xs text-white/30 italic">לא נמצאו מיקרופונים</p>
-                              )}
+                              {audioDevices.length === 0 && <p className="text-xs text-white/30 italic">לא נמצאו מיקרופונים</p>}
                               {audioDevices.map(d => (
-                                <button
-                                  key={d.deviceId}
-                                  onClick={() => setSelectedMic(d.deviceId)}
-                                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${
-                                    selectedMic === d.deviceId
-                                      ? 'border-indigo-500/60 bg-indigo-500/10 text-white'
-                                      : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'
-                                  }`}
-                                >
+                                <button key={d.deviceId} onClick={() => setSelectedMic(d.deviceId)}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedMic === d.deviceId ? 'border-indigo-500/60 bg-indigo-500/10 text-white' : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'}`}>
                                   <Mic className={`w-4 h-4 shrink-0 ${selectedMic === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
                                   <span className="truncate">{d.label || `מיקרופון ${d.deviceId.slice(0, 8)}`}</span>
-                                  {selectedMic === d.deviceId && (
-                                    <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>
-                                  )}
+                                  {selectedMic === d.deviceId && <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                                 </button>
                               ))}
                             </div>
                           </div>
-
-                          {/* ── Mic test ── */}
                           <div className="border-t border-white/8 pt-5">
                             <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בדיקת מיקרופון</p>
                             <div className="bg-[#2b2d31] rounded-xl p-4 space-y-3">
                               <p className="text-xs text-white/50 leading-relaxed">
-                                {micTesting
-                                  ? 'בדיקה פעילה — אתה שומע את עצמך. שאר המשתמשים לא שומעים אותך כרגע.'
-                                  : 'לחץ על "בדוק מיקרופון" כדי לשמוע את עצמך. בזמן הבדיקה לא תשמע ולא תישמע לאחרים.'}
+                                {micTesting ? 'בדיקה פעילה — אתה שומע את עצמך. שאר המשתמשים לא שומעים אותך.' : 'לחץ לשמוע את עצמך. בזמן הבדיקה לא תשמע ולא תישמע.'}
                               </p>
-
-                              {/* Level meter */}
                               {micTesting && (
                                 <div className="space-y-1.5">
                                   <div className="flex items-center justify-between">
@@ -836,127 +998,68 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                                     <span className="text-[10px] text-green-400 font-bold">{Math.round(micTestLevel)}%</span>
                                   </div>
                                   <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                                    <motion.div
-                                      className="h-full rounded-full"
-                                      style={{
-                                        width: `${micTestLevel}%`,
-                                        background: micTestLevel > 70
-                                          ? 'linear-gradient(90deg, #22c55e, #ef4444)'
-                                          : micTestLevel > 35
-                                          ? 'linear-gradient(90deg, #22c55e, #eab308)'
-                                          : '#22c55e',
-                                      }}
-                                      animate={{ width: `${micTestLevel}%` }}
-                                      transition={{ duration: 0.05 }}
-                                    />
+                                    <motion.div className="h-full rounded-full"
+                                      style={{ width: `${micTestLevel}%`, background: micTestLevel > 70 ? 'linear-gradient(90deg,#22c55e,#ef4444)' : micTestLevel > 35 ? 'linear-gradient(90deg,#22c55e,#eab308)' : '#22c55e' }}
+                                      animate={{ width: `${micTestLevel}%` }} transition={{ duration: 0.05 }} />
                                   </div>
                                 </div>
                               )}
-
-                              <button
-                                onClick={micTesting ? stopMicTest : startMicTest}
-                                className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-semibold transition-all ${
-                                  micTesting
-                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
-                                    : 'bg-indigo-500 hover:bg-indigo-600 text-white'
-                                }`}
-                              >
-                                {micTesting ? (
-                                  <><StopCircle className="w-4 h-4" /> הפסק בדיקה</>
-                                ) : (
-                                  <><FlaskConical className="w-4 h-4" /> בדוק מיקרופון</>
-                                )}
+                              <button onClick={micTesting ? stopMicTest : startMicTest}
+                                className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-semibold transition-all ${micTesting ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}>
+                                {micTesting ? <><StopCircle className="w-4 h-4" />הפסק בדיקה</> : <><FlaskConical className="w-4 h-4" />בדוק מיקרופון</>}
                               </button>
                             </div>
                           </div>
                         </>
                       )}
-
                       {settingsTab === 'audio' && (
                         <>
                           <div>
                             <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">חיבור שמע יוצא</p>
                             <div className="space-y-2">
-                              {outputDevices.length === 0 && (
-                                <p className="text-xs text-white/30 italic">לא נמצאו התקני שמע (הדפדפן לא תומך בבחירת שמע יוצא)</p>
-                              )}
+                              {outputDevices.length === 0 && <p className="text-xs text-white/30 italic">הדפדפן לא תומך בבחירת שמע יוצא</p>}
                               {outputDevices.map(d => (
-                                <button
-                                  key={d.deviceId}
-                                  onClick={() => setSelectedOutput(d.deviceId)}
-                                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${
-                                    selectedOutput === d.deviceId
-                                      ? 'border-indigo-500/60 bg-indigo-500/10 text-white'
-                                      : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'
-                                  }`}
-                                >
+                                <button key={d.deviceId} onClick={() => setSelectedOutput(d.deviceId)}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedOutput === d.deviceId ? 'border-indigo-500/60 bg-indigo-500/10 text-white' : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'}`}>
                                   <Headphones className={`w-4 h-4 shrink-0 ${selectedOutput === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
                                   <span className="truncate">{d.label || `התקן ${d.deviceId.slice(0, 8)}`}</span>
-                                  {selectedOutput === d.deviceId && (
-                                    <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>
-                                  )}
+                                  {selectedOutput === d.deviceId && <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                                 </button>
                               ))}
                             </div>
                           </div>
-
                           <div>
-                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">עוצמת שמע — שאר המשתתפים</p>
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">עוצמת שמע</p>
                             <div className="flex items-center gap-4 bg-[#2b2d31] rounded-xl px-4 py-3">
                               <VolumeX className="w-4 h-4 text-white/30 shrink-0" />
-                              <input
-                                type="range" min={0} max={100} value={volume}
-                                onChange={e => setVolume(Number(e.target.value))}
-                                className="flex-1 accent-indigo-500 h-1.5"
-                              />
+                              <input type="range" min={0} max={100} value={volume} onChange={e => setVolume(Number(e.target.value))} className="flex-1 accent-indigo-500 h-1.5" />
                               <Volume2 className="w-4 h-4 text-white/60 shrink-0" />
                               <span className="text-sm font-bold text-white/70 w-10 text-center shrink-0">{volume}%</span>
                             </div>
-                            <p className="text-[11px] text-white/25 mt-2 text-right">שינוי רמת השמע שאתה שומע את שאר המשתתפים בשיחה</p>
                           </div>
                         </>
                       )}
-
                       {settingsTab === 'camera' && (
-                        <>
-                          <div>
-                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בחירת מצלמה</p>
-                            <div className="space-y-2">
-                              {videoDevices.length === 0 && (
-                                <p className="text-xs text-white/30 italic">לא נמצאו מצלמות</p>
-                              )}
-                              {videoDevices.map(d => (
-                                <button
-                                  key={d.deviceId}
-                                  onClick={() => setSelectedCamera(d.deviceId)}
-                                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${
-                                    selectedCamera === d.deviceId
-                                      ? 'border-indigo-500/60 bg-indigo-500/10 text-white'
-                                      : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'
-                                  }`}
-                                >
-                                  <Video className={`w-4 h-4 shrink-0 ${selectedCamera === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
-                                  <span className="truncate">{d.label || `מצלמה ${d.deviceId.slice(0, 8)}`}</span>
-                                  {selectedCamera === d.deviceId && (
-                                    <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>
-                                  )}
-                                </button>
-                              ))}
-                            </div>
+                        <div>
+                          <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בחירת מצלמה</p>
+                          <div className="space-y-2">
+                            {videoDevices.length === 0 && <p className="text-xs text-white/30 italic">לא נמצאו מצלמות</p>}
+                            {videoDevices.map(d => (
+                              <button key={d.deviceId} onClick={() => setSelectedCamera(d.deviceId)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedCamera === d.deviceId ? 'border-indigo-500/60 bg-indigo-500/10 text-white' : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'}`}>
+                                <Video className={`w-4 h-4 shrink-0 ${selectedCamera === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
+                                <span className="truncate">{d.label || `מצלמה ${d.deviceId.slice(0, 8)}`}</span>
+                                {selectedCamera === d.deviceId && <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
+                              </button>
+                            ))}
                           </div>
-                        </>
+                        </div>
                       )}
                     </div>
                   </div>
-
-                  {/* Footer */}
                   <div className="px-6 py-3 border-t border-white/8 flex justify-start">
-                    <button
-                      onClick={() => setShowSettings(false)}
-                      className="h-9 px-5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-all"
-                    >
-                      סגור
-                    </button>
+                    <button onClick={() => setShowSettings(false)}
+                      className="h-9 px-5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition-all">סגור</button>
                   </div>
                 </div>
               </motion.div>
@@ -967,18 +1070,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         {/* ── Members panel ── */}
         <AnimatePresence>
           {showMembers && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 240, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="bg-[#2b2d31] border-r border-white/5 flex flex-col shrink-0 overflow-hidden"
-              style={{ minWidth: 0 }}
-            >
+            <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 240, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }} className="bg-[#2b2d31] border-r border-white/5 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
               <div className="px-4 pt-5 pb-2 shrink-0">
-                <p className="text-xs font-bold text-white/40 uppercase tracking-widest">
-                  חברים בשיחה — {participants.length}
-                </p>
+                <p className="text-xs font-bold text-white/40 uppercase tracking-widest">חברים בשיחה — {participants.length}</p>
               </div>
               <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
                 {participants.map(p => {
@@ -989,16 +1084,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   return (
                     <div key={p.userId} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
                       <div className="relative shrink-0">
-                        {/* Speaking ring — green pulsing border */}
                         {isSpeaking && !p.isMuted && (
                           <>
                             <span className="absolute -inset-1 rounded-full border-2 border-green-500 animate-ping opacity-60" />
                             <span className="absolute -inset-1 rounded-full border-2 border-green-500 opacity-80" />
                           </>
                         )}
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all ${
-                          isSpeaking && !p.isMuted ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-[#2b2d31]' : ''
-                        }`}
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white transition-all ${isSpeaking && !p.isMuted ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-[#2b2d31]' : ''}`}
                           style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
                           {initials(p.name)}
                         </div>
@@ -1014,21 +1106,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מושתק' : isSpeaking ? 'מדבר...' : 'פעיל'}
                         </p>
                       </div>
-                      {/* Mentor-only mute button (not for self) */}
                       {isMentor && !isMe && (
-                        <button
-                          onClick={() => toggleForceMute(p.userId, forceMuted)}
-                          title={forceMuted ? 'הסר השתקה' : 'השתק משתמש'}
-                          className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shrink-0 ${
-                            forceMuted
-                              ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
-                              : 'opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                          }`}
-                        >
+                        <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק משתמש'}
+                          className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shrink-0 ${forceMuted ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30' : 'opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500/20'}`}>
                           {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
                         </button>
                       )}
-                      {/* Non-mentor: show muted indicator */}
                       {!isMentor && (
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {p.isMuted && <MicOff className="w-3 h-3 text-red-400" />}
@@ -1046,14 +1129,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         {/* ── Chat panel ── */}
         <AnimatePresence>
           {showChat && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 300, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="bg-[#313338] border-r border-white/5 flex flex-col shrink-0 overflow-hidden"
-              style={{ minWidth: 0 }}
-            >
+            <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 300, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }} className="bg-[#313338] border-r border-white/5 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
               <div className="px-4 h-12 border-b border-white/5 flex items-center gap-2 shrink-0">
                 <MessageSquare className="w-4 h-4 text-white/40" />
                 <span className="text-sm font-bold text-white/80">צ'אט</span>
@@ -1068,11 +1145,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 {chatMessages.map(msg => (
                   <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.user_id === userId ? 'items-end' : 'items-start'}`}>
                     <span className="text-[10px] text-white/30 px-1">{msg.user_id === userId ? 'אתה' : msg.display_name}</span>
-                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
-                      msg.user_id === userId
-                        ? 'bg-indigo-500 text-white rounded-tl-sm'
-                        : 'bg-[#2b2d31] text-white/80 rounded-tr-sm'
-                    }`}>
+                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${msg.user_id === userId ? 'bg-indigo-500 text-white rounded-tl-sm' : 'bg-[#2b2d31] text-white/80 rounded-tr-sm'}`}>
                       {msg.message}
                     </div>
                   </div>
@@ -1081,19 +1154,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               </div>
               <div className="p-3 border-t border-white/5 shrink-0">
                 <div className="flex gap-2 items-center bg-[#383a40] rounded-xl px-3 py-2">
-                  <input
-                    value={chatInput}
-                    onChange={e => setChatInput(e.target.value)}
+                  <input value={chatInput} onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                    placeholder="הודעה לכולם..."
-                    maxLength={300}
-                    className="flex-1 bg-transparent text-xs text-white/80 placeholder:text-white/25 focus:outline-none text-right min-w-0"
-                  />
-                  <button
-                    onClick={sendMessage}
-                    disabled={!chatInput.trim() || isSendingMsg}
-                    className="w-7 h-7 flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-all disabled:opacity-30 shrink-0"
-                  >
+                    placeholder="הודעה לכולם..." maxLength={300}
+                    className="flex-1 bg-transparent text-xs text-white/80 placeholder:text-white/25 focus:outline-none text-right min-w-0" />
+                  <button onClick={sendMessage} disabled={!chatInput.trim() || isSendingMsg}
+                    className="w-7 h-7 flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-all disabled:opacity-30 shrink-0">
                     <Send className="w-3 h-3" />
                   </button>
                 </div>
