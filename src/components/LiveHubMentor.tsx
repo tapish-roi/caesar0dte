@@ -208,6 +208,27 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
     onError: () => toast({ title: 'שגיאה בפתיחת שידור', variant: 'destructive' }),
   });
 
+  const handleSessionEnd = useCallback(async (recordingBlob: Blob, durationSeconds: number, sessionRef: ActiveSession | null) => {
+    if (!sessionRef) return;
+    try {
+      toast({ title: '⏳ שומר את הלייב המוקלט...' });
+      const url = await uploadRecordingBlob(mentorId, recordingBlob);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase.from('live_recordings') as any).insert({
+        mentor_id: mentorId,
+        live_session_id: sessionRef.id,
+        title: sessionRef.title,
+        recording_url: url,
+        duration_minutes: Math.round(durationSeconds / 60) || null,
+      });
+      qc.invalidateQueries({ queryKey: ['live-recordings-mentor', mentorId] });
+      toast({ title: '✅ הלייב נשמר ב"לייבים מוקלטים"' });
+    } catch {
+      toast({ title: 'שגיאה בשמירת ההקלטה', variant: 'destructive' });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mentorId, qc, toast]);
+
   const endLiveSession = async (sessionId: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from('live_sessions') as any).update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', sessionId);
