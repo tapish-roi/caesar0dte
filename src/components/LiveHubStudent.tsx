@@ -52,6 +52,8 @@ interface Props {
 type SubTab = 'scheduled' | 'recordings' | 'live';
 
 export default function LiveHubStudent({ mentorId, mentorName, userId, userName, userProfile }: Props) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const [subTab, setSubTab] = useState<SubTab>('live');
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [playingRecording, setPlayingRecording] = useState<LiveRecording | null>(null);
@@ -96,6 +98,43 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
     refetchInterval: 15000,
   });
 
+  // ── Reminders ──
+  const { data: reminders = [] } = useQuery<{ scheduled_live_id: string }[]>({
+    queryKey: ['live-reminders-student', userId, mentorId],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.from('live_reminders') as any)
+        .select('scheduled_live_id').eq('student_id', userId).eq('mentor_id', mentorId);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!userId && !!mentorId,
+  });
+
+  const reminderIds = new Set(reminders.map(r => r.scheduled_live_id));
+
+  const toggleReminder = useMutation({
+    mutationFn: async ({ liveId, hasReminder }: { liveId: string; hasReminder: boolean }) => {
+      if (hasReminder) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from('live_reminders') as any)
+          .delete().eq('student_id', userId).eq('scheduled_live_id', liveId);
+        if (error) throw error;
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabase.from('live_reminders') as any)
+          .insert({ student_id: userId, scheduled_live_id: liveId, mentor_id: mentorId });
+        if (error) throw error;
+      }
+      return !hasReminder;
+    },
+    onSuccess: (nowActive) => {
+      qc.invalidateQueries({ queryKey: ['live-reminders-student', userId, mentorId] });
+      toast({ title: nowActive ? '🔔 תזכורת נוספה — נשלח לך מייל/SMS לפני הלייב' : '🔕 תזכורת בוטלה' });
+    },
+    onError: () => toast({ title: 'שגיאה', variant: 'destructive' }),
+  });
+
   const upcomingLives = scheduled.filter(s => !isPast(parseISO(s.scheduled_at)));
   const pastScheduled = scheduled.filter(s => isPast(parseISO(s.scheduled_at)));
   const hasActiveSession = activeSessions.length > 0;
@@ -103,7 +142,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
   const tabs: { key: SubTab; label: string; icon: typeof CalendarDays }[] = [
     { key: 'live', label: 'לייב נוכחי', icon: Radio },
     { key: 'scheduled', label: 'לוח מודעות', icon: CalendarDays },
-    { key: 'recordings', label: 'הקלטות', icon: Video },
+    { key: 'recordings', label: 'לייבים מוקלטים', icon: Video },
   ];
 
   return (
@@ -201,6 +240,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                     <div className="space-y-2">
                       {upcomingLives.map(item => {
                         const dt = parseISO(item.scheduled_at);
+                        const hasReminder = reminderIds.has(item.id);
                         return (
                           <div key={item.id} className="bg-card rounded-xl card-shadow p-4 flex items-center gap-4 border border-accent/20">
                             <div className="shrink-0 text-center w-14 bg-accent/10 rounded-xl py-2">
@@ -215,11 +255,27 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                                 {format(dt, "HH:mm | EEEE", { locale: he })}
                               </p>
                             </div>
-                            <div className="shrink-0 w-2 h-2 rounded-full bg-accent animate-pulse" />
+                            {/* Bell reminder button */}
+                            <button
+                              onClick={() => toggleReminder.mutate({ liveId: item.id, hasReminder })}
+                              disabled={toggleReminder.isPending}
+                              title={hasReminder ? 'בטל תזכורת' : 'הוסף תזכורת'}
+                              className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all border ${
+                                hasReminder
+                                  ? 'bg-accent/10 border-accent text-accent'
+                                  : 'bg-muted/50 border-border text-muted-foreground hover:border-accent hover:text-accent'
+                              }`}
+                            >
+                              {hasReminder ? <Bell className="w-4 h-4 fill-current" /> : <BellOff className="w-4 h-4" />}
+                            </button>
                           </div>
                         );
                       })}
                     </div>
+                    <p className="text-xs text-muted-foreground mt-3 text-center flex items-center justify-center gap-1.5">
+                      <Bell className="w-3 h-3" />
+                      לחץ על הפעמון לקבלת תזכורת למייל/SMS לפני הלייב
+                    </p>
                   </div>
                 )}
 
@@ -253,7 +309,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
           </motion.div>
         )}
 
-        {/* ── RECORDINGS TAB ── */}
+        {/* ── RECORDINGS TAB (לייבים מוקלטים) ── */}
         {subTab === 'recordings' && (
           <motion.div key="recordings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             {playingRecording ? (
@@ -264,7 +320,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                     className="flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity"
                   >
                     <ChevronLeft className="w-4 h-4" />
-                    חזור להקלטות
+                    חזור ללייבים מוקלטים
                   </button>
                 </div>
                 <div className="aspect-video bg-black">
@@ -292,8 +348,8 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
             ) : recordings.length === 0 ? (
               <div className="bg-card rounded-2xl card-shadow p-8 text-center">
                 <Video className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-3" />
-                <p className="font-semibold text-foreground mb-1">אין הקלטות עדיין</p>
-                <p className="text-sm text-muted-foreground">לייבים שיוקלטו יופיעו כאן</p>
+                <p className="font-semibold text-foreground mb-1">אין לייבים מוקלטים עדיין</p>
+                <p className="text-sm text-muted-foreground">לייבים שיוקלטו יישמרו כאן אוטומטית</p>
               </div>
             ) : (
               <div className="space-y-3">
