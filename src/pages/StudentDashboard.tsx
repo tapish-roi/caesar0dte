@@ -930,7 +930,115 @@ export default function StudentDashboard() {
 
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
-            <motion.div key="lessons" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8">
+            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8">
+
+              {/* ── Lesson View Mode (player only, category list in sidebar) ── */}
+              {lessonViewMode ? (
+                <AnimatePresence mode="wait">
+                  {selectedLessonData ? (
+                    <motion.div
+                      key={selectedLessonData.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="bg-card rounded-xl card-shadow overflow-hidden"
+                    >
+                      <div className="aspect-video bg-foreground/5 border-b border-border flex items-center justify-center">
+                        {selectedLessonData.video_url ? (
+                          <VideoPlayer
+                            src={selectedLessonData.video_url}
+                            lessonId={selectedLessonData.id}
+                            studentId={user!.id}
+                            initialProgress={getProgress(selectedLessonData.id)}
+                            onComplete={() => qc.invalidateQueries({ queryKey: ['progress', user?.id] })}
+                          />
+                        ) : selectedLessonData.lesson_type === 'live' ? (
+                          <div className="text-center space-y-2">
+                            <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+                              <Radio className="w-6 h-6 text-destructive" />
+                            </div>
+                            <p className="text-sm font-medium text-foreground">שיעור לייב מוקלט</p>
+                            <p className="text-xs text-muted-foreground">הקלטת הלייב תופיע כאן לאחר עיבוד</p>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <Video className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />
+                            <p className="text-sm text-muted-foreground">אין קובץ וידאו</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-start justify-between gap-4">
+                          <h2 className="text-xl font-bold text-foreground">{selectedLessonData.title}</h2>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {getProgress(selectedLessonData.id)?.completed && (
+                              <div className="flex items-center gap-1.5 text-accent text-sm font-medium">
+                                <CheckCircle2 className="w-4 h-4" />הושלם
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {selectedLessonData.description && (
+                          <p className="text-sm text-muted-foreground mt-2">{selectedLessonData.description}</p>
+                        )}
+                        {(() => {
+                          const prog = getProgress(selectedLessonData.id);
+                          if (!prog || prog.completed) return null;
+                          return (
+                            <div className="mt-4">
+                              <div className="flex items-center justify-between mb-1.5 text-xs text-muted-foreground">
+                                <span>התקדמות</span><span>{prog.progress_percent}%</span>
+                              </div>
+                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${prog.progress_percent}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        {selectedLessonData.duration_minutes && (
+                          <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
+                            <Clock className="w-3.5 h-3.5" /><span>{selectedLessonData.duration_minutes} דקות</span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Inline attachment viewer */}
+                      {selectedLessonData.attachment_url && (() => {
+                        const url = selectedLessonData.attachment_url;
+                        const name = selectedLessonData.attachment_name ?? '';
+                        const ext = (url.split('?')[0].split('.').pop() ?? '').toLowerCase();
+                        const isPdf = ext === 'pdf';
+                        const isImage = ['png','jpg','jpeg','gif','webp','svg'].includes(ext);
+                        return (
+                          <div className="border-t border-border">
+                            <div className="flex items-center justify-between px-6 py-3 bg-primary/5">
+                              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                <Paperclip className="w-4 h-4 text-primary" /><span>{name || 'קובץ מצורף'}</span>
+                              </div>
+                              <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:opacity-80 transition-opacity">פתח בחלון נפרד ↗</a>
+                            </div>
+                            {isPdf && <div className="w-full" style={{ height: '520px' }}><iframe src={`${url}#toolbar=1&navpanes=0`} className="w-full h-full" title={name} /></div>}
+                            {isImage && <div className="px-6 pb-6 pt-2"><img src={url} alt={name} className="w-full max-h-[480px] object-contain rounded-lg border border-border bg-muted/30" /></div>}
+                            {!isPdf && !isImage && (
+                              <div className="px-6 pb-5 pt-2 flex items-center gap-3 bg-muted/20">
+                                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><FileText className="w-5 h-5 text-primary" /></div>
+                                <div className="flex-1"><p className="text-sm font-medium text-foreground">{name}</p><p className="text-xs text-muted-foreground">לחץ כדי לפתוח את הקובץ</p></div>
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="h-8 px-4 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5" />פתח</a>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </motion.div>
+                  ) : (
+                    <div className="text-center py-24 text-muted-foreground">
+                      <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <p className="font-medium">בחר שיעור מהרשימה</p>
+                      <p className="text-sm mt-1">לחץ על שיעור בסרגל הצד כדי לצפות בו</p>
+                    </div>
+                  )}
+                </AnimatePresence>
+              ) : (
+                <>
               <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
