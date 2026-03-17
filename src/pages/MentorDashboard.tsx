@@ -857,8 +857,14 @@ export default function MentorDashboard() {
                       <span className="font-semibold text-muted-foreground flex-1 text-sm">ללא קטגוריה</span>
                     </div>
                     <div className="border-t border-border">
-                      {uncategorized.map(lesson => (
-                        <LessonRow key={lesson.id} lesson={lesson}
+                      {uncategorized.map((lesson, idx) => (
+                        <LessonRow key={lesson.id} lesson={lesson} index={idx + 1}
+                          isDragging={dragLesson === lesson.id}
+                          isDragOver={dragOverLesson === lesson.id}
+                          onDragStart={() => handleDragStart(lesson.id)}
+                          onDragOver={(e) => handleDragOver(e, lesson.id)}
+                          onDrop={() => handleDrop(null, uncategorized)}
+                          onDragEnd={() => { setDragLesson(null); setDragOverLesson(null); }}
                           onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                           onDelete={() => deleteLesson.mutate(lesson.id)}
                           onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
