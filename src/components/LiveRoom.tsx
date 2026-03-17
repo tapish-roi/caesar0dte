@@ -567,7 +567,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     if (!isScreenVisible) return;
 
     const syncSize = () => {
-      // Use the visible screen container (remote canvas or local video)
+      // Sharer syncs to local video; viewers sync to remote canvas
       const el = screenSharing ? screenVideoRef.current : remoteScreenCanvasRef.current;
       const canvas = canvasRef.current;
       if (!el || !canvas) return;
@@ -578,8 +578,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const ro = new ResizeObserver(syncSize);
     const target = screenSharing ? screenVideoRef.current : remoteScreenCanvasRef.current;
     if (target) ro.observe(target);
+    // Also sync on video loadedmetadata for the sharer
+    const vid = screenVideoRef.current;
+    if (screenSharing && vid) vid.addEventListener('loadedmetadata', syncSize);
     syncSize();
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (screenSharing && vid) vid.removeEventListener('loadedmetadata', syncSize);
+    };
   }, [screenSharing, remoteScreenActive, renderCanvas]);
 
   // ─────────────────────────────────────────────────────────────────────────────
