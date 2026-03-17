@@ -1,19 +1,20 @@
 /**
  * LiveHubStudent — The student's Live section with 3 sub-screens:
- *   1. Scheduled (upcoming lives board)
- *   2. Recordings (past lives)
+ *   1. Scheduled (upcoming lives board) — with bell reminder button
+ *   2. לייבים מוקלטים (past recorded lives)
  *   3. Live room (current active session)
  */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isPast, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import {
-  CalendarDays, Play, Clock, Radio, Video, BookOpen,
-  ChevronLeft,
+  CalendarDays, Play, Clock, Radio, Video,
+  ChevronLeft, Bell, BellOff,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import LiveRoom from '@/components/LiveRoom';
 
 interface ScheduledLive {

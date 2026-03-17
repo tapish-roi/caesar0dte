@@ -1,10 +1,10 @@
 /**
  * LiveHubMentor — Mentor's Live section:
  *   1. Manage scheduled lives (create/edit/delete)
- *   2. Manage recordings (upload/edit/delete)
+ *   2. Manage recordings ("לייבים מוקלטים") — auto-saved after session ends
  *   3. Start/host live session (Discord-style)
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
