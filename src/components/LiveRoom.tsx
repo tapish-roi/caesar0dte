@@ -327,8 +327,21 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       const ctx = offscreen.getContext('2d');
       if (!ctx) return;
       ctx.drawImage(video, 0, 0, w, h);
-      // Also draw current drawing strokes on top
-      renderStrokesOnCtx(ctx, w, h, strokesRef.current);
+
+      // Scale strokes from drawing-canvas CSS pixels → video resolution pixels
+      const drawCanvas = canvasRef.current;
+      const scaleX = drawCanvas && drawCanvas.offsetWidth > 0 ? w / drawCanvas.offsetWidth : 1;
+      const scaleY = drawCanvas && drawCanvas.offsetHeight > 0 ? h / drawCanvas.offsetHeight : 1;
+      const scaledStrokes = strokesRef.current.map(s => ({
+        ...s,
+        points: s.points.map(p => ({ x: p.x * scaleX, y: p.y * scaleY })),
+        textX: s.textX != null ? s.textX * scaleX : s.textX,
+        textY: s.textY != null ? s.textY * scaleY : s.textY,
+        size: s.size * Math.min(scaleX, scaleY),
+        fontSize: s.fontSize != null ? s.fontSize * Math.min(scaleX, scaleY) : s.fontSize,
+      }));
+      renderStrokesOnCtx(ctx, w, h, scaledStrokes);
+
       const dataUrl = offscreen.toDataURL('image/jpeg', 0.5);
       screenFrameChannelRef.current?.send({
         type: 'broadcast', event: 'screen_frame',
@@ -404,7 +417,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // Collaborative Drawing — Broadcast channel
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const ch = supabase.channel(`drawing-${sessionId}`, { config: { broadcast: { self: false } } });
+    const ch = supabase.channel(`drawing-${sessionId}`, { config: { broadcast: { self: true } } });
 
     ch.on('broadcast', { event: 'stroke_add' }, ({ payload }) => {
       const stroke = payload.stroke as DrawStroke;
