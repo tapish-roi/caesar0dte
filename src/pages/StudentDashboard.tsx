@@ -19,6 +19,7 @@ import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import LiveViewer from '@/components/LiveViewer';
+import AttachmentViewer from '@/components/AttachmentViewer';
 
 type SidebarTab = 'lessons' | 'community';
 type PostType = 'discussion' | 'media' | 'live';
