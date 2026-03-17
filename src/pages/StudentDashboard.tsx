@@ -333,6 +333,7 @@ export default function StudentDashboard() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [selectedMentorId, setSelectedMentorId] = useState<string | null>(null);
+  const [lessonViewMode, setLessonViewMode] = useState<LessonViewMode>(null);
 
   // Date filter state
   const [lessonDateRange, setLessonDateRange] = useState<DateRange | undefined>(undefined);
