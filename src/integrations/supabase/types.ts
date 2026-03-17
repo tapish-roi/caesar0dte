@@ -301,6 +301,83 @@ export type Database = {
           },
         ]
       }
+      live_recordings: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          live_session_id: string | null
+          mentor_id: string
+          recording_url: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          live_session_id?: string | null
+          mentor_id: string
+          recording_url?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          live_session_id?: string | null
+          mentor_id?: string
+          recording_url?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_recordings_live_session_id_fkey"
+            columns: ["live_session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_scheduled: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          mentor_id: string
+          scheduled_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          mentor_id: string
+          scheduled_at: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          mentor_id?: string
+          scheduled_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       live_sessions: {
         Row: {
           ended_at: string | null

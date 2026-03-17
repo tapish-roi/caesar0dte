@@ -7,15 +7,15 @@ import {
   TrendingUp, LayoutGrid, BookOpen, Users, Plus, Video, FileText,
   ChevronDown, Trash2, Eye, EyeOff,
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
-  Image, Radio, MessageSquare, MessageCircle, Wifi, Pin, PinOff,
-  ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical,
+  Image, MessageSquare, MessageCircle, Pin, PinOff,
+  ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import LiveBroadcast from '@/components/LiveBroadcast';
 import AttachmentViewer from '@/components/AttachmentViewer';
+import LiveHubMentor from '@/components/LiveHubMentor';
 
-type SidebarTab = 'lessons' | 'community' | 'students';
-type PostType = 'discussion' | 'media' | 'live';
+type SidebarTab = 'lessons' | 'community' | 'students' | 'live';
+type PostType = 'discussion' | 'media';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
 interface Category {
@@ -90,7 +90,13 @@ export default function MentorDashboard() {
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [removeConfirm, setRemoveConfirm] = useState<{ studentId: string; name: string } | null>(null);
-  const [showLiveBroadcast, setShowLiveBroadcast] = useState(false);
+  // Edit post state
+  const [editPost, setEditPost] = useState<CommunityPost | null>(null);
+  const [editPostContent, setEditPostContent] = useState('');
+  const [editPostMediaUrl, setEditPostMediaUrl] = useState('');
+  const [editPostMediaType, setEditPostMediaType] = useState('');
+  const [isEditPostUploading, setIsEditPostUploading] = useState(false);
+  const editPostFileInputRef = useRef<HTMLInputElement>(null);
 
   // Category access panel
   const [accessStudentId, setAccessStudentId] = useState<string | null>(null);
@@ -462,6 +468,30 @@ export default function MentorDashboard() {
     onError: () => toast({ title: 'שגיאה בפרסום', variant: 'destructive' }),
   });
 
+  const updatePost = useMutation({
+    mutationFn: async ({ id, content, media_url, media_type }: { id: string; content: string; media_url: string | null; media_type: string | null }) => {
+      const { error } = await supabase.from('community_posts').update({ content, media_url, media_type }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['community_posts'] });
+      setEditPost(null);
+      toast({ title: 'פוסט עודכן בהצלחה' });
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון הפוסט', variant: 'destructive' }),
+  });
+
+  const handleEditPostFileUpload = async (file: File): Promise<{ url: string; type: string }> => {
+    setIsEditPostUploading(true);
+    const ext = file.name.split('.').pop();
+    const path = `posts/${user!.id}/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
+    setIsEditPostUploading(false);
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+    return { url: publicUrl, type: file.type.startsWith('video') ? 'video' : 'image' };
+  };
+
   const deletePost = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('community_posts').delete().eq('id', id);
@@ -537,14 +567,12 @@ export default function MentorDashboard() {
   const postTypeOptions: { key: PostType; label: string; icon: typeof MessageSquare }[] = [
     { key: 'discussion', label: 'דיון', icon: MessageSquare },
     { key: 'media', label: 'תמונה/וידאו', icon: Image },
-    { key: 'live', label: 'לייב', icon: Radio },
   ];
 
-  const postTypeBg: Record<string, string> = { discussion: 'bg-primary/10', media: 'bg-accent/10', live: 'bg-destructive/10' };
-  const postTypeColor: Record<string, string> = { discussion: 'text-primary', media: 'text-accent', live: 'text-destructive' };
-  const postTypeLabel: Record<string, string> = { discussion: 'דיון', media: 'מדיה', live: 'לייב' };
+  const postTypeBg: Record<string, string> = { discussion: 'bg-primary/10', media: 'bg-accent/10' };
+  const postTypeColor: Record<string, string> = { discussion: 'text-primary', media: 'text-accent' };
+  const postTypeLabel: Record<string, string> = { discussion: 'דיון', media: 'מדיה' };
   const postTypeIcon = (type: string) => {
-    if (type === 'live') return <Wifi className="w-3.5 h-3.5" />;
     if (type === 'media') return <Image className="w-3.5 h-3.5" />;
     return <MessageCircle className="w-3.5 h-3.5" />;
   };
@@ -664,6 +692,7 @@ export default function MentorDashboard() {
                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                   { key: 'community', label: 'קהילה', icon: Users },
                   { key: 'students', label: 'תלמידים', icon: GraduationCap },
+                  { key: 'live', label: 'לייב', icon: Radio },
                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
@@ -900,7 +929,7 @@ export default function MentorDashboard() {
               {/* Compose box */}
               <div className="bg-card rounded-2xl card-shadow p-5 mb-6">
                 <div className="flex gap-2 mb-4">
-                  {postTypeOptions.filter(o => o.key !== 'live').map(({ key, label, icon: Icon }) => (
+                  {postTypeOptions.map(({ key, label, icon: Icon }) => (
                     <button
                       key={key}
                       onClick={() => { setPostType(key); setPostMediaUrl(''); setPostMediaType(''); }}
@@ -913,13 +942,6 @@ export default function MentorDashboard() {
                       <Icon className="w-3.5 h-3.5" />{label}
                     </button>
                   ))}
-                  <button
-                    onClick={() => setShowLiveBroadcast(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-destructive/40 text-destructive bg-destructive/5 hover:bg-destructive/10 transition-all"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
-                    לייב
-                  </button>
                 </div>
 
                 <textarea
@@ -1115,6 +1137,13 @@ export default function MentorDashboard() {
                   </div>
                 )}
               </div>
+            </motion.div>
+          )}
+
+          {/* ──────── LIVE ──────── */}
+          {activeTab === 'live' && user && (
+            <motion.div key="live" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <LiveHubMentor mentorId={user.id} userId={user.id} userName={mentorProfile?.full_name || user?.email || 'מנטור'} />
             </motion.div>
           )}
 
@@ -1423,17 +1452,7 @@ export default function MentorDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Live Broadcast Modal */}
-      <AnimatePresence>
-        {showLiveBroadcast && (
-          <LiveBroadcast
-            mentorId={user!.id}
-            mentorName={mentorProfile?.full_name || user?.email || 'מנטור'}
-            onClose={() => { setShowLiveBroadcast(false); qc.invalidateQueries({ queryKey: ['community_posts'] }); qc.invalidateQueries({ queryKey: ['lessons'] }); }}
-            onPostCreated={() => qc.invalidateQueries({ queryKey: ['community_posts'] })}
-          />
-        )}
-      </AnimatePresence>
+      {/* Live section rendered inside main via tab */}
 
       {/* ── Edit Lesson Panel ── */}
       <AnimatePresence>

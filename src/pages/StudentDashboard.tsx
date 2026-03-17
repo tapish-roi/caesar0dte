@@ -21,7 +21,7 @@ import { Switch } from '@/components/ui/switch';
 import LiveViewer from '@/components/LiveViewer';
 import AttachmentViewer from '@/components/AttachmentViewer';
 
-type SidebarTab = 'lessons' | 'community';
+type SidebarTab = 'lessons' | 'community' | 'live';
 type PostType = 'discussion' | 'media' | 'live';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -884,6 +884,7 @@ export default function StudentDashboard() {
                 {([
                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                   { key: 'community', label: 'קהילה', icon: Users },
+                  { key: 'live', label: 'לייב', icon: Radio },
                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
