@@ -1693,7 +1693,7 @@ function LessonRow({
 // ─── MentorPostCard ───────────────────────────────────────────────────────────
 function MentorPostCard({
   post, fetchComments, expanded, onToggleComments,
-  commentText, onCommentChange, onAddComment, onDelete, onTogglePin,
+  commentText, onCommentChange, onAddComment, onDelete, onTogglePin, onEdit,
   postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
 }: {
   post: CommunityPost;
@@ -1705,6 +1705,7 @@ function MentorPostCard({
   onAddComment: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
+  onEdit: () => void;
   postTypeLabel: Record<string, string>;
   postTypeIcon: (t: string) => React.ReactNode;
   postTypeBg: Record<string, string>;
