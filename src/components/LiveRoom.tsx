@@ -1333,6 +1333,39 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                               <span className="text-sm font-bold text-white/70 w-10 text-center shrink-0">{volume}%</span>
                             </div>
                           </div>
+                          <div className="border-t border-white/8 pt-5">
+                            <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בדיקת שמע</p>
+                            <div className="bg-[#2b2d31] rounded-xl p-4 space-y-3">
+                              <p className="text-xs text-white/50 leading-relaxed">
+                                {soundTesting
+                                  ? 'בדיקה פעילה — אתה שומע צפצופים כל 2 שניות. בדוק שהשמע מגיע לחיבור הנכון.'
+                                  : 'לחץ לשמוע צפצופי בדיקה. וודא שאתה שומע בחיבור השמע שבחרת.'}
+                              </p>
+                              {soundTesting && (
+                                <div className="flex items-center gap-2">
+                                  <div className="flex gap-0.5 items-end h-5">
+                                    {[3,5,7,5,3].map((h, i) => (
+                                      <motion.div
+                                        key={i}
+                                        className="w-1.5 rounded-full bg-indigo-400"
+                                        animate={{ height: [`${h * 3}px`, `${h * 5}px`, `${h * 3}px`] }}
+                                        transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span className="text-[11px] text-indigo-300 font-medium">מנגן...</span>
+                                </div>
+                              )}
+                              <button
+                                onClick={soundTesting ? stopSoundTest : startSoundTest}
+                                className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-semibold transition-all ${soundTesting ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30' : 'bg-indigo-500 hover:bg-indigo-600 text-white'}`}
+                              >
+                                {soundTesting
+                                  ? <><StopCircle className="w-4 h-4" />הפסק בדיקה</>
+                                  : <><Volume2 className="w-4 h-4" />בדוק שמע</>}
+                              </button>
+                            </div>
+                          </div>
                         </>
                       )}
                       {settingsTab === 'camera' && (
