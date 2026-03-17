@@ -557,6 +557,31 @@ export default function MentorDashboard() {
 
   const grantedCategoryIds = new Set(accessGrants.map(g => g.category_id));
 
+  // ── Drag handlers ────────────────────────────────────────────────────────────
+  const handleDragStart = useCallback((lessonId: string) => {
+    setDragLesson(lessonId);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, lessonId: string) => {
+    e.preventDefault();
+    setDragOverLesson(lessonId);
+  }, []);
+
+  const handleDrop = useCallback((categoryId: string | null, lessons: Lesson[]) => {
+    if (!dragLesson || !dragOverLesson || dragLesson === dragOverLesson) {
+      setDragLesson(null); setDragOverLesson(null); return;
+    }
+    const ids = lessons.map(l => l.id);
+    const fromIdx = ids.indexOf(dragLesson);
+    const toIdx = ids.indexOf(dragOverLesson);
+    if (fromIdx === -1 || toIdx === -1) { setDragLesson(null); setDragOverLesson(null); return; }
+    const reordered = [...ids];
+    reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, dragLesson);
+    reorderLessons.mutate(reordered);
+    setDragLesson(null); setDragOverLesson(null);
+  }, [dragLesson, dragOverLesson, reorderLessons]);
+
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
