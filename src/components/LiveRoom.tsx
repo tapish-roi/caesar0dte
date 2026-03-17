@@ -822,27 +822,53 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 </p>
               </div>
               <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
-                {participants.map(p => (
-                  <div key={p.userId} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
-                    <div className="relative shrink-0">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                        style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
-                        {initials(p.name)}
+                {participants.map(p => {
+                  const isMe = p.userId === userId;
+                  const isMentorEntry = p.userId === mentorId;
+                  const forceMuted = forceMutedUsers.has(p.userId);
+                  return (
+                    <div key={p.userId} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
+                      <div className="relative shrink-0">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                          style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
+                          {initials(p.name)}
+                        </div>
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#2b2d31] ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
                       </div>
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#2b2d31] ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white/80 truncate">
+                          {p.name}
+                          {isMe && <span className="text-[10px] text-white/30 mr-1">(אתה)</span>}
+                          {isMentorEntry && !isMe && <span className="text-[10px] text-indigo-400 mr-1">מנטור</span>}
+                        </p>
+                        <p className="text-[10px] text-white/30">
+                          {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מושתק' : 'פעיל'}
+                        </p>
+                      </div>
+                      {/* Mentor-only mute button (not for self) */}
+                      {isMentor && !isMe && (
+                        <button
+                          onClick={() => toggleForceMute(p.userId, forceMuted)}
+                          title={forceMuted ? 'הסר השתקה' : 'השתק משתמש'}
+                          className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shrink-0 ${
+                            forceMuted
+                              ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                              : 'opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                          }`}
+                        >
+                          {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                      {/* Non-mentor: show muted indicator */}
+                      {!isMentor && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {p.isMuted && <MicOff className="w-3 h-3 text-red-400" />}
+                          {p.hasCamera && <Video className="w-3 h-3 text-blue-400" />}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white/80 truncate">{p.name}</p>
-                      <p className="text-[10px] text-white/30">
-                        {p.isDeafened ? 'מושתק לחלוטין' : p.isMuted ? 'מושתק' : 'פעיל'}
-                      </p>
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {p.isMuted && <MicOff className="w-3 h-3 text-red-400" />}
-                      {p.hasCamera && <Video className="w-3 h-3 text-blue-400" />}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </motion.div>
           )}
