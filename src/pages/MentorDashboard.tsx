@@ -1543,17 +1543,18 @@ export default function MentorDashboard() {
 
 // ─── LessonRow ────────────────────────────────────────────────────────────────
 function LessonRow({
-  lesson, onTogglePublish, onDelete, onEdit, typeIcon, typeLabel,
+  lesson, onTogglePublish, onDelete, onEdit, onView, typeIcon, typeLabel,
 }: {
   lesson: Lesson;
   onTogglePublish: () => void;
   onDelete: () => void;
   onEdit: () => void;
+  onView: () => void;
   typeIcon: (t: string) => React.ReactNode;
   typeLabel: (t: string) => string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group">
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={onView}>
       <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
         {typeIcon(lesson.lesson_type)}
       </div>
@@ -1562,14 +1563,12 @@ function LessonRow({
           <span className="text-sm font-medium text-foreground truncate">{lesson.title}</span>
           {lesson.lesson_type === 'live' && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
-              <Radio className="w-2.5 h-2.5" />
-              הוקלט בלייב
+              <Radio className="w-2.5 h-2.5" />הוקלט בלייב
             </span>
           )}
           {lesson.attachment_url && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
-              <Paperclip className="w-2.5 h-2.5" />
-              צירוף
+              <Paperclip className="w-2.5 h-2.5" />צירוף
             </span>
           )}
         </div>
@@ -1578,23 +1577,17 @@ function LessonRow({
       {lesson.duration_minutes && (
         <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
       )}
-      <button
-        onClick={onEdit}
-        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
-        title="ערוך שיעור"
-      >
+      <button onClick={e => { e.stopPropagation(); onEdit(); }}
+        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="ערוך שיעור">
         <Pencil className="w-3.5 h-3.5" />
       </button>
-      <button
-        onClick={onTogglePublish}
-        className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
-          lesson.is_published ? 'text-accent hover:bg-accent/10' : 'text-muted-foreground hover:bg-muted'
-        }`}
-        title={lesson.is_published ? 'הסתר שיעור' : 'פרסם שיעור'}
-      >
+      <button onClick={e => { e.stopPropagation(); onTogglePublish(); }}
+        className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${lesson.is_published ? 'text-accent hover:bg-accent/10' : 'text-muted-foreground hover:bg-muted'}`}
+        title={lesson.is_published ? 'הסתר שיעור' : 'פרסם שיעור'}>
         {lesson.is_published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
       </button>
-      <button onClick={onDelete} className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+      <button onClick={e => { e.stopPropagation(); onDelete(); }}
+        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
     </div>
