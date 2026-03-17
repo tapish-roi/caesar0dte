@@ -25,7 +25,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
       <div className="flex items-center justify-between px-6 py-3 bg-primary/5">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           {isPpt ? (
-            <Presentation className="w-4 h-4 text-primary" />
+            <MonitorPlay className="w-4 h-4 text-primary" />
           ) : (
             <FileText className="w-4 h-4 text-primary" />
           )}
