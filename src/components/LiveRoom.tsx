@@ -161,6 +161,71 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Presence: announce join & track other participants via signals ──
+  useEffect(() => {
+    // Announce our presence
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from('live_signals') as any).insert({
+      session_id: sessionId,
+      from_user_id: userId,
+      to_user_id: mentorId,
+      signal_type: 'presence',
+      payload: { name: userName, isMentor },
+    }).then(() => {});
+
+    // Listen for presence + mute signals
+    const ch = supabase.channel(`live-signals-${sessionId}-${userId}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'live_signals',
+        filter: `session_id=eq.${sessionId}`,
+      }, (payload) => {
+        const sig = payload.new as { signal_type: string; from_user_id: string; to_user_id: string; payload: Record<string,unknown> };
+
+        // Handle presence (mentor builds participant list)
+        if (sig.signal_type === 'presence' && isMentor) {
+          setParticipants(prev => {
+            const exists = prev.find(p => p.userId === sig.from_user_id);
+            if (exists) return prev;
+            return [...prev, {
+              userId: sig.from_user_id,
+              name: String(sig.payload.name || 'משתמש'),
+              isMuted: false, isDeafened: false, hasCamera: false, hasScreen: false,
+            }];
+          });
+        }
+
+        // Handle force_mute (student receives)
+        if (sig.signal_type === 'force_mute' && sig.to_user_id === userId) {
+          setIsForceMuted(true);
+          setMicEnabled(false);
+          localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
+          toast({ title: 'הושתקת על ידי המנטור', description: 'אתה יכול להסיר את ההשתקה בעצמך' });
+        }
+
+        // Handle force_unmute (student receives)
+        if (sig.signal_type === 'force_unmute' && sig.to_user_id === userId) {
+          setIsForceMuted(false);
+          toast({ title: 'המנטור הסיר את ההשתקה שלך' });
+        }
+
+        // Handle mute_ack — mentor updates participant list
+        if (sig.signal_type === 'mute_ack' && isMentor) {
+          const targetId = sig.from_user_id;
+          const muted = sig.payload.muted as boolean;
+          setParticipants(prev => prev.map(p => p.userId === targetId ? { ...p, isMuted: muted, isForceMuted: muted } : p));
+          setForceMutedUsers(prev => {
+            const next = new Set(prev);
+            if (muted) next.add(targetId); else next.delete(targetId);
+            return next;
+          });
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, userId, mentorId, isMentor, userName]);
+
   // ── Camera ──
   useEffect(() => {
     if (cameraEnabled) {
