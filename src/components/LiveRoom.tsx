@@ -966,28 +966,31 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           <div className="flex-1 relative flex items-center justify-center min-h-0 overflow-hidden">
 
             {isScreenVisible ? (
-              /* ── Screen share (shown to ALL participants) ── */
+              /* ── Screen share ── */
               <div className="relative w-full h-full">
 
-                {/* Remote screen canvas — everyone sees this (including sharer who sees their own broadcast) */}
+                {/* Sharer sees their own local video directly (no network roundtrip) */}
+                <video
+                  ref={screenVideoRef}
+                  autoPlay playsInline muted
+                  className="w-full h-full object-contain bg-black"
+                  style={{ display: screenSharing ? 'block' : 'none' }}
+                />
+
+                {/* Viewers see broadcast canvas — hidden for the sharer */}
                 <canvas
                   ref={remoteScreenCanvasRef}
                   className="w-full h-full object-contain bg-black"
-                  style={{ display: 'block' }}
+                  style={{ display: screenSharing ? 'none' : 'block' }}
                 />
 
-                {/* Hidden local video for capturing frames */}
-                <video ref={screenVideoRef} autoPlay playsInline muted className="hidden" />
-
                 {/* Screen share owner label */}
-                {remoteScreenSharer && (
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur px-3 py-1.5 rounded-full border border-white/10">
-                    <Monitor className="w-3.5 h-3.5 text-green-400" />
-                    <span className="text-xs text-white/80 font-medium">
-                      {remoteScreenSharer === userName ? 'אתה משתף את המסך' : `${remoteScreenSharer} משתף את המסך`}
-                    </span>
-                  </div>
-                )}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/70 backdrop-blur px-3 py-1.5 rounded-full border border-white/10">
+                  <Monitor className="w-3.5 h-3.5 text-green-400" />
+                  <span className="text-xs text-white/80 font-medium">
+                    {screenSharing ? 'אתה משתף את המסך' : `${remoteScreenSharer} משתף את המסך`}
+                  </span>
+                </div>
 
                 {/* Drawing canvas overlay */}
                 <canvas
