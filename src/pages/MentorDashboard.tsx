@@ -104,6 +104,10 @@ export default function MentorDashboard() {
   const editVideoInputRef = useRef<HTMLInputElement>(null);
   const editAttachmentInputRef = useRef<HTMLInputElement>(null);
 
+  // Drag & drop
+  const [dragLesson, setDragLesson] = useState<string | null>(null);
+  const [dragOverLesson, setDragOverLesson] = useState<string | null>(null);
+
   // ─── Queries ────────────────────────────────────────────────────────────────
 
   const { data: mentorProfile } = useQuery({
