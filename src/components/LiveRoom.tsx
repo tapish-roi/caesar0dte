@@ -820,8 +820,42 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     setMicTesting(false); setMicTestLevel(0);
   }, []);
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Sound (output) test — plays short beeps every 2s so user can verify output
+  // ─────────────────────────────────────────────────────────────────────────────
+  const playBeep = useCallback((ctx: AudioContext) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.18);
+  }, []);
+
+  const startSoundTest = useCallback(() => {
+    try {
+      const ctx = new AudioContext();
+      soundTestContextRef.current = ctx;
+      playBeep(ctx);
+      soundTestIntervalRef.current = setInterval(() => playBeep(ctx), 2000);
+      setSoundTesting(true);
+    } catch { toast({ title: 'לא ניתן להפעיל בדיקת שמע', variant: 'destructive' }); }
+  }, [playBeep, toast]);
+
+  const stopSoundTest = useCallback(() => {
+    if (soundTestIntervalRef.current) { clearInterval(soundTestIntervalRef.current); soundTestIntervalRef.current = null; }
+    soundTestContextRef.current?.close();
+    soundTestContextRef.current = null;
+    setSoundTesting(false);
+  }, []);
+
   useEffect(() => { if (!showSettings && micTesting) stopMicTest(); }, [showSettings, micTesting, stopMicTest]);
-  useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!showSettings && soundTesting) stopSoundTest(); }, [showSettings, soundTesting, stopSoundTest]);
+  useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); stopSoundTest(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Leave
