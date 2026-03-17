@@ -254,7 +254,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
   const tabs: { key: SubTab; label: string; icon: typeof Radio }[] = [
     { key: 'live', label: 'שידור חי', icon: Radio },
     { key: 'scheduled', label: 'לוח מודעות', icon: CalendarDays },
-    { key: 'recordings', label: 'הקלטות', icon: Video },
+    { key: 'recordings', label: 'לייבים מוקלטים', icon: Video },
   ];
 
   const openSchedEdit = (item: ScheduledLive) => {
