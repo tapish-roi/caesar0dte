@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +8,7 @@ import {
   ChevronDown, Trash2, Eye, EyeOff,
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, Radio, MessageSquare, MessageCircle, Wifi, Pin, PinOff,
-  ShieldCheck, Lock, Unlock, Paperclip, Pencil,
+  ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import LiveBroadcast from '@/components/LiveBroadcast';
