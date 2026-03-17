@@ -404,7 +404,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // Collaborative Drawing — Broadcast channel
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const ch = supabase.channel(`drawing-${sessionId}`, { config: { broadcast: { self: false } } });
+    const ch = supabase.channel(`drawing-${sessionId}`, { config: { broadcast: { self: true } } });
 
     ch.on('broadcast', { event: 'stroke_add' }, ({ payload }) => {
       const stroke = payload.stroke as DrawStroke;
