@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   Mic, MicOff, Volume2, VolumeX, Video, VideoOff,
   Monitor, MonitorOff, Settings, X, Users, PhoneOff,
-  Pencil, Eraser, RotateCcw, MessageSquare, Send, ChevronDown,
+  Pencil, Eraser, RotateCcw, MessageSquare, Send, Headphones,
 } from 'lucide-react';
 
 interface ChatMessage { id: string; user_id: string; display_name: string; message: string; created_at: string; }
