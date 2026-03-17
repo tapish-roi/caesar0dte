@@ -320,29 +320,20 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const captureFrame = () => {
       const video = screenVideoRef.current;
       if (!video || video.readyState < 2) return;
-      const w = video.videoWidth || 1280;
-      const h = video.videoHeight || 720;
+      // Limit to 640px wide to stay within Supabase Realtime payload limits (~256KB)
+      const MAX_W = 640;
+      const origW = video.videoWidth || 640;
+      const origH = video.videoHeight || 360;
+      const scale = Math.min(1, MAX_W / origW);
+      const w = Math.round(origW * scale);
+      const h = Math.round(origH * scale);
       offscreen.width = w;
       offscreen.height = h;
       const ctx = offscreen.getContext('2d');
       if (!ctx) return;
       ctx.drawImage(video, 0, 0, w, h);
-
-      // Scale strokes from drawing-canvas CSS pixels → video resolution pixels
-      const drawCanvas = canvasRef.current;
-      const scaleX = drawCanvas && drawCanvas.offsetWidth > 0 ? w / drawCanvas.offsetWidth : 1;
-      const scaleY = drawCanvas && drawCanvas.offsetHeight > 0 ? h / drawCanvas.offsetHeight : 1;
-      const scaledStrokes = strokesRef.current.map(s => ({
-        ...s,
-        points: s.points.map(p => ({ x: p.x * scaleX, y: p.y * scaleY })),
-        textX: s.textX != null ? s.textX * scaleX : s.textX,
-        textY: s.textY != null ? s.textY * scaleY : s.textY,
-        size: s.size * Math.min(scaleX, scaleY),
-        fontSize: s.fontSize != null ? s.fontSize * Math.min(scaleX, scaleY) : s.fontSize,
-      }));
-      renderStrokesOnCtx(ctx, w, h, scaledStrokes);
-
-      const dataUrl = offscreen.toDataURL('image/jpeg', 0.5);
+      // Don't bake strokes — each client renders them locally via the drawing canvas overlay
+      const dataUrl = offscreen.toDataURL('image/jpeg', 0.35);
       screenFrameChannelRef.current?.send({
         type: 'broadcast', event: 'screen_frame',
         payload: { dataUrl, sharerId: userId, sharerName: userName },
