@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 interface ChatMessage { id: string; user_id: string; display_name: string; message: string; created_at: string; }
-interface Participant { userId: string; name: string; stream?: MediaStream; isMuted: boolean; isDeafened: boolean; hasCamera: boolean; hasScreen: boolean; }
+interface Participant { userId: string; name: string; stream?: MediaStream; isMuted: boolean; isDeafened: boolean; hasCamera: boolean; hasScreen: boolean; isForceMuted?: boolean; }
 
 interface Props {
   sessionId: string;
@@ -58,6 +58,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // Connection
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [participants, setParticipants] = useState<Participant[]>([]);
+
+  // Force-mute state (set by mentor signal)
+  const [isForceMuted, setIsForceMuted] = useState(false);
+  // Mentor-side: track which user IDs are force-muted
+  const [forceMutedUsers, setForceMutedUsers] = useState<Set<string>>(new Set());
 
   // Chat & members panels
   const [showChat, setShowChat] = useState(false);
@@ -155,6 +160,71 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     setConnectionStatus('connected');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Presence: announce join & track other participants via signals ──
+  useEffect(() => {
+    // Announce our presence
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from('live_signals') as any).insert({
+      session_id: sessionId,
+      from_user_id: userId,
+      to_user_id: mentorId,
+      signal_type: 'presence',
+      payload: { name: userName, isMentor },
+    }).then(() => {});
+
+    // Listen for presence + mute signals
+    const ch = supabase.channel(`live-signals-${sessionId}-${userId}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'live_signals',
+        filter: `session_id=eq.${sessionId}`,
+      }, (payload) => {
+        const sig = payload.new as { signal_type: string; from_user_id: string; to_user_id: string; payload: Record<string,unknown> };
+
+        // Handle presence (mentor builds participant list)
+        if (sig.signal_type === 'presence' && isMentor) {
+          setParticipants(prev => {
+            const exists = prev.find(p => p.userId === sig.from_user_id);
+            if (exists) return prev;
+            return [...prev, {
+              userId: sig.from_user_id,
+              name: String(sig.payload.name || 'משתמש'),
+              isMuted: false, isDeafened: false, hasCamera: false, hasScreen: false,
+            }];
+          });
+        }
+
+        // Handle force_mute (student receives)
+        if (sig.signal_type === 'force_mute' && sig.to_user_id === userId) {
+          setIsForceMuted(true);
+          setMicEnabled(false);
+          localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
+          toast({ title: 'הושתקת על ידי המנטור', description: 'אתה יכול להסיר את ההשתקה בעצמך' });
+        }
+
+        // Handle force_unmute (student receives)
+        if (sig.signal_type === 'force_unmute' && sig.to_user_id === userId) {
+          setIsForceMuted(false);
+          toast({ title: 'המנטור הסיר את ההשתקה שלך' });
+        }
+
+        // Handle mute_ack — mentor updates participant list
+        if (sig.signal_type === 'mute_ack' && isMentor) {
+          const targetId = sig.from_user_id;
+          const muted = sig.payload.muted as boolean;
+          setParticipants(prev => prev.map(p => p.userId === targetId ? { ...p, isMuted: muted, isForceMuted: muted } : p));
+          setForceMutedUsers(prev => {
+            const next = new Set(prev);
+            if (muted) next.add(targetId); else next.delete(targetId);
+            return next;
+          });
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, userId, mentorId, isMentor, userName]);
 
   // ── Camera ──
   useEffect(() => {
@@ -291,6 +361,28 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     } catch { toast({ title: 'שגיאה בשליחת הודעה', variant: 'destructive' }); }
     finally { setIsSendingMsg(false); }
   }, [chatInput, isSendingMsg, sessionId, userId, userName, isMentor, toast]);
+
+  // ── Mentor: force mute/unmute participant ──
+  const toggleForceMute = useCallback(async (targetUserId: string, currentlyMuted: boolean) => {
+    const signalType = currentlyMuted ? 'force_unmute' : 'force_mute';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('live_signals') as any).insert({
+      session_id: sessionId,
+      from_user_id: userId,
+      to_user_id: targetUserId,
+      signal_type: signalType,
+      payload: { muted: !currentlyMuted },
+    });
+    // Optimistically update local state
+    setForceMutedUsers(prev => {
+      const next = new Set(prev);
+      if (currentlyMuted) next.delete(targetUserId); else next.add(targetUserId);
+      return next;
+    });
+    setParticipants(prev => prev.map(p => p.userId === targetUserId
+      ? { ...p, isMuted: !currentlyMuted, isForceMuted: !currentlyMuted }
+      : p));
+  }, [sessionId, userId]);
 
   const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ffffff'];
   const screenActive = screenSharing;
@@ -449,17 +541,24 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
           {/* ── Controls bar (Discord style) ── */}
           <div className="shrink-0 bg-[#292b2f] border-t border-white/5 py-4 px-6 flex items-center justify-center gap-3">
-            {/* Mic */}
-            <button
-              onClick={toggleMic}
-              disabled={deafened}
-              title={micEnabled ? 'השתק מיקרופון' : 'הפעל מיקרופון'}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg disabled:opacity-40 ${
-                micEnabled ? 'bg-[#4e5058] hover:bg-[#6d6f78] text-white' : 'bg-red-500/90 hover:bg-red-500 text-white'
-              }`}
-            >
-              {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-            </button>
+            {/* Mic — shows orange ring when force-muted by mentor */}
+            <div className="relative">
+              <button
+                onClick={toggleMic}
+                disabled={deafened}
+                title={isForceMuted ? 'הושתקת על ידי המנטור — לחץ להסרת ההשתקה' : micEnabled ? 'השתק מיקרופון' : 'הפעל מיקרופון'}
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg disabled:opacity-40 ${
+                  micEnabled ? 'bg-[#4e5058] hover:bg-[#6d6f78] text-white' : 'bg-red-500/90 hover:bg-red-500 text-white'
+                } ${isForceMuted ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-[#292b2f]' : ''}`}
+              >
+                {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              </button>
+              {isForceMuted && (
+                <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full w-4 h-4 flex items-center justify-center" title="הושתקת על ידי המנטור">
+                  <span className="text-white text-[8px] font-bold">M</span>
+                </div>
+              )}
+            </div>
 
             {/* Deafen */}
             <button
@@ -723,27 +822,53 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 </p>
               </div>
               <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
-                {participants.map(p => (
-                  <div key={p.userId} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
-                    <div className="relative shrink-0">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
-                        style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
-                        {initials(p.name)}
+                {participants.map(p => {
+                  const isMe = p.userId === userId;
+                  const isMentorEntry = p.userId === mentorId;
+                  const forceMuted = forceMutedUsers.has(p.userId);
+                  return (
+                    <div key={p.userId} className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors group">
+                      <div className="relative shrink-0">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                          style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
+                          {initials(p.name)}
+                        </div>
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#2b2d31] ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
                       </div>
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#2b2d31] ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white/80 truncate">
+                          {p.name}
+                          {isMe && <span className="text-[10px] text-white/30 mr-1">(אתה)</span>}
+                          {isMentorEntry && !isMe && <span className="text-[10px] text-indigo-400 mr-1">מנטור</span>}
+                        </p>
+                        <p className="text-[10px] text-white/30">
+                          {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מושתק' : 'פעיל'}
+                        </p>
+                      </div>
+                      {/* Mentor-only mute button (not for self) */}
+                      {isMentor && !isMe && (
+                        <button
+                          onClick={() => toggleForceMute(p.userId, forceMuted)}
+                          title={forceMuted ? 'הסר השתקה' : 'השתק משתמש'}
+                          className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shrink-0 ${
+                            forceMuted
+                              ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                              : 'opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                          }`}
+                        >
+                          {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                      {/* Non-mentor: show muted indicator */}
+                      {!isMentor && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {p.isMuted && <MicOff className="w-3 h-3 text-red-400" />}
+                          {p.hasCamera && <Video className="w-3 h-3 text-blue-400" />}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white/80 truncate">{p.name}</p>
-                      <p className="text-[10px] text-white/30">
-                        {p.isDeafened ? 'מושתק לחלוטין' : p.isMuted ? 'מושתק' : 'פעיל'}
-                      </p>
-                    </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {p.isMuted && <MicOff className="w-3 h-3 text-red-400" />}
-                      {p.hasCamera && <Video className="w-3 h-3 text-blue-400" />}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </motion.div>
           )}
