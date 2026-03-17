@@ -362,6 +362,28 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     finally { setIsSendingMsg(false); }
   }, [chatInput, isSendingMsg, sessionId, userId, userName, isMentor, toast]);
 
+  // ── Mentor: force mute/unmute participant ──
+  const toggleForceMute = useCallback(async (targetUserId: string, currentlyMuted: boolean) => {
+    const signalType = currentlyMuted ? 'force_unmute' : 'force_mute';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('live_signals') as any).insert({
+      session_id: sessionId,
+      from_user_id: userId,
+      to_user_id: targetUserId,
+      signal_type: signalType,
+      payload: { muted: !currentlyMuted },
+    });
+    // Optimistically update local state
+    setForceMutedUsers(prev => {
+      const next = new Set(prev);
+      if (currentlyMuted) next.delete(targetUserId); else next.add(targetUserId);
+      return next;
+    });
+    setParticipants(prev => prev.map(p => p.userId === targetUserId
+      ? { ...p, isMuted: !currentlyMuted, isForceMuted: !currentlyMuted }
+      : p));
+  }, [sessionId, userId]);
+
   const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ffffff'];
   const screenActive = screenSharing;
   const initials = (name: string) => name?.[0]?.toUpperCase() ?? '?';
