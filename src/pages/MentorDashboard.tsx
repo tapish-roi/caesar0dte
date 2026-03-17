@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import LiveBroadcast from '@/components/LiveBroadcast';
+import AttachmentViewer from '@/components/AttachmentViewer';
 
 type SidebarTab = 'lessons' | 'community' | 'students';
 type PostType = 'discussion' | 'media' | 'live';
