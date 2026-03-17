@@ -228,17 +228,21 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
     if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       const mr = mediaRecorderRef.current;
+      const durationSeconds = Math.round((Date.now() - sessionStartRef.current) / 1000);
       mr.onstop = () => {
-        const durationSeconds = Math.round((Date.now() - sessionStartRef.current) / 1000);
-        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        // Flush any remaining data after stop
+        const allChunks = [...recordedChunksRef.current];
+        const blob = new Blob(allChunks, { type: 'video/webm' });
         if (blob.size > 0 && onSessionEnd) {
           onSessionEnd(blob, durationSeconds);
         }
+        onClose();
       };
       mr.stop();
+    } else {
+      // Non-mentor or no recorder — close immediately
+      onClose();
     }
-
-    onClose();
   }, [isMentor, onClose, onSessionEnd, stopScreenShare]);
 
   // ── Canvas drawing ──
