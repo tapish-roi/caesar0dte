@@ -219,9 +219,11 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
         live_session_id: sessionRef.id,
         title: sessionRef.title,
         recording_url: url,
-        duration_minutes: Math.round(durationSeconds / 60) || null,
+        duration_minutes: Math.round(durationSeconds / 60) || 1,
       });
+      // Invalidate both mentor and student recording caches
       qc.invalidateQueries({ queryKey: ['live-recordings-mentor', mentorId] });
+      qc.invalidateQueries({ queryKey: ['live-recordings-student', mentorId] });
       toast({ title: '✅ הלייב נשמר ב"לייבים מוקלטים"' });
     } catch {
       toast({ title: 'שגיאה בשמירת ההקלטה', variant: 'destructive' });
