@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 interface ChatMessage { id: string; user_id: string; display_name: string; message: string; created_at: string; }
-interface Participant { userId: string; name: string; stream?: MediaStream; isMuted: boolean; isDeafened: boolean; hasCamera: boolean; hasScreen: boolean; }
+interface Participant { userId: string; name: string; stream?: MediaStream; isMuted: boolean; isDeafened: boolean; hasCamera: boolean; hasScreen: boolean; isForceMuted?: boolean; }
 
 interface Props {
   sessionId: string;
