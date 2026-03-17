@@ -48,6 +48,17 @@ interface Props {
 
 type SubTab = 'live' | 'scheduled' | 'recordings';
 
+// Upload a blob (auto-recorded session) to storage and return public URL
+async function uploadRecordingBlob(mentorId: string, blob: Blob): Promise<string> {
+  const path = `live-recordings/${mentorId}/${Date.now()}.webm`;
+  const { data, error } = await supabase.storage.from('lesson-assets').upload(path, blob, {
+    contentType: 'video/webm', upsert: false,
+  });
+  if (error) throw error;
+  const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+  return publicUrl;
+}
+
 export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
