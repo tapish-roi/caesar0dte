@@ -229,13 +229,12 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mentorId, qc, toast]);
 
-  const endLiveSession = async (sessionId: string) => {
+  const endLiveSession = useCallback(async (sessionId: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from('live_sessions') as any).update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', sessionId);
     setActiveSession(null);
     refetchSessions();
-    toast({ title: 'השידור הסתיים' });
-  };
+  }, [refetchSessions]);
 
   const handleVideoUpload = async (file: File): Promise<string> => {
     setIsUploading(true);
