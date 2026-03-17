@@ -15,6 +15,7 @@ import LiveBroadcast from '@/components/LiveBroadcast';
 
 type SidebarTab = 'lessons' | 'community' | 'students';
 type PostType = 'discussion' | 'media' | 'live';
+type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
 interface Category {
   id: string;
