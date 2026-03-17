@@ -66,6 +66,8 @@ export default function MentorDashboard() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showLessonPanel, setShowLessonPanel] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [lessonViewMode, setLessonViewMode] = useState<LessonViewMode>(null);
+  const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const [newCatTitle, setNewCatTitle] = useState('');
   const [inviteContact, setInviteContact] = useState('');
   const [isUploading, setIsUploading] = useState(false);
