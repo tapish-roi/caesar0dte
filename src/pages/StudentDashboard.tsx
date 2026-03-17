@@ -1006,32 +1006,9 @@ export default function StudentDashboard() {
                         )}
                       </div>
                       {/* Inline attachment viewer */}
-                      {selectedLessonData.attachment_url && (() => {
-                        const url = selectedLessonData.attachment_url;
-                        const name = selectedLessonData.attachment_name ?? '';
-                        const ext = (url.split('?')[0].split('.').pop() ?? '').toLowerCase();
-                        const isPdf = ext === 'pdf';
-                        const isImage = ['png','jpg','jpeg','gif','webp','svg'].includes(ext);
-                        return (
-                          <div className="border-t border-border">
-                            <div className="flex items-center justify-between px-6 py-3 bg-primary/5">
-                              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                                <Paperclip className="w-4 h-4 text-primary" /><span>{name || 'קובץ מצורף'}</span>
-                              </div>
-                              <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:opacity-80 transition-opacity">פתח בחלון נפרד ↗</a>
-                            </div>
-                            {isPdf && <div className="w-full" style={{ height: '520px' }}><iframe src={`${url}#toolbar=1&navpanes=0`} className="w-full h-full" title={name} /></div>}
-                            {isImage && <div className="px-6 pb-6 pt-2"><img src={url} alt={name} className="w-full max-h-[480px] object-contain rounded-lg border border-border bg-muted/30" /></div>}
-                            {!isPdf && !isImage && (
-                              <div className="px-6 pb-5 pt-2 flex items-center gap-3 bg-muted/20">
-                                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0"><FileText className="w-5 h-5 text-primary" /></div>
-                                <div className="flex-1"><p className="text-sm font-medium text-foreground">{name}</p><p className="text-xs text-muted-foreground">לחץ כדי לפתוח את הקובץ</p></div>
-                                <a href={url} target="_blank" rel="noopener noreferrer" className="h-8 px-4 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all flex items-center gap-1.5"><Paperclip className="w-3.5 h-3.5" />פתח</a>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
+                      {selectedLessonData.attachment_url && (
+                        <AttachmentViewer url={selectedLessonData.attachment_url} name={selectedLessonData.attachment_name ?? ''} />
+                      )}
                     </motion.div>
                   ) : (
                     <div className="text-center py-24 text-muted-foreground">
