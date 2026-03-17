@@ -1027,6 +1027,12 @@ export default function MentorDashboard() {
                     onAddComment={() => { const t = commentTexts[post.id]?.trim(); if (t) addComment.mutate({ postId: post.id, content: t }); }}
                     onDelete={() => deletePost.mutate(post.id)}
                     onTogglePin={() => togglePin.mutate({ id: post.id, is_pinned: post.is_pinned })}
+                    onEdit={() => {
+                      setEditPost(post);
+                      setEditPostContent(post.content);
+                      setEditPostMediaUrl(post.media_url ?? '');
+                      setEditPostMediaType(post.media_type ?? '');
+                    }}
                     postTypeLabel={postTypeLabel}
                     postTypeIcon={postTypeIcon}
                     postTypeBg={postTypeBg}
@@ -1454,6 +1460,99 @@ export default function MentorDashboard() {
 
       {/* Live section rendered inside main via tab */}
 
+      {/* ── Edit Post Panel ── */}
+      <AnimatePresence>
+        {editPost && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/20 z-40" onClick={() => setEditPost(null)} />
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 h-full w-[440px] bg-card z-50 shadow-2xl border-l border-border overflow-y-auto"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-bold text-foreground">עריכת פוסט</h2>
+                  <button onClick={() => setEditPost(null)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">תוכן</label>
+                    <textarea
+                      value={editPostContent}
+                      onChange={e => setEditPostContent(e.target.value)}
+                      rows={5}
+                      className="w-full px-4 py-3 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent text-right resize-none"
+                    />
+                  </div>
+
+                  {editPost.post_type === 'media' && (
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1.5">תמונה / וידאו</label>
+                      <input
+                        ref={editPostFileInputRef} type="file" accept="image/*,video/*" className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            const { url, type } = await handleEditPostFileUpload(file);
+                            setEditPostMediaUrl(url); setEditPostMediaType(type);
+                            toast({ title: 'הקובץ הועלה בהצלחה' });
+                          } catch { toast({ title: 'שגיאה בהעלאה', variant: 'destructive' }); }
+                        }}
+                      />
+                      {editPostMediaUrl ? (
+                        <div className="relative rounded-xl overflow-hidden">
+                          {editPostMediaType === 'video'
+                            ? <video src={editPostMediaUrl} className="w-full max-h-64 object-cover rounded-xl" controls />
+                            : <img src={editPostMediaUrl} alt="preview" className="w-full max-h-64 object-cover rounded-xl" />
+                          }
+                          <div className="absolute top-2 left-2 flex gap-1.5">
+                            <button
+                              onClick={() => editPostFileInputRef.current?.click()}
+                              disabled={isEditPostUploading}
+                              className="h-7 px-2 bg-foreground/60 rounded-full text-background text-xs hover:bg-foreground/80 flex items-center gap-1"
+                            >
+                              {isEditPostUploading ? <div className="w-3 h-3 border border-background border-t-transparent rounded-full animate-spin" /> : <><Upload className="w-3 h-3" />החלף</>}
+                            </button>
+                            <button
+                              onClick={() => { setEditPostMediaUrl(''); setEditPostMediaType(''); }}
+                              className="w-7 h-7 bg-foreground/60 rounded-full flex items-center justify-center text-background hover:bg-foreground/80"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => editPostFileInputRef.current?.click()}
+                          disabled={isEditPostUploading}
+                          className="w-full h-20 border-2 border-dashed border-border rounded-xl flex items-center justify-center gap-2 text-muted-foreground hover:border-accent hover:text-accent transition-all disabled:opacity-50 text-sm"
+                        >
+                          {isEditPostUploading
+                            ? <><div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" /><span>מעלה...</span></>
+                            : <><Upload className="w-4 h-4" /><span>העלה תמונה או וידאו</span></>
+                          }
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => editPostContent.trim() && updatePost.mutate({ id: editPost.id, content: editPostContent, media_url: editPostMediaUrl || null, media_type: editPostMediaType || null })}
+                    disabled={!editPostContent.trim() || updatePost.isPending || isEditPostUploading}
+                    className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    {updatePost.isPending ? 'שומר...' : 'שמור שינויים'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* ── Edit Lesson Panel ── */}
       <AnimatePresence>
         {editLesson && (
@@ -1693,7 +1792,7 @@ function LessonRow({
 // ─── MentorPostCard ───────────────────────────────────────────────────────────
 function MentorPostCard({
   post, fetchComments, expanded, onToggleComments,
-  commentText, onCommentChange, onAddComment, onDelete, onTogglePin,
+  commentText, onCommentChange, onAddComment, onDelete, onTogglePin, onEdit,
   postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
 }: {
   post: CommunityPost;
@@ -1705,6 +1804,7 @@ function MentorPostCard({
   onAddComment: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
+  onEdit: () => void;
   postTypeLabel: Record<string, string>;
   postTypeIcon: (t: string) => React.ReactNode;
   postTypeBg: Record<string, string>;
@@ -1745,6 +1845,9 @@ function MentorPostCard({
               title={post.is_pinned ? 'הסר נעיצה' : 'נעץ פוסט'}
             >
               {post.is_pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+            </button>
+            <button onClick={onEdit} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="ערוך פוסט">
+              <Pencil className="w-3.5 h-3.5" />
             </button>
             <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
               <Trash2 className="w-3.5 h-3.5" />
