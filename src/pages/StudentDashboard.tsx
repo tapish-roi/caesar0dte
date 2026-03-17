@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Switch } from '@/components/ui/switch';
 import LiveViewer from '@/components/LiveViewer';
 import AttachmentViewer from '@/components/AttachmentViewer';
+import LiveHubStudent from '@/components/LiveHubStudent';
 
 type SidebarTab = 'lessons' | 'community' | 'live';
 type PostType = 'discussion' | 'media' | 'live';
