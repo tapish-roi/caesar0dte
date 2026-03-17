@@ -832,29 +832,10 @@ export default function StudentDashboard() {
                   </div>
                   <Settings className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                 </button>
-                <ProfilePopover
-                  open={profileOpen}
-                  onClose={() => setProfileOpen(false)}
-                  profile={profile}
-                  user={user}
-                  profileForm={profileForm}
-                  setProfileForm={setProfileForm}
-                  newPassword={newPassword}
-                  setNewPassword={setNewPassword}
-                  showPassword={showPassword}
-                  setShowPassword={setShowPassword}
-                  isAvatarUploading={isAvatarUploading}
-                  avatarInputRef={avatarInputRef}
-                  notifyState={notifyState}
-                  onSaveProfile={() => saveProfile.mutate()}
-                  isSavingProfile={saveProfile.isPending}
-                  onSavePassword={() => savePassword.mutate()}
-                  isSavingPassword={savePassword.isPending}
-                  onSaveNotifications={(prefs) => saveNotifications.mutate(prefs)}
-                  isSavingNotifications={saveNotifications.isPending}
-                  onUploadAvatar={(f) => uploadAvatar(f)}
-                  onSignOut={signOut}
-                />
+                {profileOpen && <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />}
+                <AnimatePresence>
+                  {profileOpen && <InlineProfilePopover profile={profile} user={user} profileForm={profileForm} setProfileForm={setProfileForm} newPassword={newPassword} setNewPassword={setNewPassword} showPassword={showPassword} setShowPassword={setShowPassword} isAvatarUploading={isAvatarUploading} avatarInputRef={avatarInputRef} notifyState={notifyState} saveProfile={saveProfile} savePassword={savePassword} saveNotifications={saveNotifications} uploadAvatar={uploadAvatar} signOut={signOut} onClose={() => setProfileOpen(false)} />}
+                </AnimatePresence>
               </div>
             </motion.div>
           ) : (
