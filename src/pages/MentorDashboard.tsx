@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,10 +8,11 @@ import {
   ChevronDown, Trash2, Eye, EyeOff,
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, Radio, MessageSquare, MessageCircle, Wifi, Pin, PinOff,
-  ShieldCheck, Lock, Unlock, Paperclip, Pencil,
+  ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import LiveBroadcast from '@/components/LiveBroadcast';
+import AttachmentViewer from '@/components/AttachmentViewer';
 
 type SidebarTab = 'lessons' | 'community' | 'students';
 type PostType = 'discussion' | 'media' | 'live';
@@ -102,6 +103,10 @@ export default function MentorDashboard() {
   const [isEditAttachmentUploading, setIsEditAttachmentUploading] = useState(false);
   const editVideoInputRef = useRef<HTMLInputElement>(null);
   const editAttachmentInputRef = useRef<HTMLInputElement>(null);
+
+  // Drag & drop
+  const [dragLesson, setDragLesson] = useState<string | null>(null);
+  const [dragOverLesson, setDragOverLesson] = useState<string | null>(null);
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
@@ -357,6 +362,17 @@ export default function MentorDashboard() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
   });
 
+  const reorderLessons = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map((id, idx) =>
+          supabase.from('lessons').update({ position: idx }).eq('id', id)
+        )
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lessons'] }),
+  });
+
   const sendInvite = useMutation({
     mutationFn: async (contact: string) => {
       const { error } = await supabase.from('community_invites').insert({ mentor_id: user!.id, invited_by: user!.id, contact: contact.trim() });
@@ -541,6 +557,31 @@ export default function MentorDashboard() {
 
   const grantedCategoryIds = new Set(accessGrants.map(g => g.category_id));
 
+  // ── Drag handlers ────────────────────────────────────────────────────────────
+  const handleDragStart = useCallback((lessonId: string) => {
+    setDragLesson(lessonId);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, lessonId: string) => {
+    e.preventDefault();
+    setDragOverLesson(lessonId);
+  }, []);
+
+  const handleDrop = useCallback((categoryId: string | null, lessons: Lesson[]) => {
+    if (!dragLesson || !dragOverLesson || dragLesson === dragOverLesson) {
+      setDragLesson(null); setDragOverLesson(null); return;
+    }
+    const ids = lessons.map(l => l.id);
+    const fromIdx = ids.indexOf(dragLesson);
+    const toIdx = ids.indexOf(dragOverLesson);
+    if (fromIdx === -1 || toIdx === -1) { setDragLesson(null); setDragOverLesson(null); return; }
+    const reordered = [...ids];
+    reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, dragLesson);
+    reorderLessons.mutate(reordered);
+    setDragLesson(null); setDragOverLesson(null);
+  }, [dragLesson, dragOverLesson, reorderLessons]);
+
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -604,7 +645,10 @@ export default function MentorDashboard() {
             /* ── Normal Sidebar ── */
             <motion.div key="main-sidebar" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }} transition={{ duration: 0.18 }} className="flex flex-col h-full">
               <div className="p-5 border-b border-sidebar-border">
-                <div className="flex items-center gap-3">
+                <button
+                  onClick={signOut}
+                  className="flex items-center gap-3 w-full text-right hover:opacity-75 transition-opacity cursor-pointer"
+                >
                   <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
                     <TrendingUp className="w-5 h-5 text-primary-foreground" />
                   </div>
@@ -612,7 +656,7 @@ export default function MentorDashboard() {
                     <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
                     <div className="text-xs text-muted-foreground">מנטור</div>
                   </div>
-                </div>
+                </button>
               </div>
 
               <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -704,23 +748,9 @@ export default function MentorDashboard() {
                           )}
                         </div>
                         {/* Inline attachment viewer */}
-                        {lesson.attachment_url && (() => {
-                          const url = lesson.attachment_url!;
-                          const name = lesson.attachment_name ?? '';
-                          const ext = (url.split('?')[0].split('.').pop() ?? '').toLowerCase();
-                          const isPdf = ext === 'pdf';
-                          const isImage = ['png','jpg','jpeg','gif','webp','svg'].includes(ext);
-                          return (
-                            <div className="border-t border-border">
-                              <div className="flex items-center justify-between px-6 py-3 bg-primary/5">
-                                <div className="flex items-center gap-2 text-sm font-medium text-foreground"><Paperclip className="w-4 h-4 text-primary" /><span>{name || 'קובץ מצורף'}</span></div>
-                                <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:opacity-80">פתח בחלון נפרד ↗</a>
-                              </div>
-                              {isPdf && <div className="w-full" style={{ height: '520px' }}><iframe src={`${url}#toolbar=1&navpanes=0`} className="w-full h-full" title={name} /></div>}
-                              {isImage && <div className="px-6 pb-6 pt-2"><img src={url} alt={name} className="w-full max-h-[480px] object-contain rounded-lg border border-border bg-muted/30" /></div>}
-                            </div>
-                          );
-                        })()}
+                        {lesson.attachment_url && (
+                          <AttachmentViewer url={lesson.attachment_url} name={lesson.attachment_name ?? ''} />
+                        )}
                       </motion.div>
                     );
                   })() : (
@@ -798,8 +828,14 @@ export default function MentorDashboard() {
                             <div className="border-t border-border">
                               {catLessons.length === 0 ? (
                                 <div className="px-6 py-4 text-sm text-muted-foreground text-center">עדיין אין תכנים בקטגוריה זו.</div>
-                              ) : catLessons.map(lesson => (
-                                <LessonRow key={lesson.id} lesson={lesson}
+                              ) : catLessons.map((lesson, idx) => (
+                                <LessonRow key={lesson.id} lesson={lesson} index={idx + 1}
+                                  isDragging={dragLesson === lesson.id}
+                                  isDragOver={dragOverLesson === lesson.id}
+                                  onDragStart={() => handleDragStart(lesson.id)}
+                                  onDragOver={(e) => handleDragOver(e, lesson.id)}
+                                  onDrop={() => handleDrop(cat.id, catLessons)}
+                                  onDragEnd={() => { setDragLesson(null); setDragOverLesson(null); }}
                                   onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                                   onDelete={() => deleteLesson.mutate(lesson.id)}
                                   onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
@@ -821,8 +857,14 @@ export default function MentorDashboard() {
                       <span className="font-semibold text-muted-foreground flex-1 text-sm">ללא קטגוריה</span>
                     </div>
                     <div className="border-t border-border">
-                      {uncategorized.map(lesson => (
-                        <LessonRow key={lesson.id} lesson={lesson}
+                      {uncategorized.map((lesson, idx) => (
+                        <LessonRow key={lesson.id} lesson={lesson} index={idx + 1}
+                          isDragging={dragLesson === lesson.id}
+                          isDragOver={dragOverLesson === lesson.id}
+                          onDragStart={() => handleDragStart(lesson.id)}
+                          onDragOver={(e) => handleDragOver(e, lesson.id)}
+                          onDrop={() => handleDrop(null, uncategorized)}
+                          onDragEnd={() => { setDragLesson(null); setDragOverLesson(null); }}
                           onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                           onDelete={() => deleteLesson.mutate(lesson.id)}
                           onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
@@ -1543,9 +1585,18 @@ export default function MentorDashboard() {
 
 // ─── LessonRow ────────────────────────────────────────────────────────────────
 function LessonRow({
-  lesson, onTogglePublish, onDelete, onEdit, onView, typeIcon, typeLabel,
+  lesson, index, isDragging, isDragOver,
+  onDragStart, onDragOver, onDrop, onDragEnd,
+  onTogglePublish, onDelete, onEdit, onView, typeIcon, typeLabel,
 }: {
   lesson: Lesson;
+  index?: number;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  onDragStart?: () => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: () => void;
+  onDragEnd?: () => void;
   onTogglePublish: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -1554,7 +1605,33 @@ function LessonRow({
   typeLabel: (t: string) => string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer" onClick={onView}>
+    <div
+      draggable={!!onDragStart}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer select-none
+        ${isDragOver ? 'border-t-2 border-primary bg-primary/5' : ''}
+        ${isDragging ? 'opacity-40' : 'opacity-100'}
+      `}
+      onClick={onView}
+    >
+      {/* Drag handle + number */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <div
+          className="opacity-0 group-hover:opacity-60 hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity text-muted-foreground"
+          onMouseDown={e => e.stopPropagation()}
+          onClick={e => e.stopPropagation()}
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </div>
+        {index !== undefined && (
+          <span className="w-5 h-5 flex items-center justify-center text-xs font-bold text-muted-foreground">
+            {index}
+          </span>
+        )}
+      </div>
       <div className="w-7 h-7 rounded-md bg-muted flex items-center justify-center shrink-0">
         {typeIcon(lesson.lesson_type)}
       </div>
