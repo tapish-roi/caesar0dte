@@ -604,7 +604,10 @@ export default function MentorDashboard() {
             /* ── Normal Sidebar ── */
             <motion.div key="main-sidebar" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 12 }} transition={{ duration: 0.18 }} className="flex flex-col h-full">
               <div className="p-5 border-b border-sidebar-border">
-                <div className="flex items-center gap-3">
+                <button
+                  onClick={signOut}
+                  className="flex items-center gap-3 w-full text-right hover:opacity-75 transition-opacity cursor-pointer"
+                >
                   <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
                     <TrendingUp className="w-5 h-5 text-primary-foreground" />
                   </div>
@@ -612,7 +615,7 @@ export default function MentorDashboard() {
                     <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
                     <div className="text-xs text-muted-foreground">מנטור</div>
                   </div>
-                </div>
+                </button>
               </div>
 
               <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
