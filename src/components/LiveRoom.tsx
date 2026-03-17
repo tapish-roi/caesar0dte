@@ -42,9 +42,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [showSettings, setShowSettings] = useState(false);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [outputDevices, setOutputDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedMic, setSelectedMic] = useState('');
   const [selectedCamera, setSelectedCamera] = useState('');
+  const [selectedOutput, setSelectedOutput] = useState('');
   const [volume, setVolume] = useState(100);
+  const [settingsTab, setSettingsTab] = useState<'mic' | 'audio' | 'camera'>('mic');
 
   // Drawing state
   const [drawing, setDrawing] = useState(false);
