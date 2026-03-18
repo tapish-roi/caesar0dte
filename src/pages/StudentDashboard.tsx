@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp, BookOpen, Users, Video, Film, FileText,
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
   User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
-  CalendarDays, Filter, XCircle, MessageCircleQuestion,
+  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList,
 } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { he } from 'date-fns/locale';
