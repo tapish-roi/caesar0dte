@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import {
   ClipboardList, ChevronRight, Check, AlignLeft, List,
-  Send, TrendingUp, CheckCircle2, X,
+  Send, TrendingUp, CheckCircle2, X, Eye,
 } from 'lucide-react';
 
 interface QuizQuestion {
@@ -34,6 +34,13 @@ interface Quiz {
   lesson_id: string | null;
 }
 
+interface ReviewAnswer {
+  question_id: string;
+  selected_option_id: string | null;
+  answer_text: string | null;
+  is_correct: boolean | null;
+}
+
 type Answers = Record<string, { type: 'multiple_choice'; optionId: string } | { type: 'free_text'; text: string }>;
 
 export default function StudentQuizPage() {
@@ -45,6 +52,7 @@ export default function StudentQuizPage() {
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState<{ got: number; max: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showReview, setShowReview] = useState(false);
 
   const { data: quiz, isLoading: quizLoading } = useQuery<Quiz | null>({
     queryKey: ['student-quiz', quizId],
@@ -101,6 +109,19 @@ export default function StudentQuizPage() {
     enabled: !!quizId && !!user,
   });
 
+  // Fetch review answers when user clicks "view answers"
+  const { data: reviewAnswers = [] } = useQuery<ReviewAnswer[]>({
+    queryKey: ['student-quiz-review-answers', existingSubmission?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('quiz_answers')
+        .select('question_id, selected_option_id, answer_text, is_correct')
+        .eq('submission_id', existingSubmission!.id);
+      return (data ?? []) as ReviewAnswer[];
+    },
+    enabled: !!existingSubmission?.id && showReview,
+  });
+
   const isLoading = quizLoading || questionsLoading;
   const mcQuestions = questions.filter(q => q.question_type === 'multiple_choice');
   const answeredCount = Object.keys(answers).length;
@@ -111,6 +132,9 @@ export default function StudentQuizPage() {
     if (a.type === 'multiple_choice') return !!a.optionId;
     return false;
   });
+
+  const toPercent = (got: number, max: number) =>
+    max > 0 ? Math.round((got / max) * 100) : null;
 
   const handleSubmit = async () => {
     if (!user || !quiz) return;
@@ -127,15 +151,17 @@ export default function StudentQuizPage() {
         }
       }
 
-      // Insert submission
+      const pct = toPercent(got, max);
+
+      // Insert submission — store percentage in score, 100 in max_score
       const { data: sub, error: subErr } = await supabase
         .from('quiz_submissions')
         .insert({
           quiz_id: quiz.id,
           student_id: user.id,
           mentor_id: quiz.mentor_id,
-          score: max > 0 ? got : null,
-          max_score: max > 0 ? max : null,
+          score: pct,
+          max_score: max > 0 ? 100 : null,
         })
         .select('id')
         .single();
@@ -189,41 +215,154 @@ export default function StudentQuizPage() {
     );
   }
 
-  // Already submitted
+  // ── REVIEW SCREEN (already submitted + clicked "view answers") ──
+  if (existingSubmission && showReview) {
+    return (
+      <div className="min-h-screen bg-background" dir="rtl">
+        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
+          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+            <button onClick={() => setShowReview(false)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronRight className="w-4 h-4" />חזרה לתוצאה
+            </button>
+            <span className="text-sm font-semibold text-foreground flex-1 text-center">סקירת תשובות</span>
+          </div>
+        </div>
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+          {questions.map((q, idx) => {
+            const qOptions = options.filter(o => o.question_id === q.id);
+            const rv = reviewAnswers.find(a => a.question_id === q.id);
+            return (
+              <motion.div
+                key={q.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.04 }}
+                className="bg-card border border-border rounded-xl overflow-hidden"
+              >
+                {/* Question header */}
+                <div className={`flex items-center gap-3 px-5 py-3 border-b border-border ${
+                  q.question_type === 'free_text' ? 'bg-muted/20' :
+                  rv?.is_correct ? 'bg-accent/10' : 'bg-destructive/10'
+                }`}>
+                  <span className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center shrink-0 ${
+                    q.question_type === 'free_text' ? 'bg-muted text-muted-foreground' :
+                    rv?.is_correct ? 'bg-accent text-accent-foreground' : 'bg-destructive text-destructive-foreground'
+                  }`}>
+                    {q.question_type === 'free_text' ? idx + 1 :
+                     rv?.is_correct ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                  </span>
+                  <p className="text-sm font-semibold text-foreground flex-1 text-right">{q.question_text}</p>
+                  {q.question_type !== 'free_text' && (
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      rv?.is_correct ? 'bg-accent/20 text-accent' : 'bg-destructive/20 text-destructive'
+                    }`}>
+                      {rv?.is_correct ? 'נכון' : 'שגוי'}
+                    </span>
+                  )}
+                </div>
+                <div className="p-5">
+                  {q.question_type === 'multiple_choice' ? (
+                    <div className="space-y-2">
+                      {qOptions.map((opt, oIdx) => {
+                        const isStudentAnswer = rv?.selected_option_id === opt.id;
+                        const isCorrectAnswer = opt.is_correct;
+                        let style = 'border-border bg-muted/10 text-muted-foreground';
+                        if (isCorrectAnswer) style = 'border-accent bg-accent/10 text-foreground';
+                        if (isStudentAnswer && !isCorrectAnswer) style = 'border-destructive bg-destructive/10 text-foreground';
+                        return (
+                          <div key={opt.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${style}`}>
+                            <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold transition-all ${
+                              isCorrectAnswer ? 'border-accent bg-accent text-accent-foreground' :
+                              isStudentAnswer ? 'border-destructive bg-destructive text-destructive-foreground' :
+                              'border-border text-muted-foreground'
+                            }`}>
+                              {isCorrectAnswer ? <Check className="w-3.5 h-3.5" /> :
+                               isStudentAnswer ? <X className="w-3.5 h-3.5" /> :
+                               String.fromCharCode(65 + oIdx)}
+                            </span>
+                            <span className="text-sm flex-1">{opt.option_text}</span>
+                            {isCorrectAnswer && (
+                              <span className="text-xs font-medium text-accent">תשובה נכונה</span>
+                            )}
+                            {isStudentAnswer && !isCorrectAnswer && (
+                              <span className="text-xs font-medium text-destructive">הבחירה שלך</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-muted/30 rounded-xl border border-border">
+                      <p className="text-xs text-muted-foreground mb-1 font-medium">התשובה שלך:</p>
+                      <p className="text-sm text-foreground">{rv?.answer_text || '—'}</p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+          <button
+            onClick={() => navigate(-1)}
+            className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all mt-2"
+          >
+            חזרה לשיעור
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── ALREADY SUBMITTED SCREEN ──
   if (existingSubmission && !submitted) {
+    const pct = existingSubmission.score;
     return (
       <div className="min-h-screen bg-background" dir="rtl">
         <div className="max-w-2xl mx-auto px-4 py-8">
-          {/* Back */}
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
             <ChevronRight className="w-4 h-4" />חזרה לשיעור
           </button>
           <div className="bg-card border border-border rounded-2xl p-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-accent" />
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              pct == null ? 'bg-accent/10' : pct >= 70 ? 'bg-accent/10' : 'bg-destructive/10'
+            }`}>
+              {pct == null || pct >= 70
+                ? <CheckCircle2 className="w-8 h-8 text-accent" />
+                : <X className="w-8 h-8 text-destructive" />}
             </div>
             <h2 className="text-xl font-bold text-foreground mb-2">כבר הגשת מבחן זה</h2>
-            {existingSubmission.score != null && (
-              <p className="text-3xl font-bold text-primary mt-3">
-                {existingSubmission.score}/{existingSubmission.max_score}
-              </p>
+            {pct != null ? (
+              <>
+                <p className={`text-5xl font-bold mt-3 ${pct >= 70 ? 'text-accent' : 'text-destructive'}`}>
+                  {pct}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">נקודות מתוך 100</p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-2">המבחן הוגש — ציון טרם נקבע</p>
             )}
-            <p className="text-sm text-muted-foreground mt-2">לא ניתן להגיש פעמיים</p>
-            <button
-              onClick={() => navigate(-1)}
-              className="mt-6 h-10 px-6 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
-            >
-              חזרה לשיעור
-            </button>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex-1 h-10 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+              >
+                חזרה לשיעור
+              </button>
+              <button
+                onClick={() => setShowReview(true)}
+                className="flex-1 h-10 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
+              >
+                <Eye className="w-4 h-4" />צפה בתשובות
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // Result screen
+  // ── RESULT SCREEN (just submitted) ──
   if (submitted && score) {
-    const pct = score.max > 0 ? Math.round((score.got / score.max) * 100) : null;
+    const pct = toPercent(score.got, score.max);
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4" dir="rtl">
         <motion.div
@@ -243,12 +382,12 @@ export default function StudentQuizPage() {
             )}
           </div>
           <h2 className="text-2xl font-bold text-foreground mb-1">המבחן הוגש!</h2>
-          {score.max > 0 ? (
+          {pct != null ? (
             <>
-              <p className="text-4xl font-bold text-primary mt-3">{score.got}/{score.max}</p>
-              {pct != null && (
-                <p className="text-sm text-muted-foreground mt-1">{pct}% תשובות נכונות</p>
-              )}
+              <p className={`text-5xl font-bold mt-3 ${pct >= 70 ? 'text-accent' : 'text-destructive'}`}>
+                {pct}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">נקודות מתוך 100</p>
             </>
           ) : (
             <p className="text-sm text-muted-foreground mt-3">המבחן הוגש בהצלחה. השאלות הפתוחות נשלחו למנטור.</p>
@@ -272,6 +411,7 @@ export default function StudentQuizPage() {
     );
   }
 
+  // ── QUIZ FORM ──
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
