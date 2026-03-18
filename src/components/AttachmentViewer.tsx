@@ -1,4 +1,5 @@
-import { Download, FileText, MonitorPlay } from 'lucide-react';
+import { useState } from 'react';
+import { Download, FileText, MonitorPlay, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface AttachmentViewerProps {
   url: string;
@@ -9,15 +10,22 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
   const cleanUrl = url.split('?')[0];
   const ext = (cleanUrl.split('.').pop() ?? '').toLowerCase();
   const displayName = name || 'קובץ מצורף';
+  const [iframeKey, setIframeKey] = useState(0);
 
   const isPdf = ext === 'pdf';
   const isPpt = ext === 'ppt' || ext === 'pptx';
   const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
   const isDoc = ['doc', 'docx'].includes(ext);
-  const isViewable = isPdf || isPpt || isImage || isDoc;
+  const isOffice = isPpt || isDoc;
+  const isViewable = isPdf || isOffice || isImage;
 
-  // Google Docs Viewer for PPT/PPTX/DOC/DOCX
+  // Google Docs Viewer for PPT/PPTX/DOC/DOCX (embedded)
   const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  // Google Docs Viewer for new-tab open (non-embedded, full UI)
+  const googleViewerOpenUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}`;
+
+  // For "open in new tab": office files → Google Viewer, PDF/image → direct URL
+  const openUrl = isOffice ? googleViewerOpenUrl : url;
 
   return (
     <div className="border-t border-border">
@@ -32,6 +40,28 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
           <span>{displayName}</span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Reload iframe (for office files that sometimes fail to load) */}
+          {isOffice && (
+            <button
+              onClick={() => setIframeKey(k => k + 1)}
+              title="טען מחדש"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              טען מחדש
+            </button>
+          )}
+          {/* Open in new tab — office files open in Google Viewer, others open directly */}
+          <a
+            href={openUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
+            onClick={e => e.stopPropagation()}
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            פתח בחלון
+          </a>
           {/* Download button — always visible */}
           <a
             href={url}
@@ -44,22 +74,14 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
             <Download className="w-3.5 h-3.5" />
             הורד
           </a>
-          {/* Open in new tab */}
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-primary hover:opacity-80 transition-opacity"
-          >
-            פתח בחלון ↗
-          </a>
         </div>
       </div>
 
-      {/* Inline viewer */}
+      {/* Inline viewer — PDF */}
       {isPdf && (
         <div style={{ height: '540px' }} className="w-full">
           <iframe
+            key={iframeKey}
             src={`${url}#toolbar=1&navpanes=0`}
             className="w-full h-full"
             title={displayName}
@@ -67,14 +89,21 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
         </div>
       )}
 
-      {(isPpt || isDoc) && (
-        <div style={{ height: '540px' }} className="w-full bg-muted/20">
+      {/* Inline viewer — Office files via Google Docs Viewer */}
+      {isOffice && (
+        <div style={{ height: '560px' }} className="w-full bg-muted/20 relative">
           <iframe
+            key={iframeKey}
             src={googleViewerUrl}
             className="w-full h-full"
             title={displayName}
             allow="autoplay"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
           />
+          {/* Overlay hint shown when iframe looks blank */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm border border-border rounded-lg px-4 py-2 text-xs text-muted-foreground pointer-events-none">
+            אם התצוגה לא נטענת — לחץ "טען מחדש" או "פתח בחלון"
+          </div>
         </div>
       )}
 
