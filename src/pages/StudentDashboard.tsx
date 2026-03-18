@@ -1291,6 +1291,20 @@ export default function StudentDashboard() {
             </motion.div>
           )}
 
+          {/* ──────── MY QUESTIONS ──────── */}
+          {activeTab === 'questions' && mentorId && user && (
+            <motion.div key="questions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+              <StudentMyQuestions studentId={user.id} mentorId={mentorId} />
+            </motion.div>
+          )}
+
+          {activeTab === 'questions' && !mentorId && (
+            <motion.div key="questions-no-mentor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 text-center text-muted-foreground">
+              <MessageCircleQuestion className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">לא נבחרה קהילה</p>
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </main>
 
