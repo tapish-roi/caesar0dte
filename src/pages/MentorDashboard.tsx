@@ -1203,6 +1203,13 @@ export default function MentorDashboard() {
             </motion.div>
           )}
 
+          {/* ──────── QUIZZES ──────── */}
+          {activeTab === 'quizzes' && user && (
+            <motion.div key="quizzes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-h-0 h-full overflow-hidden">
+              <MentorQuizzesHub mentorId={user.id} initialLessonId={quizNavLessonId} />
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </main>
 
