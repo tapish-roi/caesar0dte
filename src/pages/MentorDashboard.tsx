@@ -766,7 +766,7 @@ export default function MentorDashboard() {
 
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
-            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-4xl">
+            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={lessonViewMode && selectedLesson ? "p-8 w-full" : "p-8 max-w-4xl"}>
 
               {/* ── Lesson View Mode (player in main area, list in sidebar) ── */}
               {lessonViewMode ? (
@@ -775,54 +775,59 @@ export default function MentorDashboard() {
                     const lesson = lessons.find(l => l.id === selectedLesson);
                     if (!lesson) return null;
                     return (
-                      <motion.div key={lesson.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-card rounded-xl card-shadow overflow-hidden">
-                        {/* Video area */}
-                        <div className="aspect-video bg-foreground/5 border-b border-border flex items-center justify-center">
-                          {lesson.video_url ? (
-                            <video src={lesson.video_url} className="w-full h-full" controls />
-                          ) : (
-                            <div className="text-center">
-                              <Video className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />
-                              <p className="text-sm text-muted-foreground">אין קובץ וידאו</p>
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-6">
-                          <div className="flex items-start justify-between gap-4">
-                            <h2 className="text-xl font-bold text-foreground">{lesson.title}</h2>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${lesson.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
-                                {lesson.is_published ? 'פורסם' : 'טיוטה'}
-                              </span>
-                              <button
-                                onClick={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
-                                className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-foreground hover:bg-muted transition-all"
-                              >
-                                <Pencil className="w-3.5 h-3.5" />ערוך
-                              </button>
-                            </div>
+                      <motion.div key={lesson.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex gap-6 items-start">
+                        {/* Left column: lesson content */}
+                        <div className="flex-1 min-w-0 bg-card rounded-xl card-shadow overflow-hidden">
+                          {/* Video area */}
+                          <div className="aspect-video bg-foreground/5 border-b border-border flex items-center justify-center">
+                            {lesson.video_url ? (
+                              <video src={lesson.video_url} className="w-full h-full" controls />
+                            ) : (
+                              <div className="text-center">
+                                <Video className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />
+                                <p className="text-sm text-muted-foreground">אין קובץ וידאו</p>
+                              </div>
+                            )}
                           </div>
-                          {lesson.description && <p className="text-sm text-muted-foreground mt-2">{lesson.description}</p>}
-                          {lesson.duration_minutes && (
-                            <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
-                              <span>{lesson.duration_minutes} דקות</span>
+                          <div className="p-6">
+                            <div className="flex items-start justify-between gap-4">
+                              <h2 className="text-xl font-bold text-foreground">{lesson.title}</h2>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${lesson.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
+                                  {lesson.is_published ? 'פורסם' : 'טיוטה'}
+                                </span>
+                                <button
+                                  onClick={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
+                                  className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-foreground hover:bg-muted transition-all"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />ערוך
+                                </button>
+                              </div>
                             </div>
+                            {lesson.description && <p className="text-sm text-muted-foreground mt-2">{lesson.description}</p>}
+                            {lesson.duration_minutes && (
+                              <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
+                                <span>{lesson.duration_minutes} דקות</span>
+                              </div>
+                            )}
+                          </div>
+                          {/* Inline attachment viewer */}
+                          {lesson.attachment_url && (
+                            <AttachmentViewer url={lesson.attachment_url} name={lesson.attachment_name ?? ''} />
                           )}
+                          {/* Q&A for mentor to see/answer */}
+                          <div className="px-6 pb-6">
+                            <LessonQA
+                              lessonId={lesson.id}
+                              mentorId={user!.id}
+                              studentId={user!.id}
+                              studentName={mentorProfile?.full_name || user?.email || 'מנטור'}
+                              isMentor={true}
+                            />
+                          </div>
                         </div>
-                        {/* Inline attachment viewer */}
-                        {lesson.attachment_url && (
-                          <AttachmentViewer url={lesson.attachment_url} name={lesson.attachment_name ?? ''} />
-                        )}
-                        {/* Q&A for mentor to see/answer */}
-                        <div className="px-6 pb-6">
-                          <LessonQA
-                            lessonId={lesson.id}
-                            mentorId={user!.id}
-                            studentId={user!.id}
-                            studentName={mentorProfile?.full_name || user?.email || 'מנטור'}
-                            isMentor={true}
-                          />
-                        </div>
+                        {/* Right column: quiz panel */}
+                        <LessonQuizPanel lessonId={lesson.id} mentorId={user!.id} onCreateQuiz={() => { setQuizNavLessonId(lesson.id); setActiveTab('quizzes'); }} />
                       </motion.div>
                     );
                   })() : (
