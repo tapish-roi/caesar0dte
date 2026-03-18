@@ -627,14 +627,7 @@ function QuizDetail({
                   className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
                 >
                   <option value="">כל הקטגוריות</option>
-                  {lessons.reduce<string[]>((acc, l) => l.category_id && !acc.includes(l.category_id) ? [...acc, l.category_id] : acc, []).map(catId => {
-                    const cat = lessons.find(l => l.category_id === catId);
-                    return null; // will use categories prop below
-                  })}
-                  {lessons.filter((l, i, arr) => l.category_id && arr.findIndex(x => x.category_id === l.category_id) === i).map(l => {
-                    const catFromProp = (lessons as { id: string; title: string; category_id: string | null }[]) && null;
-                    return null;
-                  })}
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                 </select>
               </div>
               <div>
