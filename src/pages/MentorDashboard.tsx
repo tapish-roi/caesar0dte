@@ -9,15 +9,16 @@ import {
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, MessageSquare, MessageCircle, Pin, PinOff,
   ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
-  MessageCircleQuestion,
+  MessageCircleQuestion, ClipboardList,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
 import MentorQuestionsHub from '@/components/MentorQuestionsHub';
+import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
 
-type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions';
+type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes';
 type PostType = 'discussion' | 'media';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
