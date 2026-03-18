@@ -621,6 +621,21 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
     );
   }
 
+  if (view === 'quiz-detail' && selectedQuizId) {
+    const quiz = quizzes.find(q => q.id === selectedQuizId);
+    return (
+      <QuizDetail
+        quizId={selectedQuizId}
+        quiz={quiz ?? null}
+        mentorId={mentorId}
+        lessons={lessons}
+        onBack={() => setView('list')}
+        onDeleted={() => { setSelectedQuizId(null); setView('list'); qc.invalidateQueries({ queryKey: ['mentor-quizzes', mentorId] }); }}
+        onTogglePublish={(id, is_published) => togglePublish.mutate({ id, is_published })}
+      />
+    );
+  }
+
   if (view === 'submission-detail' && selectedSubmission) {
     return (
       <SubmissionDetail
