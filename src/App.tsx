@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import AuthPage from "./pages/AuthPage";
 import MentorDashboard from "./pages/MentorDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentQuizPage from "./pages/StudentQuizPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
