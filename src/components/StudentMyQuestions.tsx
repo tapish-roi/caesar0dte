@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  MessageCircleQuestion, Lock, BookOpen, Clock, Check, ChevronDown, Reply,
+  MessageCircleQuestion, Lock, BookOpen, Clock, Check, ChevronDown, Reply, ArrowLeft,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -11,6 +11,7 @@ import { he } from 'date-fns/locale';
 interface Props {
   studentId: string;
   mentorId: string;
+  onGoToLesson?: (lessonId: string) => void;
 }
 
 interface MyQuestion {
