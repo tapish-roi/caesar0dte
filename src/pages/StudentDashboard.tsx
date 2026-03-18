@@ -332,6 +332,7 @@ export default function StudentDashboard() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
