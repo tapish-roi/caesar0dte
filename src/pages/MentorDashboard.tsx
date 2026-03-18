@@ -148,6 +148,27 @@ export default function MentorDashboard() {
     enabled: !!user,
   });
 
+  // Unanswered questions count for sidebar badge
+  const { data: unansweredCount = 0 } = useQuery<number>({
+    queryKey: ['unanswered-questions-count', user?.id],
+    queryFn: async () => {
+      const [{ count: privateCount }, { data: lessonQs }] = await Promise.all([
+        supabase.from('private_questions').select('*', { count: 'exact', head: true }).eq('mentor_id', user!.id).is('answer', null),
+        supabase.from('lesson_questions').select('id').eq('mentor_id', user!.id),
+      ]);
+      const lessonIds = (lessonQs ?? []).map(q => q.id);
+      let unansweredLesson = 0;
+      if (lessonIds.length > 0) {
+        const { data: answers } = await supabase.from('lesson_question_answers').select('question_id').in('question_id', lessonIds);
+        const answeredIds = new Set((answers ?? []).map(a => a.question_id));
+        unansweredLesson = lessonIds.filter(id => !answeredIds.has(id)).length;
+      }
+      return (privateCount ?? 0) + unansweredLesson;
+    },
+    enabled: !!user,
+    refetchInterval: 30000,
+  });
+
   const { data: members = [] } = useQuery<{ student_id: string; joined_at: string; profiles: { full_name: string; email: string } | null }[]>({
     queryKey: ['members', user?.id],
     queryFn: async () => {
