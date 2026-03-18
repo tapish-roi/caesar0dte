@@ -449,6 +449,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   const { toast } = useToast();
   const qc = useQueryClient();
   const [view, setView] = useState<'list' | 'create' | 'submissions' | 'submission-detail'>('list');
+  const [filterCategoryId, setFilterCategoryId] = useState<string>('');
   const [filterLessonId, setFilterLessonId] = useState<string>('');
   const [filterStudentId, setFilterStudentId] = useState<string>('');
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
@@ -457,10 +458,18 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM yyyy", { locale: he });
 
   // ── Queries ──
-  const { data: lessons = [] } = useQuery<{ id: string; title: string }[]>({
+  const { data: categories = [] } = useQuery<{ id: string; title: string }[]>({
+    queryKey: ['categories-for-quiz', mentorId],
+    queryFn: async () => {
+      const { data } = await supabase.from('categories').select('id, title').eq('mentor_id', mentorId).order('position');
+      return data ?? [];
+    },
+  });
+
+  const { data: lessons = [] } = useQuery<{ id: string; title: string; category_id: string | null }[]>({
     queryKey: ['lessons-for-quiz', mentorId],
     queryFn: async () => {
-      const { data } = await supabase.from('lessons').select('id, title').eq('mentor_id', mentorId).order('position');
+      const { data } = await supabase.from('lessons').select('id, title, category_id').eq('mentor_id', mentorId).order('position');
       return data ?? [];
     },
   });
