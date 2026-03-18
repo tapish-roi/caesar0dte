@@ -334,7 +334,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz }: { lessonId: string
     queryFn: async () => {
       const { data } = await supabase
         .from('quizzes')
-        .select('id, title, is_published')
+        .select('id, title, description, is_published')
         .eq('mentor_id', mentorId)
         .eq('lesson_id', lessonId)
         .eq('is_published', true)
