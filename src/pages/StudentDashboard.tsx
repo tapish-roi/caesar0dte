@@ -888,6 +888,7 @@ export default function StudentDashboard() {
                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                   { key: 'community', label: 'קהילה', icon: Users },
                   { key: 'live', label: 'לייב', icon: Radio },
+                  { key: 'questions', label: 'השאלות שלי', icon: MessageCircleQuestion },
                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
