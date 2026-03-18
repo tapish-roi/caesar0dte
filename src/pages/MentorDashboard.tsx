@@ -691,11 +691,12 @@ export default function MentorDashboard() {
               </div>
 
               <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-                {([
+               {([
                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                   { key: 'community', label: 'קהילה', icon: Users },
                   { key: 'students', label: 'תלמידים', icon: GraduationCap },
                   { key: 'live', label: 'לייב', icon: Radio },
+                  { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
