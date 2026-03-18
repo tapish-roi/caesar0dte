@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp, BookOpen, Users, Video, Film, FileText,
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
   User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
-  CalendarDays, Filter, XCircle, MessageCircleQuestion,
+  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList,
 } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -326,11 +327,55 @@ function LandingScreen({
   );
 }
 
+// ─── Lesson Quiz Button ───────────────────────────────────────────────────────
+function LessonQuizButton({ lessonId, mentorId, onTakeQuiz }: { lessonId: string; mentorId: string; onTakeQuiz: (quizId: string) => void }) {
+  const { data: quiz, isLoading } = useQuery({
+    queryKey: ['student-lesson-quiz-btn', lessonId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('quizzes')
+        .select('id, title, is_published')
+        .eq('mentor_id', mentorId)
+        .eq('lesson_id', lessonId)
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!lessonId && !!mentorId,
+  });
+
+  if (isLoading || !quiz) return null;
+
+  return (
+    <div className="px-6 pb-4">
+      <div className="flex items-center gap-4 p-4 bg-primary/5 border border-primary/20 rounded-xl">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <ClipboardList className="w-5 h-5 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground">מבחן: {quiz.title}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">בחן את עצמך על חומר השיעור</p>
+        </div>
+        <button
+          onClick={() => onTakeQuiz(quiz.id)}
+          className="h-9 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all shrink-0"
+        >
+          התחל מבחן
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
+
   const { toast } = useToast();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
@@ -1046,6 +1091,8 @@ export default function StudentDashboard() {
                       {selectedLessonData.attachment_url && (
                         <AttachmentViewer url={selectedLessonData.attachment_url} name={selectedLessonData.attachment_name ?? ''} />
                       )}
+                      {/* Quiz button */}
+                      <LessonQuizButton lessonId={selectedLessonData.id} mentorId={mentorId!} onTakeQuiz={(quizId) => navigate(`/quiz/${quizId}`)} />
                       {/* Q&A section */}
                       {mentorId && (
                         <div className="px-6 pb-6">
