@@ -419,8 +419,14 @@ function QuizDetail({
   const { toast } = useToast();
   const qc = useQueryClient();
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM yyyy, HH:mm", { locale: he });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editLessonId, setEditLessonId] = useState('');
+  const [editQuestions, setEditQuestions] = useState<DraftQuestion[]>([]);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-  const { data: questions = [], isLoading } = useQuery<QuizQuestion[]>({
+  const { data: questions = [], isLoading, refetch: refetchQuestions } = useQuery<QuizQuestion[]>({
     queryKey: ['quiz-detail-questions', quizId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -433,7 +439,7 @@ function QuizDetail({
     },
   });
 
-  const { data: options = [] } = useQuery<QuizOption[]>({
+  const { data: options = [], refetch: refetchOptions } = useQuery<QuizOption[]>({
     queryKey: ['quiz-detail-options', quizId],
     queryFn: async () => {
       if (questions.length === 0) return [];
@@ -449,12 +455,275 @@ function QuizDetail({
 
   const lessonTitle = quiz?.lesson_id ? lessons.find(l => l.id === quiz.lesson_id)?.title : null;
 
+  // Enter edit mode: populate draft state
+  const enterEdit = () => {
+    if (!quiz) return;
+    setEditTitle(quiz.title);
+    setEditDescription(quiz.description ?? '');
+    setEditLessonId(quiz.lesson_id ?? '');
+    // Build draft questions from loaded data
+    const drafts: DraftQuestion[] = questions.map(q => ({
+      id: q.id,
+      text: q.question_text,
+      type: q.question_type,
+      options: options
+        .filter(o => o.question_id === q.id)
+        .sort((a, b) => a.position - b.position)
+        .map(o => ({ id: o.id, text: o.option_text, isCorrect: o.is_correct })),
+    }));
+    setEditQuestions(drafts.length > 0 ? drafts : [defaultDraftQuestion()]);
+    setIsEditing(true);
+  };
+
+  // Draft helpers (same as QuizBuilder)
+  const addEditQuestion = (type: QuestionType) => {
+    const q: DraftQuestion = {
+      id: genId(),
+      text: '',
+      type,
+      options: type === 'multiple_choice' ? [
+        { id: genId(), text: '', isCorrect: false },
+        { id: genId(), text: '', isCorrect: false },
+        { id: genId(), text: '', isCorrect: false },
+        { id: genId(), text: '', isCorrect: false },
+      ] : [],
+    };
+    setEditQuestions(prev => [...prev, q]);
+  };
+  const removeEditQuestion = (qId: string) => setEditQuestions(prev => prev.filter(q => q.id !== qId));
+  const updateEditQuestion = (qId: string, patch: Partial<DraftQuestion>) =>
+    setEditQuestions(prev => prev.map(q => q.id === qId ? { ...q, ...patch } : q));
+  const updateEditOption = (qId: string, optId: string, patch: Partial<DraftOption>) =>
+    setEditQuestions(prev => prev.map(q => q.id === qId ? {
+      ...q, options: q.options.map(o => o.id === optId ? { ...o, ...patch } : o),
+    } : q));
+  const setEditCorrect = (qId: string, optId: string) =>
+    setEditQuestions(prev => prev.map(q => q.id === qId ? {
+      ...q, options: q.options.map(o => ({ ...o, isCorrect: o.id === optId })),
+    } : q));
+  const addEditOption = (qId: string) =>
+    setEditQuestions(prev => prev.map(q => q.id === qId ? {
+      ...q, options: [...q.options, { id: genId(), text: '', isCorrect: false }],
+    } : q));
+  const removeEditOption = (qId: string, optId: string) =>
+    setEditQuestions(prev => prev.map(q => q.id === qId ? {
+      ...q, options: q.options.filter(o => o.id !== optId),
+    } : q));
+
+  const handleSaveEdit = async () => {
+    if (!editTitle.trim()) { toast({ title: 'נדרשת כותרת', variant: 'destructive' }); return; }
+    if (editQuestions.some(q => !q.text.trim())) { toast({ title: 'כל השאלות חייבות להיות מלאות', variant: 'destructive' }); return; }
+    setIsSavingEdit(true);
+    try {
+      // Update quiz meta
+      await supabase.from('quizzes').update({
+        title: editTitle.trim(),
+        description: editDescription.trim() || null,
+        lesson_id: editLessonId || null,
+      }).eq('id', quizId);
+
+      // Delete all existing questions (cascade deletes options)
+      await supabase.from('quiz_question_options').delete().in('question_id', questions.map(q => q.id));
+      await supabase.from('quiz_questions').delete().eq('quiz_id', quizId);
+
+      // Re-insert questions + options
+      for (let i = 0; i < editQuestions.length; i++) {
+        const dq = editQuestions[i];
+        const { data: dbQ, error: qqErr } = await supabase.from('quiz_questions').insert({
+          quiz_id: quizId,
+          question_text: dq.text.trim(),
+          question_type: dq.type,
+          position: i,
+        }).select('id').single();
+        if (qqErr) throw qqErr;
+        if (dq.type === 'multiple_choice' && dq.options.length > 0) {
+          const opts = dq.options
+            .filter(o => o.text.trim())
+            .map((o, idx) => ({ question_id: dbQ.id, option_text: o.text.trim(), is_correct: o.isCorrect, position: idx }));
+          if (opts.length > 0) await supabase.from('quiz_question_options').insert(opts);
+        }
+      }
+
+      qc.invalidateQueries({ queryKey: ['quiz-detail-questions', quizId] });
+      qc.invalidateQueries({ queryKey: ['quiz-detail-options', quizId] });
+      qc.invalidateQueries({ queryKey: ['mentor-quizzes', mentorId] });
+      qc.invalidateQueries({ queryKey: ['lesson-quiz-panel', quiz?.lesson_id] });
+      await refetchQuestions();
+      toast({ title: 'המבחן עודכן בהצלחה!' });
+      setIsEditing(false);
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'שגיאה בשמירת השינויים', variant: 'destructive' });
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleDelete = async () => {
     const { error } = await supabase.from('quizzes').delete().eq('id', quizId);
     if (error) { toast({ title: 'שגיאה במחיקה', variant: 'destructive' }); return; }
     toast({ title: 'המבחן נמחק' });
     onDeleted();
   };
+
+  // ── EDIT MODE ──
+  if (isEditing) {
+    return (
+      <div className="h-full flex flex-col" dir="rtl">
+        <div className="px-8 pt-8 pb-0 shrink-0">
+          <div className="flex items-center gap-3 mb-5">
+            <button onClick={() => setIsEditing(false)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
+              <ChevronRight className="w-4 h-4" />ביטול עריכה
+            </button>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                <ClipboardList className="w-4 h-4 text-primary" />
+              </div>
+              <h1 className="text-xl font-bold text-foreground">עריכת מבחן</h1>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-8 pb-8">
+          {/* Meta */}
+          <div className="bg-card border border-border rounded-xl p-5 mb-5 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">כותרת המבחן *</label>
+              <input
+                value={editTitle} onChange={e => setEditTitle(e.target.value)}
+                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">שייך לשיעור</label>
+                <select
+                  value={editLessonId}
+                  onChange={e => setEditLessonId(e.target.value)}
+                  className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+                >
+                  <option value="">ללא שיעור</option>
+                  {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">תיאור</label>
+                <input
+                  value={editDescription} onChange={e => setEditDescription(e.target.value)}
+                  className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Questions editor */}
+          <div className="space-y-4 mb-5">
+            {editQuestions.map((q, qIdx) => (
+              <div key={q.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
+                  <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-semibold text-foreground">שאלה {qIdx + 1}</span>
+                  <div className="flex gap-1 mr-auto">
+                    <button
+                      onClick={() => updateEditQuestion(q.id, { type: 'multiple_choice', options: q.type === 'multiple_choice' ? q.options : [
+                        { id: genId(), text: '', isCorrect: false }, { id: genId(), text: '', isCorrect: false },
+                        { id: genId(), text: '', isCorrect: false }, { id: genId(), text: '', isCorrect: false },
+                      ]})}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        q.type === 'multiple_choice' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <List className="w-3 h-3" />אמריקאית
+                    </button>
+                    <button
+                      onClick={() => updateEditQuestion(q.id, { type: 'free_text', options: [] })}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        q.type === 'free_text' ? 'bg-accent/10 text-accent' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <AlignLeft className="w-3 h-3" />חופשית
+                    </button>
+                  </div>
+                  {editQuestions.length > 1 && (
+                    <button onClick={() => removeEditQuestion(q.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="p-4 space-y-3">
+                  <textarea
+                    value={q.text}
+                    onChange={e => updateEditQuestion(q.id, { text: e.target.value })}
+                    placeholder={q.type === 'free_text' ? 'כתוב את השאלה הפתוחה כאן...' : 'כתוב את השאלה כאן...'}
+                    rows={2}
+                    className="w-full px-3 py-2.5 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                  />
+                  {q.type === 'multiple_choice' && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">אפשרויות תשובה (סמן את הנכונה):</p>
+                      {q.options.map((opt, oIdx) => (
+                        <div key={opt.id} className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditCorrect(q.id, opt.id)}
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                              opt.isCorrect ? 'border-accent bg-accent' : 'border-border hover:border-accent/50'
+                            }`}
+                          >
+                            {opt.isCorrect && <Check className="w-2.5 h-2.5 text-accent-foreground" />}
+                          </button>
+                          <span className="text-xs text-muted-foreground font-medium w-5 shrink-0 text-center">{String.fromCharCode(65 + oIdx)}</span>
+                          <input
+                            value={opt.text}
+                            onChange={e => updateEditOption(q.id, opt.id, { text: e.target.value })}
+                            placeholder={`אפשרות ${String.fromCharCode(65 + oIdx)}...`}
+                            className="flex-1 h-9 px-3 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+                          />
+                          {q.options.length > 2 && (
+                            <button onClick={() => removeEditOption(q.id, opt.id)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {q.options.length < 6 && (
+                        <button onClick={() => addEditOption(q.id)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors mt-1">
+                          <Plus className="w-3 h-3" />הוסף אפשרות
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {q.type === 'free_text' && (
+                    <div className="flex items-center gap-2 p-2.5 bg-accent/5 border border-accent/20 rounded-lg">
+                      <AlignLeft className="w-3.5 h-3.5 text-accent shrink-0" />
+                      <p className="text-xs text-muted-foreground">שאלה פתוחה — לא ינתן ציון אוטומטי.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add question buttons */}
+          <div className="flex gap-2 mb-6">
+            <button onClick={() => addEditQuestion('multiple_choice')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all">
+              <List className="w-4 h-4 text-primary" />הוסף שאלה אמריקאית
+            </button>
+            <button onClick={() => addEditQuestion('free_text')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all">
+              <AlignLeft className="w-4 h-4 text-accent" />הוסף שאלה פתוחה
+            </button>
+          </div>
+
+          {/* Save */}
+          <button
+            onClick={handleSaveEdit}
+            disabled={isSavingEdit || !editTitle.trim()}
+            className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isSavingEdit ? <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />שומר...</> : <><Send className="w-4 h-4" />שמור שינויים</>}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col" dir="rtl">
@@ -488,6 +757,12 @@ function QuizDetail({
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={enterEdit}
+                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-all"
+              >
+                <Send className="w-3.5 h-3.5" />ערוך
+              </button>
               <button
                 onClick={() => onTogglePublish(quiz.id, quiz.is_published)}
                 className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-medium transition-all ${
