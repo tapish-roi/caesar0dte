@@ -67,6 +67,7 @@ export default function MentorDashboard() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
+  const [quizNavLessonId, setQuizNavLessonId] = useState<string | null>(null);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showLessonPanel, setShowLessonPanel] = useState(false);
