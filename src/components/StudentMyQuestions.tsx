@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  MessageCircleQuestion, Lock, BookOpen, Clock, Check, ChevronDown, Reply, ArrowLeft,
+  MessageCircleQuestion, Lock, BookOpen, Clock, Check, ChevronDown, Reply, ArrowLeft, Pencil,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   studentId: string;
@@ -20,13 +21,17 @@ interface MyQuestion {
   answer: string | null;
   answered_at: string | null;
   created_at: string;
+  updated_at: string;
   lesson_id: string | null;
   lessonTitle?: string;
 }
 
 export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }: Props) {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
 
   const { data: questions = [] } = useQuery<MyQuestion[]>({
     queryKey: ['student-my-questions', studentId, mentorId],
@@ -49,6 +54,23 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
     },
   });
 
+  // ── Edit private question ─────────────────────────────────────────────────
+  const editQuestion = useMutation({
+    mutationFn: async ({ id, question }: { id: string; question: string }) => {
+      const { error } = await supabase
+        .from('private_questions')
+        .update({ question })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['student-my-questions', studentId, mentorId] });
+      setEditingQuestion(null);
+      toast({ title: 'השאלה עודכנה!' });
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון השאלה', variant: 'destructive' }),
+  });
+
   // ── Realtime ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const channel = supabase
@@ -63,6 +85,9 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM, HH:mm", { locale: he });
   const unanswered = questions.filter(q => !q.answer).length;
   const answered = questions.filter(q => q.answer).length;
+
+  const wasEdited = (createdAt: string, updatedAt: string) =>
+    new Date(updatedAt).getTime() - new Date(createdAt).getTime() > 3000;
 
   return (
     <div className="h-full flex flex-col p-8" dir="rtl">
@@ -96,6 +121,8 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
         ) : questions.map(q => {
           const isOpen = expanded === q.id;
           const hasAnswer = !!q.answer;
+          const isEditingThis = editingQuestion === q.id;
+          const qEdited = wasEdited(q.created_at, q.updated_at);
           return (
             <div
               key={q.id}
@@ -104,7 +131,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
               } ${!hasAnswer ? 'ring-1 ring-primary/15' : ''}`}
             >
               <button
-                onClick={() => setExpanded(isOpen ? null : q.id)}
+                onClick={() => !isEditingThis && setExpanded(isOpen ? null : q.id)}
                 className="w-full flex items-start gap-3 p-4 text-right"
               >
                 {/* Status indicator */}
@@ -118,7 +145,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                 </div>
 
                 <div className="flex-1 min-w-0 text-right">
-                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
                     {q.lessonTitle && (
                       <button
                         onClick={e => { e.stopPropagation(); if (q.lesson_id && onGoToLesson) onGoToLesson(q.lesson_id); }}
@@ -140,8 +167,29 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                     )}
                   </div>
                   <p className="text-sm text-foreground mt-1 leading-relaxed line-clamp-2">{q.question}</p>
-                  <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
-                    <Clock className="w-2.5 h-2.5" />{fmt(q.created_at)}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Clock className="w-2.5 h-2.5" />{fmt(q.created_at)}
+                    </span>
+                    {qEdited && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                        <Pencil className="w-2 h-2" />נערך
+                      </span>
+                    )}
+                    {/* Only allow edit if not yet answered */}
+                    {!hasAnswer && (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          setEditingQuestion(q.id);
+                          setEditingText(q.question);
+                          setExpanded(q.id);
+                        }}
+                        className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Pencil className="w-2.5 h-2.5" />ערוך שאלה
+                      </button>
+                    )}
                   </div>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 mt-1 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
@@ -156,10 +204,49 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                     className="overflow-hidden"
                   >
                     <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
-                      {/* Full question */}
+                      {/* Full question / edit form */}
                       <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-xs font-medium text-muted-foreground mb-1">שאלתך:</p>
-                        <p className="text-sm text-foreground leading-relaxed">{q.question}</p>
+                        <div className="flex items-center justify-between mb-1">
+                          {!hasAnswer && !isEditingThis && (
+                            <button
+                              onClick={() => { setEditingQuestion(q.id); setEditingText(q.question); }}
+                              className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <Pencil className="w-2.5 h-2.5" />ערוך
+                            </button>
+                          )}
+                          <p className="text-xs font-medium text-muted-foreground mr-auto">שאלתך:</p>
+                        </div>
+                        {isEditingThis ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editingText}
+                              onChange={e => setEditingText(e.target.value)}
+                              rows={3}
+                              className="w-full px-3 py-2 bg-background ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={() => setEditingQuestion(null)}
+                                className="h-7 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted transition-all"
+                              >
+                                ביטול
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const txt = editingText.trim();
+                                  if (txt) editQuestion.mutate({ id: q.id, question: txt });
+                                }}
+                                disabled={!editingText.trim() || editQuestion.isPending}
+                                className="h-7 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                              >
+                                <Check className="w-3 h-3" />שמור
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-foreground leading-relaxed">{q.question}</p>
+                        )}
                       </div>
 
                       {/* Answer */}
