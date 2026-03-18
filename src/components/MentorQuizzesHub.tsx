@@ -441,6 +441,7 @@ function QuizDetail({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editCategoryId, setEditCategoryId] = useState('');
   const [editLessonId, setEditLessonId] = useState('');
   const [editQuestions, setEditQuestions] = useState<DraftQuestion[]>([]);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
