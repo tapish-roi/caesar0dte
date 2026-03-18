@@ -1114,8 +1114,6 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
     return (
       <QuizBuilder
         mentorId={mentorId}
-        lessons={lessons}
-        categories={categories}
         initialLessonId={initialLessonId}
         onDone={() => setView('list')}
       />
