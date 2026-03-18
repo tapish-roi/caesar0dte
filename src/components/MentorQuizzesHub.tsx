@@ -92,12 +92,14 @@ const defaultDraftQuestion = (): DraftQuestion => ({
 function QuizBuilder({
   mentorId,
   lessons,
+  categories,
   initialLessonId,
   editQuizId,
   onDone,
 }: {
   mentorId: string;
-  lessons: { id: string; title: string }[];
+  lessons: { id: string; title: string; category_id: string | null }[];
+  categories: { id: string; title: string }[];
   initialLessonId?: string | null;
   editQuizId?: string | null;
   onDone: () => void;
@@ -106,8 +108,13 @@ function QuizBuilder({
   const qc = useQueryClient();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [lessonId, setLessonId] = useState<string>(initialLessonId ?? '');
   const [questions, setQuestions] = useState<DraftQuestion[]>([defaultDraftQuestion()]);
+
+  const lessonsInSelectedCategory = selectedCategoryId
+    ? lessons.filter(l => l.category_id === selectedCategoryId)
+    : lessons;
   const [isSaving, setIsSaving] = useState(false);
 
   const addQuestion = (type: QuestionType) => {
