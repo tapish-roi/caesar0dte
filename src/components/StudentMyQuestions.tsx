@@ -118,11 +118,16 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                 </div>
 
                 <div className="flex-1 min-w-0 text-right">
-                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                <div className="flex items-center gap-2 flex-wrap justify-end">
                     {q.lessonTitle && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded-full text-[10px] text-muted-foreground">
+                      <button
+                        onClick={e => { e.stopPropagation(); if (q.lesson_id && onGoToLesson) onGoToLesson(q.lesson_id); }}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] transition-all ${onGoToLesson && q.lesson_id ? 'bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer' : 'bg-muted text-muted-foreground'}`}
+                        title={onGoToLesson && q.lesson_id ? 'עבור לשיעור' : undefined}
+                      >
                         <BookOpen className="w-2.5 h-2.5" />{q.lessonTitle}
-                      </span>
+                        {onGoToLesson && q.lesson_id && <ArrowLeft className="w-2.5 h-2.5" />}
+                      </button>
                     )}
                     {hasAnswer ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[10px] font-medium">
