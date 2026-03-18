@@ -21,6 +21,7 @@ type QuestionType = 'multiple_choice' | 'free_text';
 
 interface QuizOption {
   id: string;
+  question_id: string;
   option_text: string;
   is_correct: boolean;
   position: number;
@@ -396,6 +397,181 @@ function QuizBuilder({
 }
 
 // ═══════════════════════════════════════════════════════
+// QUIZ DETAIL VIEW
+// ═══════════════════════════════════════════════════════
+function QuizDetail({
+  quizId,
+  quiz,
+  mentorId,
+  lessons,
+  onBack,
+  onDeleted,
+  onTogglePublish,
+}: {
+  quizId: string;
+  quiz: Quiz | null;
+  mentorId: string;
+  lessons: { id: string; title: string; category_id: string | null }[];
+  onBack: () => void;
+  onDeleted: () => void;
+  onTogglePublish: (id: string, is_published: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const fmt = (iso: string) => format(parseISO(iso), "d בMMM yyyy, HH:mm", { locale: he });
+
+  const { data: questions = [], isLoading } = useQuery<QuizQuestion[]>({
+    queryKey: ['quiz-detail-questions', quizId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quiz_questions')
+        .select('id, question_text, question_type, position')
+        .eq('quiz_id', quizId)
+        .order('position');
+      if (error) throw error;
+      return data as QuizQuestion[];
+    },
+  });
+
+  const { data: options = [] } = useQuery<QuizOption[]>({
+    queryKey: ['quiz-detail-options', quizId],
+    queryFn: async () => {
+      if (questions.length === 0) return [];
+      const { data } = await supabase
+        .from('quiz_question_options')
+        .select('id, question_id, option_text, is_correct, position')
+        .in('question_id', questions.map(q => q.id))
+        .order('position');
+      return (data ?? []) as QuizOption[];
+    },
+    enabled: questions.length > 0,
+  });
+
+  const lessonTitle = quiz?.lesson_id ? lessons.find(l => l.id === quiz.lesson_id)?.title : null;
+
+  const handleDelete = async () => {
+    const { error } = await supabase.from('quizzes').delete().eq('id', quizId);
+    if (error) { toast({ title: 'שגיאה במחיקה', variant: 'destructive' }); return; }
+    toast({ title: 'המבחן נמחק' });
+    onDeleted();
+  };
+
+  return (
+    <div className="h-full flex flex-col" dir="rtl">
+      {/* Header */}
+      <div className="px-8 pt-8 pb-0 shrink-0">
+        <div className="flex items-center gap-3 mb-2">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
+            <ChevronRight className="w-4 h-4" />חזרה למבחנים
+          </button>
+        </div>
+        {quiz && (
+          <div className="flex items-start gap-4 mb-5">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${quiz.is_published ? 'bg-accent/10' : 'bg-muted'}`}>
+              <ClipboardList className={`w-5 h-5 ${quiz.is_published ? 'text-accent' : 'text-muted-foreground'}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-bold text-foreground">{quiz.title}</h1>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${quiz.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
+                  {quiz.is_published ? 'פורסם' : 'טיוטה'}
+                </span>
+              </div>
+              {quiz.description && <p className="text-sm text-muted-foreground mt-0.5">{quiz.description}</p>}
+              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                {lessonTitle && (
+                  <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />{lessonTitle}</span>
+                )}
+                <span>{fmt(quiz.created_at)}</span>
+                <span>{questions.length} שאלות</span>
+                <span className="flex items-center gap-1"><Users className="w-3 h-3" />{quiz.submissionCount ?? 0} הגשות</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => onTogglePublish(quiz.id, quiz.is_published)}
+                className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-medium transition-all ${
+                  quiz.is_published
+                    ? 'border-border text-muted-foreground hover:bg-muted'
+                    : 'bg-accent text-accent-foreground border-accent hover:opacity-90'
+                }`}
+              >
+                {quiz.is_published ? <><EyeOff className="w-3.5 h-3.5" />הסתר</> : <><Eye className="w-3.5 h-3.5" />פרסם</>}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all"
+              >
+                <Trash2 className="w-3.5 h-3.5" />מחק
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-8 pb-8">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : questions.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-20" />
+            <p className="text-sm">אין שאלות במבחן זה</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {questions.map((q, idx) => {
+              const qOptions = options.filter(o => o.question_id === q.id);
+              return (
+                <div key={q.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                  {/* Question header */}
+                  <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-muted/30">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">{idx + 1}</span>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                      q.question_type === 'multiple_choice' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'
+                    }`}>
+                      {q.question_type === 'multiple_choice' ? <><List className="w-2.5 h-2.5" />אמריקאית</> : <><AlignLeft className="w-2.5 h-2.5" />פתוחה</>}
+                    </span>
+                  </div>
+                  <div className="p-5">
+                    <p className="text-sm font-semibold text-foreground mb-3">{q.question_text}</p>
+                    {q.question_type === 'multiple_choice' ? (
+                      <div className="space-y-2">
+                        {qOptions.map((opt, oIdx) => (
+                          <div key={opt.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
+                            opt.is_correct
+                              ? 'border-accent/40 bg-accent/8 text-accent'
+                              : 'border-border text-foreground'
+                          }`}>
+                            <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                              opt.is_correct ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-muted-foreground'
+                            }`}>
+                              {opt.is_correct ? <Check className="w-3 h-3" /> : String.fromCharCode(65 + oIdx)}
+                            </span>
+                            <span className={`text-sm flex-1 ${opt.is_correct ? 'font-medium' : ''}`}>{opt.option_text}</span>
+                            {opt.is_correct && <span className="text-[10px] font-medium text-accent shrink-0">✓ תשובה נכונה</span>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                        <AlignLeft className="w-4 h-4 text-accent shrink-0" />
+                        <p className="text-xs text-muted-foreground">שאלה פתוחה — התלמיד יכתוב תשובה חופשית. לא ינתן ציון אוטומטי.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
 // SUBMISSIONS VIEW
 // ═══════════════════════════════════════════════════════
 function SubmissionDetail({ submission, onBack }: { submission: Submission & { answers?: { question_text: string; answer_text: string | null; selected_option_text?: string; is_correct: boolean | null }[] }; onBack: () => void }) {
@@ -448,10 +624,11 @@ function SubmissionDetail({ submission, onBack }: { submission: Submission & { a
 export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [view, setView] = useState<'list' | 'create' | 'submissions' | 'submission-detail'>('list');
+  const [view, setView] = useState<'list' | 'create' | 'submissions' | 'submission-detail' | 'quiz-detail'>('list');
   const [filterCategoryId, setFilterCategoryId] = useState<string>('');
   const [filterLessonId, setFilterLessonId] = useState<string>('');
   const [filterStudentId, setFilterStudentId] = useState<string>('');
+  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [submissionAnswers, setSubmissionAnswers] = useState<{ question_text: string; answer_text: string | null; selected_option_text?: string; is_correct: boolean | null }[]>([]);
 
@@ -620,6 +797,21 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
     );
   }
 
+  if (view === 'quiz-detail' && selectedQuizId) {
+    const quiz = quizzes.find(q => q.id === selectedQuizId);
+    return (
+      <QuizDetail
+        quizId={selectedQuizId}
+        quiz={quiz ?? null}
+        mentorId={mentorId}
+        lessons={lessons}
+        onBack={() => setView('list')}
+        onDeleted={() => { setSelectedQuizId(null); setView('list'); qc.invalidateQueries({ queryKey: ['mentor-quizzes', mentorId] }); }}
+        onTogglePublish={(id, is_published) => togglePublish.mutate({ id, is_published })}
+      />
+    );
+  }
+
   if (view === 'submission-detail' && selectedSubmission) {
     return (
       <SubmissionDetail
@@ -716,7 +908,11 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
               ) : (
                 <div className="space-y-3">
                   {filteredQuizzes.map(quiz => (
-                    <div key={quiz.id} className="bg-card border border-border rounded-xl p-4 hover:border-primary/20 transition-all">
+                    <div
+                      key={quiz.id}
+                      onClick={() => { setSelectedQuizId(quiz.id); setView('quiz-detail'); }}
+                      className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm cursor-pointer transition-all group"
+                    >
                       <div className="flex items-start gap-4">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                           quiz.is_published ? 'bg-accent/10' : 'bg-muted'
@@ -735,7 +931,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                                 <BookOpen className="w-2.5 h-2.5" />{quiz.lessonTitle}
                               </span>
                             )}
-                            <h3 className="text-sm font-semibold text-foreground">{quiz.title}</h3>
+                            <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{quiz.title}</h3>
                           </div>
                           {quiz.description && <p className="text-xs text-muted-foreground mt-1 text-right">{quiz.description}</p>}
                           <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground justify-end">
@@ -748,18 +944,19 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <button
-                            onClick={() => togglePublish.mutate({ id: quiz.id, is_published: quiz.is_published })}
+                            onClick={e => { e.stopPropagation(); togglePublish.mutate({ id: quiz.id, is_published: quiz.is_published }); }}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                             title={quiz.is_published ? 'הסתר מתלמידים' : 'פרסם לתלמידים'}
                           >
                             {quiz.is_published ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                           </button>
                           <button
-                            onClick={() => deleteQuiz.mutate(quiz.id)}
+                            onClick={e => { e.stopPropagation(); deleteQuiz.mutate(quiz.id); }}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
+                          <ChevronLeft className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
                     </div>
