@@ -24,7 +24,7 @@ interface MyQuestion {
   lessonTitle?: string;
 }
 
-export default function StudentMyQuestions({ studentId, mentorId }: Props) {
+export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }: Props) {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState<string | null>(null);
 
