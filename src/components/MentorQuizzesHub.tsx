@@ -241,16 +241,28 @@ function QuizBuilder({
               className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">שייך לשיעור (אופציונלי)</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">קטגוריה (אופציונלי)</label>
+              <select
+                value={selectedCategoryId}
+                onChange={e => { setSelectedCategoryId(e.target.value); setLessonId(''); }}
+                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+              >
+                <option value="">כל הקטגוריות</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">שיעור (אופציונלי)</label>
               <select
                 value={lessonId}
                 onChange={e => setLessonId(e.target.value)}
-                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+                disabled={lessonsInSelectedCategory.length === 0 && !selectedCategoryId}
+                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right disabled:opacity-50"
               >
                 <option value="">ללא שיעור</option>
-                {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                {lessonsInSelectedCategory.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
               </select>
             </div>
             <div>
