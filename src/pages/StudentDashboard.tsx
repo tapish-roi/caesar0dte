@@ -872,7 +872,7 @@ export default function StudentDashboard() {
               </div>
 
               {mentorName && (
-                <div className="px-3 py-2 border-b border-sidebar-border">
+                <div className="px-3 py-2 border-b border-sidebar-border relative">
                   <button
                     onClick={() => setCommunityDropdownOpen(v => !v)}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-right hover:bg-sidebar-accent cursor-pointer"
