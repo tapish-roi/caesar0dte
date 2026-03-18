@@ -449,6 +449,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   const { toast } = useToast();
   const qc = useQueryClient();
   const [view, setView] = useState<'list' | 'create' | 'submissions' | 'submission-detail'>('list');
+  const [filterCategoryId, setFilterCategoryId] = useState<string>('');
   const [filterLessonId, setFilterLessonId] = useState<string>('');
   const [filterStudentId, setFilterStudentId] = useState<string>('');
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
@@ -457,10 +458,18 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM yyyy", { locale: he });
 
   // ── Queries ──
-  const { data: lessons = [] } = useQuery<{ id: string; title: string }[]>({
+  const { data: categories = [] } = useQuery<{ id: string; title: string }[]>({
+    queryKey: ['categories-for-quiz', mentorId],
+    queryFn: async () => {
+      const { data } = await supabase.from('categories').select('id, title').eq('mentor_id', mentorId).order('position');
+      return data ?? [];
+    },
+  });
+
+  const { data: lessons = [] } = useQuery<{ id: string; title: string; category_id: string | null }[]>({
     queryKey: ['lessons-for-quiz', mentorId],
     queryFn: async () => {
-      const { data } = await supabase.from('lessons').select('id, title').eq('mentor_id', mentorId).order('position');
+      const { data } = await supabase.from('lessons').select('id, title, category_id').eq('mentor_id', mentorId).order('position');
       return data ?? [];
     },
   });
@@ -570,12 +579,31 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
     setView('submission-detail');
   };
 
+  // ── Derived: lessons filtered by selected category ──
+  const lessonsInCategory = filterCategoryId
+    ? lessons.filter(l => l.category_id === filterCategoryId)
+    : lessons;
+
+  // ── Filtered quizzes ──
+  const filteredQuizzes = quizzes.filter(q => {
+    if (filterLessonId && q.lesson_id !== filterLessonId) return false;
+    if (filterCategoryId && !filterLessonId) {
+      const catLessonIds = new Set(lessons.filter(l => l.category_id === filterCategoryId).map(l => l.id));
+      if (q.lesson_id && !catLessonIds.has(q.lesson_id)) return false;
+    }
+    return true;
+  });
+
   // ── Filtered submissions ──
   const filteredSubmissions = submissions.filter(s => {
     if (filterStudentId && s.student_id !== filterStudentId) return false;
     if (filterLessonId) {
       const quiz = quizzes.find(q => q.id === s.quiz_id);
       if (!quiz || quiz.lesson_id !== filterLessonId) return false;
+    } else if (filterCategoryId) {
+      const catLessonIds = new Set(lessons.filter(l => l.category_id === filterCategoryId).map(l => l.id));
+      const quiz = quizzes.find(q => q.id === s.quiz_id);
+      if (quiz?.lesson_id && !catLessonIds.has(quiz.lesson_id)) return false;
     }
     return true;
   });
@@ -654,13 +682,23 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                   <Filter className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">סנן:</span>
                 </div>
+                {/* Category filter */}
+                <select
+                  value={filterCategoryId}
+                  onChange={e => { setFilterCategoryId(e.target.value); setFilterLessonId(''); }}
+                  className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">כל הקטגוריות</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+                {/* Lesson filter — shows only lessons of selected category */}
                 <select
                   value={filterLessonId}
                   onChange={e => setFilterLessonId(e.target.value)}
                   className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">כל השיעורים</option>
-                  {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                  {lessonsInCategory.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
                 </select>
               </div>
 
@@ -669,7 +707,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                   <p className="text-sm">טוען מבחנים...</p>
                 </div>
-              ) : quizzes.filter(q => !filterLessonId || q.lesson_id === filterLessonId).length === 0 ? (
+              ) : filteredQuizzes.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">
                   <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-20" />
                   <p className="font-medium">אין מבחנים עדיין</p>
@@ -677,7 +715,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {quizzes.filter(q => !filterLessonId || q.lesson_id === filterLessonId).map(quiz => (
+                  {filteredQuizzes.map(quiz => (
                     <div key={quiz.id} className="bg-card border border-border rounded-xl p-4 hover:border-primary/20 transition-all">
                       <div className="flex items-start gap-4">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
@@ -740,13 +778,23 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                   <Filter className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">סנן:</span>
                 </div>
+                {/* Category filter */}
+                <select
+                  value={filterCategoryId}
+                  onChange={e => { setFilterCategoryId(e.target.value); setFilterLessonId(''); }}
+                  className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">כל הקטגוריות</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+                {/* Lesson filter */}
                 <select
                   value={filterLessonId}
                   onChange={e => setFilterLessonId(e.target.value)}
                   className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">כל השיעורים</option>
-                  {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                  {lessonsInCategory.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
                 </select>
                 <select
                   value={filterStudentId}
