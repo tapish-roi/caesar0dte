@@ -732,7 +732,7 @@ export default function MentorDashboard() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-y-auto">
+      <main className={`flex-1 ${activeTab === 'questions' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
         <AnimatePresence mode="wait">
 
           {/* ──────── LESSONS ──────── */}
@@ -1169,7 +1169,7 @@ export default function MentorDashboard() {
 
           {/* ──────── QUESTIONS ──────── */}
           {activeTab === 'questions' && user && (
-            <motion.div key="questions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+            <motion.div key="questions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-h-0 h-full overflow-hidden">
               <MentorQuestionsHub mentorId={user.id} />
             </motion.div>
           )}
