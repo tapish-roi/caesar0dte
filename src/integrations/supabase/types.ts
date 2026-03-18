@@ -204,6 +204,79 @@ export type Database = {
           },
         ]
       }
+      lesson_question_answers: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          mentor_id: string
+          question_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          mentor_id: string
+          question_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          mentor_id?: string
+          question_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_question_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_questions: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          lesson_id: string
+          mentor_id: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          lesson_id: string
+          mentor_id: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          mentor_id?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_questions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lessons: {
         Row: {
           attachment_name: string | null
@@ -477,6 +550,50 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_questions: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          created_at: string
+          id: string
+          lesson_id: string | null
+          mentor_id: string
+          question: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: string | null
+          mentor_id: string
+          question: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: string | null
+          mentor_id?: string
+          question?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_questions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
             referencedColumns: ["id"]
           },
         ]
