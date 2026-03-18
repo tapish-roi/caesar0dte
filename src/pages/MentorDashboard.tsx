@@ -1508,6 +1508,23 @@ export default function MentorDashboard() {
                   >
                     {createLesson.isPending ? 'שומר...' : 'צור שיעור'}
                   </button>
+
+                  <div className="relative flex items-center gap-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground">או</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setShowLessonPanel(false);
+                      setQuizNavLessonId(null);
+                      setActiveTab('quizzes');
+                    }}
+                    className="w-full h-11 border border-primary/30 bg-primary/5 text-primary rounded-lg font-medium hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    <ClipboardList className="w-4 h-4" />צור מבחן לשיעור זה
+                  </button>
                 </div>
               </div>
             </motion.div>
