@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   MessageCircleQuestion, Lock, Globe, BookOpen, Send, X, ChevronDown,
-  Clock, User, Check, Reply,
+  Clock, Check, Reply, Pencil,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
@@ -21,6 +21,7 @@ interface PrivateQuestion {
   question: string;
   answer: string | null;
   answered_at: string | null;
+  updated_at: string;
   created_at: string;
   studentName?: string;
   lessonTitle?: string;
@@ -34,7 +35,7 @@ interface LessonQuestion {
   created_at: string;
   studentName?: string;
   lessonTitle?: string;
-  answers?: { id: string; content: string; created_at: string }[];
+  answers?: { id: string; content: string; created_at: string; updated_at?: string }[];
 }
 
 type SectionTab = 'private' | 'lesson';
@@ -45,8 +46,12 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
   const [section, setSection] = useState<SectionTab>('private');
   const [expandedPrivate, setExpandedPrivate] = useState<string | null>(null);
   const [privateAnswerText, setPrivateAnswerText] = useState<Record<string, string>>({});
+  const [editingPrivateAnswer, setEditingPrivateAnswer] = useState<string | null>(null);
+  const [editingPrivateText, setEditingPrivateText] = useState('');
   const [expandedLesson, setExpandedLesson] = useState<string | null>(null);
   const [lessonAnswerText, setLessonAnswerText] = useState<Record<string, string>>({});
+  const [editingLessonAnswer, setEditingLessonAnswer] = useState<string | null>(null);
+  const [editingLessonAnswerText, setEditingLessonAnswerText] = useState('');
 
   // ── Private Questions ─────────────────────────────────────────────────────
   const { data: privateQuestions = [] } = useQuery<PrivateQuestion[]>({
@@ -88,7 +93,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
           const [{ data: sp }, { data: lp }, { data: answers }] = await Promise.all([
             supabase.from('profiles').select('full_name').eq('user_id', q.student_id).single(),
             supabase.from('lessons').select('title').eq('id', q.lesson_id).single(),
-            supabase.from('lesson_question_answers').select('id, content, created_at').eq('question_id', q.id).order('created_at'),
+            supabase.from('lesson_question_answers').select('id, content, created_at, updated_at').eq('question_id', q.id).order('created_at'),
           ]);
           return {
             ...q,
@@ -136,6 +141,22 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
     onError: () => toast({ title: 'שגיאה בשליחת תשובה', variant: 'destructive' }),
   });
 
+  const editPrivateAnswer = useMutation({
+    mutationFn: async ({ id, answer }: { id: string; answer: string }) => {
+      const { error } = await supabase
+        .from('private_questions')
+        .update({ answer, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mentor-private-questions', mentorId] });
+      setEditingPrivateAnswer(null);
+      toast({ title: 'התשובה עודכנה!' });
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון תשובה', variant: 'destructive' }),
+  });
+
   const answerLesson = useMutation({
     mutationFn: async ({ questionId, content }: { questionId: string; content: string }) => {
       const { error } = await supabase
@@ -149,6 +170,22 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
       toast({ title: 'תשובה פורסמה!' });
     },
     onError: () => toast({ title: 'שגיאה בפרסום תשובה', variant: 'destructive' }),
+  });
+
+  const editLessonAnswer = useMutation({
+    mutationFn: async ({ answerId, content }: { answerId: string; content: string }) => {
+      const { error } = await supabase
+        .from('lesson_question_answers')
+        .update({ content })
+        .eq('id', answerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['mentor-lesson-questions', mentorId] });
+      setEditingLessonAnswer(null);
+      toast({ title: 'התשובה עודכנה!' });
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון תשובה', variant: 'destructive' }),
   });
 
   const deletePrivateQuestion = useMutation({
@@ -172,6 +209,12 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
 
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM, HH:mm", { locale: he });
 
+  // helper: was the answer edited after creation?
+  const wasEdited = (createdAt: string, updatedAt?: string) => {
+    if (!updatedAt) return false;
+    return new Date(updatedAt).getTime() - new Date(createdAt).getTime() > 3000;
+  };
+
   return (
     <div className="h-full flex flex-col" dir="rtl">
       {/* Header */}
@@ -189,16 +232,13 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
 
       {/* Two-section split */}
       <div className="flex-1 flex overflow-hidden px-8 pt-6 pb-8 gap-0">
-        {/* Left: section tabs + content */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Tab bar */}
           <div className="flex gap-1 p-1 bg-muted rounded-xl mb-5 shrink-0 w-fit">
             <button
               onClick={() => setSection('private')}
               className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                section === 'private'
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                section === 'private' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Lock className="w-3.5 h-3.5" />
@@ -212,9 +252,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
             <button
               onClick={() => setSection('lesson')}
               className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                section === 'lesson'
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                section === 'lesson' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
@@ -249,6 +287,8 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                   ) : privateQuestions.map(q => {
                     const isOpen = expandedPrivate === q.id;
                     const hasAnswer = !!q.answer;
+                    const isEditingThis = editingPrivateAnswer === q.id;
+                    const answerEdited = hasAnswer && wasEdited(q.answered_at ?? q.created_at, q.updated_at);
                     return (
                       <div
                         key={q.id}
@@ -308,15 +348,60 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                 </div>
 
                                 {/* Existing answer */}
-                                {hasAnswer && (
+                                {hasAnswer && !isEditingThis && (
                                   <div className="bg-accent/5 border border-accent/20 rounded-lg p-3">
-                                    <p className="text-xs font-medium text-accent mb-1 flex items-center gap-1">
-                                      <Check className="w-3 h-3" />התשובה שלך:
-                                    </p>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <button
+                                        onClick={() => { setEditingPrivateAnswer(q.id); setEditingPrivateText(q.answer ?? ''); }}
+                                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                                      >
+                                        <Pencil className="w-2.5 h-2.5" />ערוך
+                                      </button>
+                                      <p className="text-xs font-medium text-accent flex items-center gap-1">
+                                        <Check className="w-3 h-3" />התשובה שלך:
+                                      </p>
+                                    </div>
                                     <p className="text-sm text-foreground leading-relaxed">{q.answer}</p>
-                                    {q.answered_at && (
-                                      <p className="text-[10px] text-muted-foreground mt-1">{fmt(q.answered_at)}</p>
-                                    )}
+                                    <div className="flex items-center gap-2 mt-1">
+                                      {q.answered_at && (
+                                        <p className="text-[10px] text-muted-foreground">{fmt(q.answered_at)}</p>
+                                      )}
+                                      {answerEdited && (
+                                        <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                                          <Pencil className="w-2 h-2" />נערך
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Edit answer form */}
+                                {hasAnswer && isEditingThis && (
+                                  <div className="space-y-2">
+                                    <textarea
+                                      value={editingPrivateText}
+                                      onChange={e => setEditingPrivateText(e.target.value)}
+                                      rows={3}
+                                      className="w-full px-3 py-2 bg-background ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                                    />
+                                    <div className="flex gap-2 justify-end">
+                                      <button
+                                        onClick={() => setEditingPrivateAnswer(null)}
+                                        className="h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted transition-all"
+                                      >
+                                        ביטול
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          const txt = editingPrivateText.trim();
+                                          if (txt) editPrivateAnswer.mutate({ id: q.id, answer: txt });
+                                        }}
+                                        disabled={!editingPrivateText.trim() || editPrivateAnswer.isPending}
+                                        className="h-8 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                                      >
+                                        <Check className="w-3 h-3" />שמור
+                                      </button>
+                                    </div>
                                   </div>
                                 )}
 
@@ -444,15 +529,65 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                 {/* Existing answers */}
                                 {hasAnswers && (
                                   <div className="space-y-2">
-                                    {q.answers!.map(a => (
-                                      <div key={a.id} className="bg-accent/5 border border-accent/20 rounded-lg p-3">
-                                        <p className="text-xs font-medium text-accent mb-1 flex items-center gap-1">
-                                          <Reply className="w-3 h-3" />תשובתך:
-                                        </p>
-                                        <p className="text-sm text-foreground leading-relaxed">{a.content}</p>
-                                        <p className="text-[10px] text-muted-foreground mt-1">{fmt(a.created_at)}</p>
-                                      </div>
-                                    ))}
+                                    {q.answers!.map(a => {
+                                      const isEditingAnswer = editingLessonAnswer === a.id;
+                                      const edited = wasEdited(a.created_at, a.updated_at);
+                                      return (
+                                        <div key={a.id} className="bg-accent/5 border border-accent/20 rounded-lg p-3">
+                                          {isEditingAnswer ? (
+                                            <div className="space-y-2">
+                                              <textarea
+                                                value={editingLessonAnswerText}
+                                                onChange={e => setEditingLessonAnswerText(e.target.value)}
+                                                rows={3}
+                                                className="w-full px-3 py-2 bg-background ring-1 ring-accent rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all resize-none text-right"
+                                              />
+                                              <div className="flex gap-2 justify-end">
+                                                <button
+                                                  onClick={() => setEditingLessonAnswer(null)}
+                                                  className="h-7 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted transition-all"
+                                                >
+                                                  ביטול
+                                                </button>
+                                                <button
+                                                  onClick={() => {
+                                                    const txt = editingLessonAnswerText.trim();
+                                                    if (txt) editLessonAnswer.mutate({ answerId: a.id, content: txt });
+                                                  }}
+                                                  disabled={!editingLessonAnswerText.trim() || editLessonAnswer.isPending}
+                                                  className="h-7 px-3 bg-accent text-accent-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                                                >
+                                                  <Check className="w-3 h-3" />שמור
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <div className="flex items-center justify-between mb-1">
+                                                <button
+                                                  onClick={() => { setEditingLessonAnswer(a.id); setEditingLessonAnswerText(a.content); }}
+                                                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-accent transition-colors"
+                                                >
+                                                  <Pencil className="w-2.5 h-2.5" />ערוך
+                                                </button>
+                                                <p className="text-xs font-medium text-accent flex items-center gap-1">
+                                                  <Reply className="w-3 h-3" />תשובתך:
+                                                </p>
+                                              </div>
+                                              <p className="text-sm text-foreground leading-relaxed">{a.content}</p>
+                                              <div className="flex items-center gap-2 mt-1">
+                                                <p className="text-[10px] text-muted-foreground">{fmt(a.created_at)}</p>
+                                                {edited && (
+                                                  <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                                                    <Pencil className="w-2 h-2" />נערך
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 )}
 
@@ -461,7 +596,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                   <textarea
                                     value={lessonAnswerText[q.id] ?? ''}
                                     onChange={e => setLessonAnswerText(prev => ({ ...prev, [q.id]: e.target.value }))}
-                                    placeholder="כתוב תשובה שכל התלמידים יראו..."
+                                    placeholder={hasAnswers ? "הוסף תשובה נוספת..." : "כתוב תשובה שכל התלמידים יראו..."}
                                     rows={2}
                                     className="flex-1 px-3 py-2 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all resize-none text-right"
                                   />

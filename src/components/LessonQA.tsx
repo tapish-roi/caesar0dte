@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  MessageCircleQuestion, Lock, Globe, Send, X, Reply, Clock, ChevronDown,
+  MessageCircleQuestion, Lock, Globe, Send, X, Reply, Clock, ChevronDown, Check, Pencil,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
@@ -22,9 +22,10 @@ interface LessonQuestion {
   student_id: string;
   content: string;
   created_at: string;
+  updated_at?: string;
   studentName?: string;
   avatarLetter?: string;
-  answers?: { id: string; content: string; created_at: string }[];
+  answers?: { id: string; content: string; created_at: string; updated_at?: string }[];
 }
 
 interface PrivateQuestionsForStudent {
@@ -43,6 +44,15 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
   const [privateModalOpen, setPrivateModalOpen] = useState(false);
   const [privateQuestion, setPrivateQuestion] = useState('');
   const [expandedQ, setExpandedQ] = useState<string | null>(null);
+  const [answerTexts, setAnswerTexts] = useState<Record<string, string>>({});
+
+  // Edit state for mentor answers
+  const [editingAnswer, setEditingAnswer] = useState<string | null>(null);
+  const [editingAnswerText, setEditingAnswerText] = useState('');
+
+  // Edit state for student questions
+  const [editingQuestion, setEditingQuestion] = useState<string | null>(null);
+  const [editingQuestionText, setEditingQuestionText] = useState('');
 
   // ── Public lesson questions ───────────────────────────────────────────────
   const { data: questions = [] } = useQuery<LessonQuestion[]>({
@@ -58,7 +68,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
         (data ?? []).map(async (q) => {
           const [{ data: sp }, { data: answers }] = await Promise.all([
             supabase.from('profiles').select('full_name').eq('user_id', q.student_id).single(),
-            supabase.from('lesson_question_answers').select('id, content, created_at').eq('question_id', q.id).order('created_at'),
+            supabase.from('lesson_question_answers').select('id, content, created_at, updated_at').eq('question_id', q.id).order('created_at'),
           ]);
           const name = sp?.full_name ?? 'תלמיד';
           return {
@@ -106,6 +116,23 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
     onError: () => toast({ title: 'שגיאה בפרסום השאלה', variant: 'destructive' }),
   });
 
+  // ── Edit public question (student) ────────────────────────────────────────
+  const editQuestion = useMutation({
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
+      const { error } = await supabase
+        .from('lesson_questions')
+        .update({ content })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lesson-questions', lessonId] });
+      setEditingQuestion(null);
+      toast({ title: 'השאלה עודכנה!' });
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון השאלה', variant: 'destructive' }),
+  });
+
   // ── Post private question ─────────────────────────────────────────────────
   const postPrivate = useMutation({
     mutationFn: async (question: string) => {
@@ -126,7 +153,6 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
   });
 
   // ── Mentor answer to public question ─────────────────────────────────────
-  const [answerTexts, setAnswerTexts] = useState<Record<string, string>>({});
   const postAnswer = useMutation({
     mutationFn: async ({ questionId, content }: { questionId: string; content: string }) => {
       const { error } = await supabase.from('lesson_question_answers').insert({
@@ -144,7 +170,29 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
     onError: () => toast({ title: 'שגיאה בפרסום תשובה', variant: 'destructive' }),
   });
 
+  // ── Mentor edit answer ────────────────────────────────────────────────────
+  const editAnswer = useMutation({
+    mutationFn: async ({ answerId, content }: { answerId: string; content: string }) => {
+      const { error } = await supabase
+        .from('lesson_question_answers')
+        .update({ content })
+        .eq('id', answerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lesson-questions', lessonId] });
+      setEditingAnswer(null);
+      toast({ title: 'התשובה עודכנה!' });
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון תשובה', variant: 'destructive' }),
+  });
+
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM, HH:mm", { locale: he });
+
+  const wasEdited = (createdAt: string, updatedAt?: string) => {
+    if (!updatedAt) return false;
+    return new Date(updatedAt).getTime() - new Date(createdAt).getTime() > 3000;
+  };
 
   return (
     <div className="mt-8 border-t border-border pt-6" dir="rtl">
@@ -225,37 +273,86 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
           const isMe = q.student_id === studentId;
           const isExpanded = expandedQ === q.id;
           const hasAnswers = (q.answers?.length ?? 0) > 0;
+          const isEditingThisQ = editingQuestion === q.id;
+          const qEdited = wasEdited(q.created_at, q.updated_at);
           return (
             <div key={q.id} className="bg-muted/30 rounded-xl overflow-hidden">
               {/* Question row */}
-              <button
-                onClick={() => setExpandedQ(isExpanded ? null : q.id)}
-                className="w-full flex items-start gap-3 p-3 text-right hover:bg-muted/50 transition-colors"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0 mt-0.5">
-                  {q.avatarLetter}
+              {isEditingThisQ ? (
+                <div className="p-3 space-y-2">
+                  <textarea
+                    value={editingQuestionText}
+                    onChange={e => setEditingQuestionText(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 bg-background ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => setEditingQuestion(null)}
+                      className="h-7 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted transition-all"
+                    >
+                      ביטול
+                    </button>
+                    <button
+                      onClick={() => {
+                        const txt = editingQuestionText.trim();
+                        if (txt) editQuestion.mutate({ id: q.id, content: txt });
+                      }}
+                      disabled={!editingQuestionText.trim() || editQuestion.isPending}
+                      className="h-7 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                    >
+                      <Check className="w-3 h-3" />שמור
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-foreground">{q.studentName}</span>
-                    {isMe && <span className="text-[10px] text-muted-foreground">(אתה)</span>}
-                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                      <Clock className="w-2.5 h-2.5" />{fmt(q.created_at)}
-                    </span>
-                    {hasAnswers && (
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-accent/10 text-accent text-[10px] rounded-full font-medium">
-                        <Reply className="w-2.5 h-2.5" />{q.answers!.length} תשובה
+              ) : (
+                <button
+                  onClick={() => setExpandedQ(isExpanded ? null : q.id)}
+                  className="w-full flex items-start gap-3 p-3 text-right hover:bg-muted/50 transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0 mt-0.5">
+                    {q.avatarLetter}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-semibold text-foreground">{q.studentName}</span>
+                      {isMe && <span className="text-[10px] text-muted-foreground">(אתה)</span>}
+                      <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                        <Clock className="w-2.5 h-2.5" />{fmt(q.created_at)}
                       </span>
+                      {qEdited && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                          <Pencil className="w-2 h-2" />נערך
+                        </span>
+                      )}
+                      {hasAnswers && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-accent/10 text-accent text-[10px] rounded-full font-medium">
+                          <Reply className="w-2.5 h-2.5" />{q.answers!.length} תשובה
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-foreground mt-0.5 leading-relaxed">{q.content}</p>
+                    {/* Edit button for own question */}
+                    {isMe && !isMentor && (
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          setEditingQuestion(q.id);
+                          setEditingQuestionText(q.content);
+                        }}
+                        className="mt-1 flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Pencil className="w-2.5 h-2.5" />ערוך שאלה
+                      </button>
                     )}
                   </div>
-                  <p className="text-sm text-foreground mt-0.5 leading-relaxed">{q.content}</p>
-                </div>
-                <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground shrink-0 mt-1 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
-              </button>
+                  <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground shrink-0 mt-1 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                </button>
+              )}
 
               {/* Answers + reply */}
               <AnimatePresence>
-                {isExpanded && (
+                {isExpanded && !isEditingThisQ && (
                   <motion.div
                     initial={{ height: 0 }}
                     animate={{ height: 'auto' }}
@@ -264,20 +361,68 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                   >
                     <div className="pr-11 pl-3 pb-3 space-y-2">
                       {/* Existing mentor answers */}
-                      {q.answers!.map(a => (
-                        <div key={a.id} className="bg-accent/5 border border-accent/15 rounded-lg p-2.5 flex gap-2.5">
-                          <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center shrink-0">
-                            <Reply className="w-3 h-3 text-accent-foreground" />
+                      {q.answers!.map(a => {
+                        const isEditingThis = editingAnswer === a.id;
+                        const aEdited = wasEdited(a.created_at, a.updated_at);
+                        return (
+                          <div key={a.id} className="bg-accent/5 border border-accent/15 rounded-lg p-2.5">
+                            {isEditingThis ? (
+                              <div className="space-y-2">
+                                <textarea
+                                  value={editingAnswerText}
+                                  onChange={e => setEditingAnswerText(e.target.value)}
+                                  rows={2}
+                                  className="w-full px-3 py-2 bg-background ring-1 ring-accent rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all resize-none text-right"
+                                />
+                                <div className="flex gap-2 justify-end">
+                                  <button
+                                    onClick={() => setEditingAnswer(null)}
+                                    className="h-7 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted transition-all"
+                                  >
+                                    ביטול
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const txt = editingAnswerText.trim();
+                                      if (txt) editAnswer.mutate({ answerId: a.id, content: txt });
+                                    }}
+                                    disabled={!editingAnswerText.trim() || editAnswer.isPending}
+                                    className="h-7 px-3 bg-accent text-accent-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                                  >
+                                    <Check className="w-3 h-3" />שמור
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex gap-2.5">
+                                <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center shrink-0">
+                                  <Reply className="w-3 h-3 text-accent-foreground" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[11px] font-semibold text-accent">מנטור</span>
+                                    <span className="text-[10px] text-muted-foreground">{fmt(a.created_at)}</span>
+                                    {aEdited && (
+                                      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                                        <Pencil className="w-2 h-2" />נערך
+                                      </span>
+                                    )}
+                                    {isMentor && (
+                                      <button
+                                        onClick={() => { setEditingAnswer(a.id); setEditingAnswerText(a.content); }}
+                                        className="mr-auto flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-accent transition-colors"
+                                      >
+                                        <Pencil className="w-2.5 h-2.5" />ערוך
+                                      </button>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-foreground leading-relaxed">{a.content}</p>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[11px] font-semibold text-accent">מנטור</span>
-                              <span className="text-[10px] text-muted-foreground">{fmt(a.created_at)}</span>
-                            </div>
-                            <p className="text-sm text-foreground leading-relaxed">{a.content}</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       {/* Mentor reply input */}
                       {isMentor && (
@@ -368,7 +513,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                     className="flex-1 h-10 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <Send className="w-4 h-4" />
-                    {postPrivate.isPending ? 'שולח...' : 'שלח למנטור'}
+                    שלח שאלה פרטית
                   </button>
                 </div>
               </div>
