@@ -9,7 +9,7 @@ import {
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, MessageSquare, MessageCircle, Pin, PinOff,
   ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
-  MessageCircleQuestion, ClipboardList,
+  MessageCircleQuestion, ClipboardList, List, AlignLeft,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AttachmentViewer from '@/components/AttachmentViewer';
@@ -17,6 +17,131 @@ import LiveHubMentor from '@/components/LiveHubMentor';
 import MentorQuestionsHub from '@/components/MentorQuestionsHub';
 import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
+
+// ── LessonQuizPanel: shows the published quiz for a lesson ──────────────────
+function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: string; mentorId: string; onCreateQuiz: () => void }) {
+  const { data: quiz, isLoading } = useQuery({
+    queryKey: ['lesson-quiz-panel', lessonId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('quizzes')
+        .select('id, title, description, is_published')
+        .eq('mentor_id', mentorId)
+        .eq('lesson_id', lessonId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: questions = [] } = useQuery({
+    queryKey: ['lesson-quiz-questions', quiz?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('quiz_questions')
+        .select('id, question_text, question_type, position')
+        .eq('quiz_id', quiz!.id)
+        .order('position');
+      return data ?? [];
+    },
+    enabled: !!quiz?.id,
+  });
+
+  const { data: options = [] } = useQuery({
+    queryKey: ['lesson-quiz-options', quiz?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('quiz_question_options')
+        .select('id, question_id, option_text, is_correct, position')
+        .in('question_id', questions.map(q => q.id))
+        .order('position');
+      return data ?? [];
+    },
+    enabled: questions.length > 0,
+  });
+
+  if (isLoading) return (
+    <div className="w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex items-center justify-center min-h-[200px]">
+      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (!quiz) return (
+    <div className="w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex flex-col items-center justify-center gap-3 min-h-[200px] text-center" dir="rtl">
+      <ClipboardList className="w-8 h-8 text-muted-foreground opacity-30" />
+      <p className="text-sm font-medium text-foreground">אין מבחן לשיעור זה</p>
+      <p className="text-xs text-muted-foreground">צור מבחן כדי לבחון את התלמידים</p>
+      <button
+        onClick={onCreateQuiz}
+        className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-all mt-1"
+      >
+        <Plus className="w-3.5 h-3.5" />צור מבחן
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="w-80 shrink-0 bg-card border border-border rounded-xl overflow-hidden" dir="rtl">
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${quiz.is_published ? 'bg-accent/10' : 'bg-muted'}`}>
+          <ClipboardList className={`w-4 h-4 ${quiz.is_published ? 'text-accent' : 'text-muted-foreground'}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground truncate">{quiz.title}</p>
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${quiz.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
+            {quiz.is_published ? 'פורסם' : 'טיוטה'}
+          </span>
+        </div>
+        <span className="text-[10px] text-muted-foreground shrink-0">{questions.length} שאלות</span>
+      </div>
+      {/* Questions list */}
+      <div className="overflow-y-auto max-h-[420px]">
+        {questions.map((q, idx) => {
+          const qOptions = options.filter(o => o.question_id === q.id);
+          return (
+            <div key={q.id} className="px-4 py-3 border-b border-border/50 last:border-0">
+              <div className="flex items-start gap-2 mb-2">
+                <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{idx + 1}</span>
+                <p className="text-xs font-medium text-foreground leading-snug">{q.question_text}</p>
+              </div>
+              {q.question_type === 'multiple_choice' ? (
+                <div className="space-y-1 mr-7">
+                  {qOptions.map((opt, oIdx) => (
+                    <div key={opt.id} className={`flex items-center gap-2 px-2 py-1 rounded-md text-[11px] ${opt.is_correct ? 'bg-accent/10 text-accent font-medium' : 'text-muted-foreground'}`}>
+                      <span className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0 text-[9px] font-bold border-current">
+                        {String.fromCharCode(65 + oIdx)}
+                      </span>
+                      {opt.option_text}
+                      {opt.is_correct && <Check className="w-3 h-3 mr-auto shrink-0" />}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mr-7 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <AlignLeft className="w-3 h-3 shrink-0" />שאלה פתוחה
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {questions.length === 0 && (
+          <div className="px-4 py-6 text-center text-xs text-muted-foreground">אין שאלות במבחן</div>
+        )}
+      </div>
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-border bg-muted/20">
+        <button
+          onClick={onCreateQuiz}
+          className="w-full flex items-center justify-center gap-2 h-8 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-all"
+        >
+          <ClipboardList className="w-3.5 h-3.5" />נהל מבחנים
+        </button>
+      </div>
+    </div>
+  );
+}
 
 type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes';
 type PostType = 'discussion' | 'media';
