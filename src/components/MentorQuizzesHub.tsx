@@ -616,16 +616,34 @@ function QuizDetail({
                 className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">שייך לשיעור</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">קטגוריה</label>
+                <select
+                  value={editCategoryId}
+                  onChange={e => { setEditCategoryId(e.target.value); setEditLessonId(''); }}
+                  className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+                >
+                  <option value="">כל הקטגוריות</option>
+                  {lessons.reduce<string[]>((acc, l) => l.category_id && !acc.includes(l.category_id) ? [...acc, l.category_id] : acc, []).map(catId => {
+                    const cat = lessons.find(l => l.category_id === catId);
+                    return null; // will use categories prop below
+                  })}
+                  {lessons.filter((l, i, arr) => l.category_id && arr.findIndex(x => x.category_id === l.category_id) === i).map(l => {
+                    const catFromProp = (lessons as { id: string; title: string; category_id: string | null }[]) && null;
+                    return null;
+                  })}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">שיעור</label>
                 <select
                   value={editLessonId}
                   onChange={e => setEditLessonId(e.target.value)}
                   className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
                 >
                   <option value="">ללא שיעור</option>
-                  {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                  {(editCategoryId ? lessons.filter(l => l.category_id === editCategoryId) : lessons).map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
                 </select>
               </div>
               <div>
