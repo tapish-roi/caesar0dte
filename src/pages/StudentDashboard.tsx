@@ -888,6 +888,7 @@ export default function StudentDashboard() {
                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                   { key: 'community', label: 'קהילה', icon: Users },
                   { key: 'live', label: 'לייב', icon: Radio },
+                  { key: 'questions', label: 'השאלות שלי', icon: MessageCircleQuestion },
                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
@@ -1286,6 +1287,20 @@ export default function StudentDashboard() {
           {activeTab === 'live' && !mentorId && (
             <motion.div key="live-no-mentor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 text-center text-muted-foreground">
               <Radio className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium">לא נבחרה קהילה</p>
+            </motion.div>
+          )}
+
+          {/* ──────── MY QUESTIONS ──────── */}
+          {activeTab === 'questions' && mentorId && user && (
+            <motion.div key="questions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+              <StudentMyQuestions studentId={user.id} mentorId={mentorId} />
+            </motion.div>
+          )}
+
+          {activeTab === 'questions' && !mentorId && (
+            <motion.div key="questions-no-mentor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 text-center text-muted-foreground">
+              <MessageCircleQuestion className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">לא נבחרה קהילה</p>
             </motion.div>
           )}
