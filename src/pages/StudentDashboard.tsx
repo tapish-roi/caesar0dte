@@ -8,7 +8,7 @@ import {
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
   User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
-  CalendarDays, Filter, XCircle,
+  CalendarDays, Filter, XCircle, MessageCircleQuestion,
 } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -21,8 +21,10 @@ import { Switch } from '@/components/ui/switch';
 import LiveViewer from '@/components/LiveViewer';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubStudent from '@/components/LiveHubStudent';
+import LessonQA from '@/components/LessonQA';
+import StudentMyQuestions from '@/components/StudentMyQuestions';
 
-type SidebarTab = 'lessons' | 'community' | 'live';
+type SidebarTab = 'lessons' | 'community' | 'live' | 'questions';
 type PostType = 'discussion' | 'media' | 'live';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -1010,6 +1012,18 @@ export default function StudentDashboard() {
                       {/* Inline attachment viewer */}
                       {selectedLessonData.attachment_url && (
                         <AttachmentViewer url={selectedLessonData.attachment_url} name={selectedLessonData.attachment_name ?? ''} />
+                      )}
+                      {/* Q&A section */}
+                      {mentorId && (
+                        <div className="px-6 pb-6">
+                          <LessonQA
+                            lessonId={selectedLessonData.id}
+                            mentorId={mentorId}
+                            studentId={user!.id}
+                            studentName={profile?.full_name || user?.email || 'תלמיד'}
+                            isMentor={false}
+                          />
+                        </div>
                       )}
                     </motion.div>
                   ) : (

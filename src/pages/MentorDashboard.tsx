@@ -9,12 +9,15 @@ import {
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, MessageSquare, MessageCircle, Pin, PinOff,
   ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
+  MessageCircleQuestion,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
+import MentorQuestionsHub from '@/components/MentorQuestionsHub';
+import LessonQA from '@/components/LessonQA';
 
-type SidebarTab = 'lessons' | 'community' | 'students' | 'live';
+type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions';
 type PostType = 'discussion' | 'media';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -688,11 +691,12 @@ export default function MentorDashboard() {
               </div>
 
               <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-                {([
+               {([
                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                   { key: 'community', label: 'קהילה', icon: Users },
                   { key: 'students', label: 'תלמידים', icon: GraduationCap },
                   { key: 'live', label: 'לייב', icon: Radio },
+                  { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
@@ -780,6 +784,16 @@ export default function MentorDashboard() {
                         {lesson.attachment_url && (
                           <AttachmentViewer url={lesson.attachment_url} name={lesson.attachment_name ?? ''} />
                         )}
+                        {/* Q&A for mentor to see/answer */}
+                        <div className="px-6 pb-6">
+                          <LessonQA
+                            lessonId={lesson.id}
+                            mentorId={user!.id}
+                            studentId={user!.id}
+                            studentName={mentorProfile?.full_name || user?.email || 'מנטור'}
+                            isMentor={true}
+                          />
+                        </div>
                       </motion.div>
                     );
                   })() : (
@@ -1150,6 +1164,13 @@ export default function MentorDashboard() {
           {activeTab === 'live' && user && (
             <motion.div key="live" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <LiveHubMentor mentorId={user.id} userId={user.id} userName={mentorProfile?.full_name || user?.email || 'מנטור'} />
+            </motion.div>
+          )}
+
+          {/* ──────── QUESTIONS ──────── */}
+          {activeTab === 'questions' && user && (
+            <motion.div key="questions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+              <MentorQuestionsHub mentorId={user.id} />
             </motion.div>
           )}
 
