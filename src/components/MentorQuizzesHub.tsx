@@ -448,10 +448,11 @@ function SubmissionDetail({ submission, onBack }: { submission: Submission & { a
 export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const [view, setView] = useState<'list' | 'create' | 'submissions' | 'submission-detail'>('list');
+  const [view, setView] = useState<'list' | 'create' | 'submissions' | 'submission-detail' | 'quiz-detail'>('list');
   const [filterCategoryId, setFilterCategoryId] = useState<string>('');
   const [filterLessonId, setFilterLessonId] = useState<string>('');
   const [filterStudentId, setFilterStudentId] = useState<string>('');
+  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [submissionAnswers, setSubmissionAnswers] = useState<{ question_text: string; answer_text: string | null; selected_option_text?: string; is_correct: boolean | null }[]>([]);
 
