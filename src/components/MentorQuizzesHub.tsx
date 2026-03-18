@@ -873,15 +873,15 @@ function SubmissionDetail({ submission, onBack }: { submission: Submission & { a
         {(submission.answers ?? []).map((a, idx) => (
           <div key={idx} className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-start justify-between gap-2 mb-2">
+              <p className="text-sm font-medium text-foreground text-right flex-1">{idx + 1}. {a.question_text}</p>
               {a.is_correct != null && (
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${
                   a.is_correct ? 'bg-accent/10 text-accent' : 'bg-destructive/10 text-destructive'
                 }`}>
                   {a.is_correct ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
                   {a.is_correct ? 'נכון' : 'שגוי'}
                 </span>
               )}
-              <p className="text-sm font-medium text-foreground text-right">{idx + 1}. {a.question_text}</p>
             </div>
             <div className="bg-muted/40 rounded-lg px-3 py-2">
               <p className="text-sm text-foreground text-right">{a.selected_option_text || a.answer_text || <span className="text-muted-foreground italic">לא ענה</span>}</p>
