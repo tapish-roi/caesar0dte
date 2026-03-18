@@ -334,7 +334,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz }: { lessonId: string
     queryFn: async () => {
       const { data } = await supabase
         .from('quizzes')
-        .select('id, title, is_published')
+        .select('id, title, description, is_published')
         .eq('mentor_id', mentorId)
         .eq('lesson_id', lessonId)
         .eq('is_published', true)
@@ -356,7 +356,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz }: { lessonId: string
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground">מבחן: {quiz.title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">בחן את עצמך על חומר השיעור</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{quiz.description || 'בחן את עצמך על חומר השיעור'}</p>
         </div>
         <button
           onClick={() => onTakeQuiz(quiz.id)}
