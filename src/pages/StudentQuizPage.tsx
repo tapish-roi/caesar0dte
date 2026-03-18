@@ -321,7 +321,7 @@ export default function StudentQuizPage() {
 
   // ── ALREADY SUBMITTED SCREEN ──
   if (existingSubmission && !submitted) {
-    const pct = existingSubmission.score;
+    const pct = normalizeScore(existingSubmission.score, existingSubmission.max_score);
     return (
       <div className="min-h-screen bg-background" dir="rtl">
         <div className="max-w-2xl mx-auto px-4 py-8">
