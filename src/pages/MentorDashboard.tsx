@@ -715,30 +715,31 @@ export default function MentorDashboard() {
 
               <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                {([
-                  { key: 'lessons', label: 'שיעורים', icon: BookOpen },
-                  { key: 'community', label: 'קהילה', icon: Users },
-                  { key: 'students', label: 'תלמידים', icon: GraduationCap },
-                  { key: 'live', label: 'לייב', icon: Radio },
-                  { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
-                ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => setActiveTab(key)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      activeTab === key
-                        ? 'bg-sidebar-accent text-sidebar-foreground'
-                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="flex-1 text-right">{label}</span>
-                    {key === 'questions' && unansweredCount > 0 && (
-                      <span className="min-w-[20px] h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                        {unansweredCount > 99 ? '99+' : unansweredCount}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
+                   { key: 'community', label: 'קהילה', icon: Users },
+                   { key: 'students', label: 'תלמידים', icon: GraduationCap },
+                   { key: 'live', label: 'לייב', icon: Radio },
+                   { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
+                   { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
+                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
+                   <button
+                     key={key}
+                     onClick={() => { setActiveTab(key); if (key !== 'quizzes') setQuizNavLessonId(null); }}
+                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                       activeTab === key
+                         ? 'bg-sidebar-accent text-sidebar-foreground'
+                         : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                     }`}
+                   >
+                     <Icon className="w-4 h-4" />
+                     <span className="flex-1 text-right">{label}</span>
+                     {key === 'questions' && unansweredCount > 0 && (
+                       <span className="min-w-[20px] h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                         {unansweredCount > 99 ? '99+' : unansweredCount}
+                       </span>
+                     )}
+                   </button>
+                 ))}
               </nav>
 
               <div className="p-3 border-t border-sidebar-border">
