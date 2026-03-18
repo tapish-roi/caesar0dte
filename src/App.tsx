@@ -70,6 +70,7 @@ function AppRoutes() {
           <StudentDashboard />
         }
       />
+      <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
       <Route path="/auth" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
