@@ -136,6 +136,13 @@ export default function StudentQuizPage() {
   const toPercent = (got: number, max: number) =>
     max > 0 ? Math.round((got / max) * 100) : null;
 
+  // Normalize old submissions: if max_score != 100, convert to percentage
+  const normalizeScore = (score: number | null, maxScore: number | null): number | null => {
+    if (score == null || maxScore == null || maxScore === 0) return null;
+    if (maxScore === 100) return score; // already a percentage (new format)
+    return Math.round((score / maxScore) * 100); // old format: convert
+  };
+
   const handleSubmit = async () => {
     if (!user || !quiz) return;
     setIsSubmitting(true);
@@ -314,7 +321,7 @@ export default function StudentQuizPage() {
 
   // ── ALREADY SUBMITTED SCREEN ──
   if (existingSubmission && !submitted) {
-    const pct = existingSubmission.score;
+    const pct = normalizeScore(existingSubmission.score, existingSubmission.max_score);
     return (
       <div className="min-h-screen bg-background" dir="rtl">
         <div className="max-w-2xl mx-auto px-4 py-8">
