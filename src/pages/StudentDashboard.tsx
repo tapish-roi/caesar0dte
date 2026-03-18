@@ -1013,6 +1013,18 @@ export default function StudentDashboard() {
                       {selectedLessonData.attachment_url && (
                         <AttachmentViewer url={selectedLessonData.attachment_url} name={selectedLessonData.attachment_name ?? ''} />
                       )}
+                      {/* Q&A section */}
+                      {mentorId && (
+                        <div className="px-6 pb-6">
+                          <LessonQA
+                            lessonId={selectedLessonData.id}
+                            mentorId={mentorId}
+                            studentId={user!.id}
+                            studentName={profile?.full_name || user?.email || 'תלמיד'}
+                            isMentor={false}
+                          />
+                        </div>
+                      )}
                     </motion.div>
                   ) : (
                     <div className="text-center py-24 text-muted-foreground">
