@@ -1294,7 +1294,18 @@ export default function StudentDashboard() {
           {/* ──────── MY QUESTIONS ──────── */}
           {activeTab === 'questions' && mentorId && user && (
             <motion.div key="questions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
-              <StudentMyQuestions studentId={user.id} mentorId={mentorId} />
+              <StudentMyQuestions
+                studentId={user.id}
+                mentorId={mentorId}
+                onGoToLesson={(lessonId) => {
+                  const lesson = lessons.find(l => l.id === lessonId);
+                  if (!lesson) return;
+                  const cat = lesson.category_id ? categories.find(c => c.id === lesson.category_id) : null;
+                  setLessonViewMode({ categoryId: lesson.category_id ?? '', categoryTitle: cat?.title ?? 'שיעורים' });
+                  setSelectedLesson(lessonId);
+                  setActiveTab('lessons');
+                }}
+              />
             </motion.div>
           )}
 
