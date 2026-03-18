@@ -1157,6 +1157,13 @@ export default function MentorDashboard() {
             </motion.div>
           )}
 
+          {/* ──────── QUESTIONS ──────── */}
+          {activeTab === 'questions' && user && (
+            <motion.div key="questions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+              <MentorQuestionsHub mentorId={user.id} />
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </main>
 
