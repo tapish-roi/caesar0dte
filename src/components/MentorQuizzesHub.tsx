@@ -1117,6 +1117,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
         quiz={quiz ?? null}
         mentorId={mentorId}
         lessons={lessons}
+        categories={categories}
         onBack={() => setView('list')}
         onDeleted={() => { setSelectedQuizId(null); setView('list'); qc.invalidateQueries({ queryKey: ['mentor-quizzes', mentorId] }); }}
         onTogglePublish={(id, is_published) => togglePublish.mutate({ id, is_published })}
