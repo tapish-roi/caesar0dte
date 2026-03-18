@@ -8,7 +8,7 @@ import {
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
   User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
-  CalendarDays, Filter, XCircle,
+  CalendarDays, Filter, XCircle, MessageCircleQuestion,
 } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -21,8 +21,10 @@ import { Switch } from '@/components/ui/switch';
 import LiveViewer from '@/components/LiveViewer';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubStudent from '@/components/LiveHubStudent';
+import LessonQA from '@/components/LessonQA';
+import StudentMyQuestions from '@/components/StudentMyQuestions';
 
-type SidebarTab = 'lessons' | 'community' | 'live';
+type SidebarTab = 'lessons' | 'community' | 'live' | 'questions';
 type PostType = 'discussion' | 'media' | 'live';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
