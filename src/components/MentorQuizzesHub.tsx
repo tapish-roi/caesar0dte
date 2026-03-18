@@ -908,7 +908,11 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
               ) : (
                 <div className="space-y-3">
                   {filteredQuizzes.map(quiz => (
-                    <div key={quiz.id} className="bg-card border border-border rounded-xl p-4 hover:border-primary/20 transition-all">
+                    <div
+                      key={quiz.id}
+                      onClick={() => { setSelectedQuizId(quiz.id); setView('quiz-detail'); }}
+                      className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 hover:shadow-sm cursor-pointer transition-all group"
+                    >
                       <div className="flex items-start gap-4">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                           quiz.is_published ? 'bg-accent/10' : 'bg-muted'
@@ -927,7 +931,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                                 <BookOpen className="w-2.5 h-2.5" />{quiz.lessonTitle}
                               </span>
                             )}
-                            <h3 className="text-sm font-semibold text-foreground">{quiz.title}</h3>
+                            <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{quiz.title}</h3>
                           </div>
                           {quiz.description && <p className="text-xs text-muted-foreground mt-1 text-right">{quiz.description}</p>}
                           <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground justify-end">
@@ -940,18 +944,19 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <button
-                            onClick={() => togglePublish.mutate({ id: quiz.id, is_published: quiz.is_published })}
+                            onClick={e => { e.stopPropagation(); togglePublish.mutate({ id: quiz.id, is_published: quiz.is_published }); }}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                             title={quiz.is_published ? 'הסתר מתלמידים' : 'פרסם לתלמידים'}
                           >
                             {quiz.is_published ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                           </button>
                           <button
-                            onClick={() => deleteQuiz.mutate(quiz.id)}
+                            onClick={e => { e.stopPropagation(); deleteQuiz.mutate(quiz.id); }}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
+                          <ChevronLeft className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
                     </div>
