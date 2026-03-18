@@ -423,6 +423,7 @@ function QuizDetail({
   quiz,
   mentorId,
   lessons,
+  categories,
   onBack,
   onDeleted,
   onTogglePublish,
@@ -431,6 +432,7 @@ function QuizDetail({
   quiz: Quiz | null;
   mentorId: string;
   lessons: { id: string; title: string; category_id: string | null }[];
+  categories: { id: string; title: string }[];
   onBack: () => void;
   onDeleted: () => void;
   onTogglePublish: (id: string, is_published: boolean) => void;
