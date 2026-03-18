@@ -890,26 +890,29 @@ export default function StudentDashboard() {
                   </button>
 
                   {communityDropdownOpen && memberships.length > 1 && (
-                    <div className="absolute left-3 right-3 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
-                      {memberships.map((m) => (
-                        <button
-                          key={m.mentor_id}
-                          onClick={() => {
-                            setSelectedMentorId(m.mentor_id);
-                            setCommunityDropdownOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-right transition-colors hover:bg-accent ${m.mentor_id === selectedMentorId ? 'bg-accent/60' : ''}`}
-                        >
-                          <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                            <span className="text-xs font-bold text-primary">{m.mentorName.charAt(0)}</span>
-                          </div>
-                          <span className="text-sm font-medium text-foreground truncate">{m.mentorName}</span>
-                          {m.mentor_id === selectedMentorId && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary mr-auto shrink-0" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setCommunityDropdownOpen(false)} />
+                      <div className="absolute left-3 right-3 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+                        {memberships.map((m) => (
+                          <button
+                            key={m.mentor_id}
+                            onClick={() => {
+                              setSelectedMentorId(m.mentor_id);
+                              setCommunityDropdownOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-right transition-colors hover:bg-accent ${m.mentor_id === selectedMentorId ? 'bg-accent/60' : ''}`}
+                          >
+                            <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                              <span className="text-xs font-bold text-primary">{m.mentorName.charAt(0)}</span>
+                            </div>
+                            <span className="text-sm font-medium text-foreground truncate">{m.mentorName}</span>
+                            {m.mentor_id === selectedMentorId && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary mr-auto shrink-0" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
               )}
