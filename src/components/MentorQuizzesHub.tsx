@@ -92,12 +92,14 @@ const defaultDraftQuestion = (): DraftQuestion => ({
 function QuizBuilder({
   mentorId,
   lessons,
+  categories,
   initialLessonId,
   editQuizId,
   onDone,
 }: {
   mentorId: string;
-  lessons: { id: string; title: string }[];
+  lessons: { id: string; title: string; category_id: string | null }[];
+  categories: { id: string; title: string }[];
   initialLessonId?: string | null;
   editQuizId?: string | null;
   onDone: () => void;
@@ -106,8 +108,13 @@ function QuizBuilder({
   const qc = useQueryClient();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [lessonId, setLessonId] = useState<string>(initialLessonId ?? '');
   const [questions, setQuestions] = useState<DraftQuestion[]>([defaultDraftQuestion()]);
+
+  const lessonsInSelectedCategory = selectedCategoryId
+    ? lessons.filter(l => l.category_id === selectedCategoryId)
+    : lessons;
   const [isSaving, setIsSaving] = useState(false);
 
   const addQuestion = (type: QuestionType) => {
@@ -234,16 +241,28 @@ function QuizBuilder({
               className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">שייך לשיעור (אופציונלי)</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">קטגוריה (אופציונלי)</label>
+              <select
+                value={selectedCategoryId}
+                onChange={e => { setSelectedCategoryId(e.target.value); setLessonId(''); }}
+                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+              >
+                <option value="">כל הקטגוריות</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">שיעור (אופציונלי)</label>
               <select
                 value={lessonId}
                 onChange={e => setLessonId(e.target.value)}
-                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+                disabled={lessonsInSelectedCategory.length === 0 && !selectedCategoryId}
+                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right disabled:opacity-50"
               >
                 <option value="">ללא שיעור</option>
-                {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                {lessonsInSelectedCategory.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
               </select>
             </div>
             <div>
@@ -404,6 +423,7 @@ function QuizDetail({
   quiz,
   mentorId,
   lessons,
+  categories,
   onBack,
   onDeleted,
   onTogglePublish,
@@ -412,6 +432,7 @@ function QuizDetail({
   quiz: Quiz | null;
   mentorId: string;
   lessons: { id: string; title: string; category_id: string | null }[];
+  categories: { id: string; title: string }[];
   onBack: () => void;
   onDeleted: () => void;
   onTogglePublish: (id: string, is_published: boolean) => void;
@@ -422,6 +443,7 @@ function QuizDetail({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editCategoryId, setEditCategoryId] = useState('');
   const [editLessonId, setEditLessonId] = useState('');
   const [editQuestions, setEditQuestions] = useState<DraftQuestion[]>([]);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -461,6 +483,9 @@ function QuizDetail({
     setEditTitle(quiz.title);
     setEditDescription(quiz.description ?? '');
     setEditLessonId(quiz.lesson_id ?? '');
+    // Pre-select category based on current lesson
+    const currentLesson = quiz.lesson_id ? lessons.find(l => l.id === quiz.lesson_id) : null;
+    setEditCategoryId(currentLesson?.category_id ?? '');
     // Build draft questions from loaded data
     const drafts: DraftQuestion[] = questions.map(q => ({
       id: q.id,
@@ -593,16 +618,27 @@ function QuizDetail({
                 className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">שייך לשיעור</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">קטגוריה</label>
+                <select
+                  value={editCategoryId}
+                  onChange={e => { setEditCategoryId(e.target.value); setEditLessonId(''); }}
+                  className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+                >
+                  <option value="">כל הקטגוריות</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">שיעור</label>
                 <select
                   value={editLessonId}
                   onChange={e => setEditLessonId(e.target.value)}
                   className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
                 >
                   <option value="">ללא שיעור</option>
-                  {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                  {(editCategoryId ? lessons.filter(l => l.category_id === editCategoryId) : lessons).map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
                 </select>
               </div>
               <div>
@@ -1066,6 +1102,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
       <QuizBuilder
         mentorId={mentorId}
         lessons={lessons}
+        categories={categories}
         initialLessonId={initialLessonId}
         onDone={() => setView('list')}
       />
@@ -1080,6 +1117,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
         quiz={quiz ?? null}
         mentorId={mentorId}
         lessons={lessons}
+        categories={categories}
         onBack={() => setView('list')}
         onDeleted={() => { setSelectedQuizId(null); setView('list'); qc.invalidateQueries({ queryKey: ['mentor-quizzes', mentorId] }); }}
         onTogglePublish={(id, is_published) => togglePublish.mutate({ id, is_published })}
