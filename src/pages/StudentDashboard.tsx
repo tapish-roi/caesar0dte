@@ -356,7 +356,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz }: { lessonId: string
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground">מבחן: {quiz.title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">בחן את עצמך על חומר השיעור</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{quiz.description || 'בחן את עצמך על חומר השיעור'}</p>
         </div>
         <button
           onClick={() => onTakeQuiz(quiz.id)}
