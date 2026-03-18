@@ -91,17 +91,11 @@ const defaultDraftQuestion = (): DraftQuestion => ({
 // ═══════════════════════════════════════════════════════
 function QuizBuilder({
   mentorId,
-  lessons,
-  categories,
   initialLessonId,
-  editQuizId,
   onDone,
 }: {
   mentorId: string;
-  lessons: { id: string; title: string; category_id: string | null }[];
-  categories: { id: string; title: string }[];
   initialLessonId?: string | null;
-  editQuizId?: string | null;
   onDone: () => void;
 }) {
   const { toast } = useToast();
@@ -111,11 +105,30 @@ function QuizBuilder({
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [lessonId, setLessonId] = useState<string>(initialLessonId ?? '');
   const [questions, setQuestions] = useState<DraftQuestion[]>([defaultDraftQuestion()]);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Always fetch fresh so newly created lessons appear immediately
+  const { data: lessons = [] } = useQuery<{ id: string; title: string; category_id: string | null }[]>({
+    queryKey: ['quiz-builder-lessons', mentorId],
+    queryFn: async () => {
+      const { data } = await supabase.from('lessons').select('id, title, category_id').eq('mentor_id', mentorId).order('position');
+      return data ?? [];
+    },
+    staleTime: 0,
+  });
+
+  const { data: categories = [] } = useQuery<{ id: string; title: string }[]>({
+    queryKey: ['quiz-builder-categories', mentorId],
+    queryFn: async () => {
+      const { data } = await supabase.from('categories').select('id, title').eq('mentor_id', mentorId).order('position');
+      return data ?? [];
+    },
+    staleTime: 0,
+  });
 
   const lessonsInSelectedCategory = selectedCategoryId
     ? lessons.filter(l => l.category_id === selectedCategoryId)
     : lessons;
-  const [isSaving, setIsSaving] = useState(false);
 
   const addQuestion = (type: QuestionType) => {
     const q: DraftQuestion = {
@@ -1101,8 +1114,6 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
     return (
       <QuizBuilder
         mentorId={mentorId}
-        lessons={lessons}
-        categories={categories}
         initialLessonId={initialLessonId}
         onDone={() => setView('list')}
       />
