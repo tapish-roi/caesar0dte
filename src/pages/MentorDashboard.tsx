@@ -729,7 +729,12 @@ export default function MentorDashboard() {
                     }`}
                   >
                     <Icon className="w-4 h-4" />
-                    {label}
+                    <span className="flex-1 text-right">{label}</span>
+                    {key === 'questions' && unansweredCount > 0 && (
+                      <span className="min-w-[20px] h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                        {unansweredCount > 99 ? '99+' : unansweredCount}
+                      </span>
+                    )}
                   </button>
                 ))}
               </nav>
