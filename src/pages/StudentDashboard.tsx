@@ -343,6 +343,10 @@ export default function StudentDashboard() {
   const [lessonDateRange, setLessonDateRange] = useState<DateRange | undefined>(undefined);
   const [communityDateRange, setCommunityDateRange] = useState<DateRange | undefined>(undefined);
 
+  // Community dropdown state
+  const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
+  const communityDropdownRef = useRef<HTMLDivElement>(null);
+
   // Profile popover state
   const [profileOpen, setProfileOpen] = useState(false);
   const profilePopoverRef = useRef<HTMLDivElement>(null);
