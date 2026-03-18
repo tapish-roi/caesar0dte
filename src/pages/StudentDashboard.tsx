@@ -872,10 +872,10 @@ export default function StudentDashboard() {
               </div>
 
               {mentorName && (
-                <div className="px-3 py-2 border-b border-sidebar-border relative" ref={communityDropdownRef}>
+                <div className="px-3 py-2 border-b border-sidebar-border">
                   <button
-                    onClick={() => memberships.length > 1 && setCommunityDropdownOpen(v => !v)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-right ${memberships.length > 1 ? 'hover:bg-sidebar-accent cursor-pointer' : 'cursor-default'}`}
+                    onClick={() => setCommunityDropdownOpen(v => !v)}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-right hover:bg-sidebar-accent cursor-pointer"
                   >
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <span className="text-sm font-bold text-primary">{mentorName.charAt(0)}</span>
@@ -884,15 +884,13 @@ export default function StudentDashboard() {
                       <p className="text-xs text-muted-foreground leading-tight">קהילה נוכחית</p>
                       <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight mt-0.5">{mentorName}</p>
                     </div>
-                    {memberships.length > 1 && (
-                      <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${communityDropdownOpen ? 'rotate-180' : ''}`} />
-                    )}
+                    <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${communityDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
-                  {communityDropdownOpen && memberships.length > 1 && (
+                  {communityDropdownOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setCommunityDropdownOpen(false)} />
-                      <div className="absolute left-3 right-3 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+                      <div className="absolute left-3 right-3 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
                         {memberships.map((m) => (
                           <button
                             key={m.mentor_id}
@@ -900,14 +898,14 @@ export default function StudentDashboard() {
                               setSelectedMentorId(m.mentor_id);
                               setCommunityDropdownOpen(false);
                             }}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-right transition-colors hover:bg-accent ${m.mentor_id === selectedMentorId ? 'bg-accent/60' : ''}`}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-right transition-colors hover:bg-accent ${m.mentor_id === selectedMentorId ? 'bg-accent/60' : ''}`}
                           >
                             <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                               <span className="text-xs font-bold text-primary">{m.mentorName.charAt(0)}</span>
                             </div>
-                            <span className="text-sm font-medium text-foreground truncate">{m.mentorName}</span>
+                            <span className="text-sm font-medium text-foreground truncate flex-1">{m.mentorName}</span>
                             {m.mentor_id === selectedMentorId && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-primary mr-auto shrink-0" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                             )}
                           </button>
                         ))}
