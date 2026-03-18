@@ -9,15 +9,16 @@ import {
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, MessageSquare, MessageCircle, Pin, PinOff,
   ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
-  MessageCircleQuestion,
+  MessageCircleQuestion, ClipboardList,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
 import MentorQuestionsHub from '@/components/MentorQuestionsHub';
+import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
 
-type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions';
+type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes';
 type PostType = 'discussion' | 'media';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -66,6 +67,7 @@ export default function MentorDashboard() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
+  const [quizNavLessonId, setQuizNavLessonId] = useState<string | null>(null);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showLessonPanel, setShowLessonPanel] = useState(false);
@@ -713,30 +715,31 @@ export default function MentorDashboard() {
 
               <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                {([
-                  { key: 'lessons', label: 'שיעורים', icon: BookOpen },
-                  { key: 'community', label: 'קהילה', icon: Users },
-                  { key: 'students', label: 'תלמידים', icon: GraduationCap },
-                  { key: 'live', label: 'לייב', icon: Radio },
-                  { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
-                ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => setActiveTab(key)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      activeTab === key
-                        ? 'bg-sidebar-accent text-sidebar-foreground'
-                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="flex-1 text-right">{label}</span>
-                    {key === 'questions' && unansweredCount > 0 && (
-                      <span className="min-w-[20px] h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                        {unansweredCount > 99 ? '99+' : unansweredCount}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
+                   { key: 'community', label: 'קהילה', icon: Users },
+                   { key: 'students', label: 'תלמידים', icon: GraduationCap },
+                   { key: 'live', label: 'לייב', icon: Radio },
+                   { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
+                   { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
+                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
+                   <button
+                     key={key}
+                     onClick={() => { setActiveTab(key); if (key !== 'quizzes') setQuizNavLessonId(null); }}
+                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                       activeTab === key
+                         ? 'bg-sidebar-accent text-sidebar-foreground'
+                         : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                     }`}
+                   >
+                     <Icon className="w-4 h-4" />
+                     <span className="flex-1 text-right">{label}</span>
+                     {key === 'questions' && unansweredCount > 0 && (
+                       <span className="min-w-[20px] h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                         {unansweredCount > 99 ? '99+' : unansweredCount}
+                       </span>
+                     )}
+                   </button>
+                 ))}
               </nav>
 
               <div className="p-3 border-t border-sidebar-border">
@@ -1200,6 +1203,13 @@ export default function MentorDashboard() {
             </motion.div>
           )}
 
+          {/* ──────── QUIZZES ──────── */}
+          {activeTab === 'quizzes' && user && (
+            <motion.div key="quizzes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-h-0 h-full overflow-hidden">
+              <MentorQuizzesHub mentorId={user.id} initialLessonId={quizNavLessonId} />
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </main>
 
@@ -1498,6 +1508,23 @@ export default function MentorDashboard() {
                   >
                     {createLesson.isPending ? 'שומר...' : 'צור שיעור'}
                   </button>
+
+                  <div className="relative flex items-center gap-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground">או</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setShowLessonPanel(false);
+                      setQuizNavLessonId(null);
+                      setActiveTab('quizzes');
+                    }}
+                    className="w-full h-11 border border-primary/30 bg-primary/5 text-primary rounded-lg font-medium hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    <ClipboardList className="w-4 h-4" />צור מבחן לשיעור זה
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -1737,6 +1764,23 @@ export default function MentorDashboard() {
                     className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50"
                   >
                     {updateLesson.isPending ? 'שומר...' : 'שמור שינויים'}
+                  </button>
+
+                  <div className="relative flex items-center gap-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground">או</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setEditLesson(null);
+                      setQuizNavLessonId(editLesson?.id ?? null);
+                      setActiveTab('quizzes');
+                    }}
+                    className="w-full h-11 border border-primary/30 bg-primary/5 text-primary rounded-lg font-medium hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    <ClipboardList className="w-4 h-4" />צור מבחן לשיעור זה
                   </button>
                 </div>
               </div>
