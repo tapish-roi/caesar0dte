@@ -579,12 +579,31 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
     setView('submission-detail');
   };
 
+  // ── Derived: lessons filtered by selected category ──
+  const lessonsInCategory = filterCategoryId
+    ? lessons.filter(l => l.category_id === filterCategoryId)
+    : lessons;
+
+  // ── Filtered quizzes ──
+  const filteredQuizzes = quizzes.filter(q => {
+    if (filterLessonId && q.lesson_id !== filterLessonId) return false;
+    if (filterCategoryId && !filterLessonId) {
+      const catLessonIds = new Set(lessons.filter(l => l.category_id === filterCategoryId).map(l => l.id));
+      if (q.lesson_id && !catLessonIds.has(q.lesson_id)) return false;
+    }
+    return true;
+  });
+
   // ── Filtered submissions ──
   const filteredSubmissions = submissions.filter(s => {
     if (filterStudentId && s.student_id !== filterStudentId) return false;
     if (filterLessonId) {
       const quiz = quizzes.find(q => q.id === s.quiz_id);
       if (!quiz || quiz.lesson_id !== filterLessonId) return false;
+    } else if (filterCategoryId) {
+      const catLessonIds = new Set(lessons.filter(l => l.category_id === filterCategoryId).map(l => l.id));
+      const quiz = quizzes.find(q => q.id === s.quiz_id);
+      if (quiz?.lesson_id && !catLessonIds.has(quiz.lesson_id)) return false;
     }
     return true;
   });
