@@ -21,6 +21,7 @@ type QuestionType = 'multiple_choice' | 'free_text';
 
 interface QuizOption {
   id: string;
+  question_id: string;
   option_text: string;
   is_correct: boolean;
   position: number;
