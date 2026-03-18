@@ -481,6 +481,9 @@ function QuizDetail({
     setEditTitle(quiz.title);
     setEditDescription(quiz.description ?? '');
     setEditLessonId(quiz.lesson_id ?? '');
+    // Pre-select category based on current lesson
+    const currentLesson = quiz.lesson_id ? lessons.find(l => l.id === quiz.lesson_id) : null;
+    setEditCategoryId(currentLesson?.category_id ?? '');
     // Build draft questions from loaded data
     const drafts: DraftQuestion[] = questions.map(q => ({
       id: q.id,
