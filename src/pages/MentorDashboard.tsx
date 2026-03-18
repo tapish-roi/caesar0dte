@@ -784,6 +784,16 @@ export default function MentorDashboard() {
                         {lesson.attachment_url && (
                           <AttachmentViewer url={lesson.attachment_url} name={lesson.attachment_name ?? ''} />
                         )}
+                        {/* Q&A for mentor to see/answer */}
+                        <div className="px-6 pb-6">
+                          <LessonQA
+                            lessonId={lesson.id}
+                            mentorId={user!.id}
+                            studentId={user!.id}
+                            studentName={mentorProfile?.full_name || user?.email || 'מנטור'}
+                            isMentor={true}
+                          />
+                        </div>
                       </motion.div>
                     );
                   })() : (
