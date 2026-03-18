@@ -778,13 +778,23 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                   <Filter className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">סנן:</span>
                 </div>
+                {/* Category filter */}
+                <select
+                  value={filterCategoryId}
+                  onChange={e => { setFilterCategoryId(e.target.value); setFilterLessonId(''); }}
+                  className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">כל הקטגוריות</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                </select>
+                {/* Lesson filter */}
                 <select
                   value={filterLessonId}
                   onChange={e => setFilterLessonId(e.target.value)}
                   className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">כל השיעורים</option>
-                  {lessons.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
+                  {lessonsInCategory.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
                 </select>
                 <select
                   value={filterStudentId}
