@@ -895,6 +895,39 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); stopSoundTest(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Screen share request flow
+  // ─────────────────────────────────────────────────────────────────────────────
+  const requestScreenShare = useCallback(async () => {
+    if (screenShareRequested) return;
+    setScreenShareRequested(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('live_signals') as any).insert({
+      session_id: sessionId, from_user_id: userId, to_user_id: mentorId,
+      signal_type: 'request_screen_share', payload: { userName },
+    });
+    toast({ title: 'בקשת שיתוף מסך נשלחה למנטור' });
+  }, [screenShareRequested, sessionId, userId, mentorId, userName, toast]);
+
+  const approveScreenShare = useCallback(async (targetId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('live_signals') as any).insert({
+      session_id: sessionId, from_user_id: userId, to_user_id: targetId,
+      signal_type: 'screen_share_approved', payload: {},
+    });
+    setPendingScreenRequests(prev => prev.filter(r => r.userId !== targetId));
+    toast({ title: 'אישרת בקשת שיתוף מסך' });
+  }, [sessionId, userId, toast]);
+
+  const denyScreenShare = useCallback(async (targetId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('live_signals') as any).insert({
+      session_id: sessionId, from_user_id: userId, to_user_id: targetId,
+      signal_type: 'screen_share_denied', payload: {},
+    });
+    setPendingScreenRequests(prev => prev.filter(r => r.userId !== targetId));
+  }, [sessionId, userId]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Leave
   // ─────────────────────────────────────────────────────────────────────────────
   const handleLeave = useCallback(() => {
