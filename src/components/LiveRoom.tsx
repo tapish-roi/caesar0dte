@@ -872,6 +872,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   const handleLeave = useCallback(() => {
     stopScreenShare(); stopSpeakingDetection(); stopMicTest();
+    // Release camera and microphone
+    localStreamRef.current?.getTracks().forEach(t => t.stop());
+    localStreamRef.current = null;
+    localMicStreamForAnalysis.current?.getTracks().forEach(t => t.stop());
+    localMicStreamForAnalysis.current = null;
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       const mr = mediaRecorderRef.current;
       const dur = Math.round((Date.now() - sessionStartRef.current) / 1000);
