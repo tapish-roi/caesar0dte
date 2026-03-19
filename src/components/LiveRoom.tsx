@@ -931,6 +931,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       localMicStreamForAnalysis.current = null;
       stopSpeakingDetection();
       setMicEnabled(false);
+      // Renegotiate so remote peers know the audio track was removed
+      renegotiateAll();
     } else {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: selectedMic ? { deviceId: { exact: selectedMic } } : true });
@@ -948,9 +950,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         startSpeakingDetection(stream);
         setMicEnabled(true);
         if (deafened) setDeafened(false);
+        // ★ Renegotiate so remote peers receive the new audio track
+        renegotiateAll();
       } catch { toast({ title: 'לא ניתן לגשת למיקרופון', variant: 'destructive' }); }
     }
-  }, [micEnabled, selectedMic, deafened, toast, startSpeakingDetection, stopSpeakingDetection]);
+  }, [micEnabled, selectedMic, deafened, toast, startSpeakingDetection, stopSpeakingDetection, renegotiateAll]);
 
   const toggleDeafen = useCallback(() => {
     setDeafened(v => {
