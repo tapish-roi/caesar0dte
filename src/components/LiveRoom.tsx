@@ -301,7 +301,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
     return pc;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sendSignal, startRemoteSpeakingDetection, stopRemoteSpeakingDetection]);
+  }, [sendSignal]);
 
   // Renegotiate with ALL existing peers — called after adding/removing mic or camera tracks
   const renegotiateAll = useCallback(async () => {
