@@ -276,6 +276,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       setParticipants(prev => prev.map(p =>
         p.userId === remoteId ? { ...p, stream, hasCamera: stream.getVideoTracks().some(t => t.readyState === 'live') } : p
       ));
+      // Start remote speaking detection when we get a stream with audio
+      if (stream.getAudioTracks().length > 0) {
+        startRemoteSpeakingDetection(remoteId, stream);
+      }
       // Detect when remote turns camera off
       e.track.onended = () => {
         const s = remoteStreamsRef.current.get(remoteId);
@@ -291,6 +295,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         peersRef.current.delete(remoteId);
         remoteStreamsRef.current.delete(remoteId);
         setRemoteStreams(new Map(remoteStreamsRef.current));
+        stopRemoteSpeakingDetection(remoteId);
       }
     };
 
