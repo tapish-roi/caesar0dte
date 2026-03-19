@@ -141,6 +141,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [chatInput, setChatInput] = useState('');
   const [isSendingMsg, setIsSendingMsg] = useState(false);
 
+  // ── WebRTC ──
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map());
+  const webrtcChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const ICE_SERVERS = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ];
+
   // ── Refs ──
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);       // local sharer
@@ -224,25 +235,186 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Presence & signal channel
+  // WebRTC helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+  const sendSignal = useCallback((toId: string, type: string, data: Record<string, unknown>) => {
+    webrtcChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'webrtc',
+      payload: { fromId: userId, toId, type, data },
+    });
+  }, [userId]);
+
+  const getOrCreatePeer = useCallback((remoteId: string, isInitiator: boolean): RTCPeerConnection => {
+    if (peersRef.current.has(remoteId)) return peersRef.current.get(remoteId)!;
+
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    peersRef.current.set(remoteId, pc);
+
+    // Add existing local tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
+    }
+
+    pc.onicecandidate = (e) => {
+      if (e.candidate) sendSignal(remoteId, 'ice_candidate', { candidate: e.candidate.toJSON() });
+    };
+
+    pc.ontrack = (e) => {
+      const stream = e.streams[0] || new MediaStream([e.track]);
+      remoteStreamsRef.current.set(remoteId, stream);
+      setRemoteStreams(new Map(remoteStreamsRef.current));
+      setParticipants(prev => prev.map(p =>
+        p.userId === remoteId ? { ...p, stream, hasCamera: stream.getVideoTracks().length > 0 } : p
+      ));
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        peersRef.current.delete(remoteId);
+        remoteStreamsRef.current.delete(remoteId);
+        setRemoteStreams(new Map(remoteStreamsRef.current));
+      }
+    };
+
+    if (isInitiator) {
+      pc.onnegotiationneeded = async () => {
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          sendSignal(remoteId, 'offer', { sdp: pc.localDescription });
+        } catch { /* noop */ }
+      };
+    }
+
+    return pc;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sendSignal]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Presence & signal channel (WebRTC signaling via Realtime broadcast)
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from('live_signals') as any).insert({
-      session_id: sessionId, from_user_id: userId, to_user_id: mentorId,
-      signal_type: 'presence', payload: { name: userName, isMentor },
-    }).then(() => {});
+    const ch = supabase.channel(`webrtc-${sessionId}`, { config: { broadcast: { self: false } } });
+    webrtcChannelRef.current = ch;
 
+    ch.on('broadcast', { event: 'webrtc' }, async ({ payload }) => {
+      const { fromId, toId, type, data } = payload as { fromId: string; toId: string; type: string; data: Record<string, unknown> };
+      if (toId !== userId && type !== 'presence') return;
+
+      if (type === 'presence') {
+        // Add participant if not known
+        setParticipants(prev => {
+          if (prev.find(p => p.userId === fromId)) return prev;
+          return [...prev, { userId: fromId, name: String(data.name || 'משתמש'), isMuted: true, isDeafened: false, hasCamera: false, hasScreen: false }];
+        });
+        // Initiate offer to the new joiner (whoever joined LATER does the offering)
+        // The newcomer announces presence → everyone who is already here creates offer to them
+        const pc = getOrCreatePeer(fromId, true);
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          sendSignal(fromId, 'offer', { sdp: pc.localDescription });
+        } catch { /* noop */ }
+        return;
+      }
+
+      if (type === 'offer') {
+        const pc = getOrCreatePeer(fromId, false);
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.sdp as RTCSessionDescriptionInit));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          sendSignal(fromId, 'answer', { sdp: pc.localDescription });
+        } catch { /* noop */ }
+        return;
+      }
+
+      if (type === 'answer') {
+        const pc = peersRef.current.get(fromId);
+        if (pc && pc.signalingState !== 'stable') {
+          try { await pc.setRemoteDescription(new RTCSessionDescription(data.sdp as RTCSessionDescriptionInit)); } catch { /* noop */ }
+        }
+        return;
+      }
+
+      if (type === 'ice_candidate') {
+        const pc = peersRef.current.get(fromId);
+        if (pc && data.candidate) {
+          try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate as RTCIceCandidateInit)); } catch { /* noop */ }
+        }
+        return;
+      }
+
+      // ── Force mute signals (still via broadcast) ──
+      if (type === 'force_mute') {
+        setIsForceMuted(true); setMicEnabled(false);
+        localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
+        toast({ title: 'הושתקת על ידי המנטור', description: 'אתה יכול להסיר את ההשתקה בעצמך' });
+        return;
+      }
+      if (type === 'force_unmute') {
+        setIsForceMuted(false); toast({ title: 'המנטור הסיר את ההשתקה שלך' });
+        return;
+      }
+      if (type === 'mute_ack' && isMentor) {
+        const muted = data.muted as boolean;
+        setParticipants(prev => prev.map(p => p.userId === fromId ? { ...p, isMuted: muted, isForceMuted: muted } : p));
+        setForceMutedUsers(prev => { const n = new Set(prev); muted ? n.add(fromId) : n.delete(fromId); return n; });
+        return;
+      }
+      // ── Screen share request signals ──
+      if (type === 'request_screen_share' && isMentor) {
+        const requesterName = String(data.userName || 'תלמיד');
+        setPendingScreenRequests(prev => {
+          if (prev.find(r => r.userId === fromId)) return prev;
+          return [...prev, { userId: fromId, userName: requesterName }];
+        });
+        return;
+      }
+      if (type === 'screen_share_approved' && !isMentor) {
+        setScreenShareRequested(false);
+        toast({ title: 'המנטור אישר את בקשתך לשתף מסך!' });
+        return;
+      }
+      if (type === 'screen_share_denied' && !isMentor) {
+        setScreenShareRequested(false);
+        toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
+        return;
+      }
+    });
+
+    ch.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        // Announce presence to all others in the room
+        ch.send({
+          type: 'broadcast',
+          event: 'webrtc',
+          payload: { fromId: userId, toId: '*', type: 'presence', data: { name: userName, isMentor } },
+        });
+      }
+    });
+
+    return () => {
+      supabase.removeChannel(ch);
+      peersRef.current.forEach(pc => pc.close());
+      peersRef.current.clear();
+      remoteStreamsRef.current.clear();
+      setRemoteStreams(new Map());
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, userId, mentorId, isMentor, userName]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Legacy DB-based signals (force mute + screen share approval) — kept for backward compat
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
     const ch = supabase.channel(`live-signals-${sessionId}-${userId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_signals', filter: `session_id=eq.${sessionId}` },
         (payload) => {
           const sig = payload.new as { signal_type: string; from_user_id: string; to_user_id: string; payload: Record<string, unknown> };
-          if (sig.signal_type === 'presence' && isMentor) {
-            setParticipants(prev => {
-              if (prev.find(p => p.userId === sig.from_user_id)) return prev;
-              return [...prev, { userId: sig.from_user_id, name: String(sig.payload.name || 'משתמש'), isMuted: false, isDeafened: false, hasCamera: false, hasScreen: false }];
-            });
-          }
           if (sig.signal_type === 'force_mute' && sig.to_user_id === userId) {
             setIsForceMuted(true); setMicEnabled(false);
             localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
@@ -256,30 +428,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             setParticipants(prev => prev.map(p => p.userId === sig.from_user_id ? { ...p, isMuted: muted, isForceMuted: muted } : p));
             setForceMutedUsers(prev => { const n = new Set(prev); muted ? n.add(sig.from_user_id) : n.delete(sig.from_user_id); return n; });
           }
-          // ── Screen share request (student → mentor) ──
-          if (sig.signal_type === 'request_screen_share' && isMentor) {
-            const requesterName = String(sig.payload.userName || 'תלמיד');
-            const requesterId = sig.from_user_id;
-            setPendingScreenRequests(prev => {
-              if (prev.find(r => r.userId === requesterId)) return prev;
-              return [...prev, { userId: requesterId, userName: requesterName }];
-            });
-          }
-          // ── Screen share approved (mentor → student) ──
-          if (sig.signal_type === 'screen_share_approved' && sig.to_user_id === userId && !isMentor) {
-            setScreenShareRequested(false);
-            toast({ title: 'המנטור אישר את בקשתך לשתף מסך!' });
-          }
-          // ── Screen share denied (mentor → student) ──
-          if (sig.signal_type === 'screen_share_denied' && sig.to_user_id === userId && !isMentor) {
-            setScreenShareRequested(false);
-            toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
-          }
         })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, userId, mentorId, isMentor, userName]);
+  }, [sessionId, userId, mentorId, isMentor]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Screen share — frame broadcast channel
@@ -750,6 +903,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   const toggleMic = useCallback(async () => {
     if (micEnabled) {
+      // Remove audio senders from all peers
+      peersRef.current.forEach(pc => {
+        pc.getSenders().filter(s => s.track?.kind === 'audio').forEach(s => pc.removeTrack(s));
+      });
       localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
       localMicStreamForAnalysis.current = null;
       stopSpeakingDetection();
@@ -757,7 +914,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     } else {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: selectedMic ? { deviceId: { exact: selectedMic } } : true });
-        stream.getAudioTracks().forEach(t => localStreamRef.current?.addTrack(t));
+        // Store stream so peers can use it
+        if (!localStreamRef.current) localStreamRef.current = new MediaStream();
+        stream.getAudioTracks().forEach(t => {
+          localStreamRef.current!.addTrack(t);
+          // Add to all existing peer connections
+          peersRef.current.forEach(pc => {
+            const alreadyAdded = pc.getSenders().some(s => s.track === t);
+            if (!alreadyAdded) pc.addTrack(t, localStreamRef.current!);
+          });
+        });
         localMicStreamForAnalysis.current = stream;
         startSpeakingDetection(stream);
         setMicEnabled(true);
@@ -821,12 +987,28 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   useEffect(() => {
     if (cameraEnabled) {
       navigator.mediaDevices.getUserMedia({ video: selectedCamera ? { deviceId: { exact: selectedCamera } } : true })
-        .then(stream => { localStreamRef.current = stream; if (localVideoRef.current) localVideoRef.current.srcObject = stream; })
+        .then(stream => {
+          if (!localStreamRef.current) localStreamRef.current = new MediaStream();
+          stream.getVideoTracks().forEach(t => {
+            localStreamRef.current!.addTrack(t);
+            // Add to all existing peer connections
+            peersRef.current.forEach(pc => {
+              const alreadyAdded = pc.getSenders().some(s => s.track === t);
+              if (!alreadyAdded) pc.addTrack(t, localStreamRef.current!);
+            });
+          });
+          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        })
         .catch(() => { toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' }); setCameraEnabled(false); });
     } else {
+      // Remove video senders from all peers
+      peersRef.current.forEach(pc => {
+        pc.getSenders().filter(s => s.track?.kind === 'video').forEach(s => pc.removeTrack(s));
+      });
       localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
       if (localVideoRef.current) localVideoRef.current.srcObject = null;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraEnabled, selectedCamera, toast]);
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -940,6 +1122,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   const handleLeave = useCallback(() => {
     stopScreenShare(); stopSpeakingDetection(); stopMicTest();
+    // Close all WebRTC peers
+    peersRef.current.forEach(pc => pc.close());
+    peersRef.current.clear();
     // Release camera and microphone
     localStreamRef.current?.getTracks().forEach(t => t.stop());
     localStreamRef.current = null;
@@ -1004,6 +1189,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#1e1f22]" dir="rtl">
+
+      {/* ── Hidden remote audio elements — always mounted so audio plays in all views ── */}
+      {Array.from(remoteStreams.entries()).map(([remoteId, stream]) => (
+        <audio
+          key={remoteId}
+          autoPlay
+          ref={el => { if (el) el.srcObject = stream; }}
+          style={{ display: 'none' }}
+        />
+      ))}
 
       {/* ── Top bar ── */}
       <div className="flex items-center justify-between px-4 h-12 bg-[#1e1f22] border-b border-white/5 shrink-0">
@@ -1273,6 +1468,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             ) : (
               /* ── Avatar grid ── */
               <div className="flex flex-col items-center gap-5 select-none">
+
+                {/* Local avatar */}
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative">
                   <div className={`w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-2xl border-4 transition-all ${micEnabled ? 'border-green-500 shadow-green-500/30' : 'border-white/10'}`}
                     style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
@@ -1288,14 +1485,28 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   <p className="text-sm text-white/40 mt-0.5">{deafened ? 'מושתק לחלוטין' : micEnabled ? 'מדבר...' : 'מיקרופון כבוי'}</p>
                 </div>
                 {participants.length > 1 && (
-                  <div className="flex gap-4 mt-2">
-                    {participants.filter(p => p.userId !== userId).map(p => (
-                      <div key={p.userId} className="flex flex-col items-center gap-2">
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white border-2 ${p.isMuted ? 'border-white/10' : 'border-green-500'}`}
-                          style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>{initials(p.name)}</div>
-                        <p className="text-xs text-white/60">{p.name}</p>
-                      </div>
-                    ))}
+                  <div className="flex gap-4 mt-2 flex-wrap justify-center">
+                    {participants.filter(p => p.userId !== userId).map(p => {
+                      const remoteStream = remoteStreams.get(p.userId);
+                      const hasVideo = remoteStream && remoteStream.getVideoTracks().length > 0;
+                      return (
+                        <div key={p.userId} className="flex flex-col items-center gap-2">
+                          {hasVideo ? (
+                            <div className="w-24 h-16 rounded-xl overflow-hidden border-2 border-green-500/50 shadow-lg">
+                              <video
+                                autoPlay playsInline
+                                ref={el => { if (el && remoteStream) el.srcObject = remoteStream; }}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white border-2 ${p.isMuted ? 'border-white/10' : 'border-green-500'}`}
+                              style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>{initials(p.name)}</div>
+                          )}
+                          <p className="text-xs text-white/60">{p.name}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
