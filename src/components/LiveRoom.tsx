@@ -532,10 +532,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const captureFrame = () => {
       const video = screenVideoRef.current;
       if (!video || video.readyState < 2) return;
-      // Limit to 640px wide to stay within Supabase Realtime payload limits (~256KB)
-      const MAX_W = 640;
-      const origW = video.videoWidth || 640;
-      const origH = video.videoHeight || 360;
+      // Use 1280px wide for crisp HD screen sharing while staying close to Supabase's payload limit
+      // We use WebP at 0.85 quality which gives much better clarity than JPEG 0.35
+      const MAX_W = 1280;
+      const origW = video.videoWidth || 1280;
+      const origH = video.videoHeight || 720;
       const scale = Math.min(1, MAX_W / origW);
       const w = Math.round(origW * scale);
       const h = Math.round(origH * scale);
@@ -545,7 +546,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       if (!ctx) return;
       ctx.drawImage(video, 0, 0, w, h);
       // Don't bake strokes — each client renders them locally via the drawing canvas overlay
-      const dataUrl = offscreen.toDataURL('image/jpeg', 0.35);
+      // Try WebP first (much better quality/size ratio), fall back to JPEG
+      const dataUrl = offscreen.toDataURL('image/webp', 0.85) || offscreen.toDataURL('image/jpeg', 0.75);
       screenFrameChannelRef.current?.send({
         type: 'broadcast', event: 'screen_frame',
         payload: { dataUrl, sharerId: userId, sharerName: userName },
