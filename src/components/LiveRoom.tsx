@@ -235,25 +235,186 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Presence & signal channel
+  // WebRTC helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+  const sendSignal = useCallback((toId: string, type: string, data: Record<string, unknown>) => {
+    webrtcChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'webrtc',
+      payload: { fromId: userId, toId, type, data },
+    });
+  }, [userId]);
+
+  const getOrCreatePeer = useCallback((remoteId: string, isInitiator: boolean): RTCPeerConnection => {
+    if (peersRef.current.has(remoteId)) return peersRef.current.get(remoteId)!;
+
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    peersRef.current.set(remoteId, pc);
+
+    // Add existing local tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
+    }
+
+    pc.onicecandidate = (e) => {
+      if (e.candidate) sendSignal(remoteId, 'ice_candidate', { candidate: e.candidate.toJSON() });
+    };
+
+    pc.ontrack = (e) => {
+      const stream = e.streams[0] || new MediaStream([e.track]);
+      remoteStreamsRef.current.set(remoteId, stream);
+      setRemoteStreams(new Map(remoteStreamsRef.current));
+      setParticipants(prev => prev.map(p =>
+        p.userId === remoteId ? { ...p, stream, hasCamera: stream.getVideoTracks().length > 0 } : p
+      ));
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        peersRef.current.delete(remoteId);
+        remoteStreamsRef.current.delete(remoteId);
+        setRemoteStreams(new Map(remoteStreamsRef.current));
+      }
+    };
+
+    if (isInitiator) {
+      pc.onnegotiationneeded = async () => {
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          sendSignal(remoteId, 'offer', { sdp: pc.localDescription });
+        } catch { /* noop */ }
+      };
+    }
+
+    return pc;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sendSignal]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Presence & signal channel (WebRTC signaling via Realtime broadcast)
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from('live_signals') as any).insert({
-      session_id: sessionId, from_user_id: userId, to_user_id: mentorId,
-      signal_type: 'presence', payload: { name: userName, isMentor },
-    }).then(() => {});
+    const ch = supabase.channel(`webrtc-${sessionId}`, { config: { broadcast: { self: false } } });
+    webrtcChannelRef.current = ch;
 
+    ch.on('broadcast', { event: 'webrtc' }, async ({ payload }) => {
+      const { fromId, toId, type, data } = payload as { fromId: string; toId: string; type: string; data: Record<string, unknown> };
+      if (toId !== userId && type !== 'presence') return;
+
+      if (type === 'presence') {
+        // Add participant if not known
+        setParticipants(prev => {
+          if (prev.find(p => p.userId === fromId)) return prev;
+          return [...prev, { userId: fromId, name: String(data.name || 'משתמש'), isMuted: true, isDeafened: false, hasCamera: false, hasScreen: false }];
+        });
+        // Initiate offer to the new joiner (whoever joined LATER does the offering)
+        // The newcomer announces presence → everyone who is already here creates offer to them
+        const pc = getOrCreatePeer(fromId, true);
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          sendSignal(fromId, 'offer', { sdp: pc.localDescription });
+        } catch { /* noop */ }
+        return;
+      }
+
+      if (type === 'offer') {
+        const pc = getOrCreatePeer(fromId, false);
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(data.sdp as RTCSessionDescriptionInit));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          sendSignal(fromId, 'answer', { sdp: pc.localDescription });
+        } catch { /* noop */ }
+        return;
+      }
+
+      if (type === 'answer') {
+        const pc = peersRef.current.get(fromId);
+        if (pc && pc.signalingState !== 'stable') {
+          try { await pc.setRemoteDescription(new RTCSessionDescription(data.sdp as RTCSessionDescriptionInit)); } catch { /* noop */ }
+        }
+        return;
+      }
+
+      if (type === 'ice_candidate') {
+        const pc = peersRef.current.get(fromId);
+        if (pc && data.candidate) {
+          try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate as RTCIceCandidateInit)); } catch { /* noop */ }
+        }
+        return;
+      }
+
+      // ── Force mute signals (still via broadcast) ──
+      if (type === 'force_mute') {
+        setIsForceMuted(true); setMicEnabled(false);
+        localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
+        toast({ title: 'הושתקת על ידי המנטור', description: 'אתה יכול להסיר את ההשתקה בעצמך' });
+        return;
+      }
+      if (type === 'force_unmute') {
+        setIsForceMuted(false); toast({ title: 'המנטור הסיר את ההשתקה שלך' });
+        return;
+      }
+      if (type === 'mute_ack' && isMentor) {
+        const muted = data.muted as boolean;
+        setParticipants(prev => prev.map(p => p.userId === fromId ? { ...p, isMuted: muted, isForceMuted: muted } : p));
+        setForceMutedUsers(prev => { const n = new Set(prev); muted ? n.add(fromId) : n.delete(fromId); return n; });
+        return;
+      }
+      // ── Screen share request signals ──
+      if (type === 'request_screen_share' && isMentor) {
+        const requesterName = String(data.userName || 'תלמיד');
+        setPendingScreenRequests(prev => {
+          if (prev.find(r => r.userId === fromId)) return prev;
+          return [...prev, { userId: fromId, userName: requesterName }];
+        });
+        return;
+      }
+      if (type === 'screen_share_approved' && !isMentor) {
+        setScreenShareRequested(false);
+        toast({ title: 'המנטור אישר את בקשתך לשתף מסך!' });
+        return;
+      }
+      if (type === 'screen_share_denied' && !isMentor) {
+        setScreenShareRequested(false);
+        toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
+        return;
+      }
+    });
+
+    ch.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        // Announce presence to all others in the room
+        ch.send({
+          type: 'broadcast',
+          event: 'webrtc',
+          payload: { fromId: userId, toId: '*', type: 'presence', data: { name: userName, isMentor } },
+        });
+      }
+    });
+
+    return () => {
+      supabase.removeChannel(ch);
+      peersRef.current.forEach(pc => pc.close());
+      peersRef.current.clear();
+      remoteStreamsRef.current.clear();
+      setRemoteStreams(new Map());
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, userId, mentorId, isMentor, userName]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Legacy DB-based signals (force mute + screen share approval) — kept for backward compat
+  // ─────────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
     const ch = supabase.channel(`live-signals-${sessionId}-${userId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'live_signals', filter: `session_id=eq.${sessionId}` },
         (payload) => {
           const sig = payload.new as { signal_type: string; from_user_id: string; to_user_id: string; payload: Record<string, unknown> };
-          if (sig.signal_type === 'presence' && isMentor) {
-            setParticipants(prev => {
-              if (prev.find(p => p.userId === sig.from_user_id)) return prev;
-              return [...prev, { userId: sig.from_user_id, name: String(sig.payload.name || 'משתמש'), isMuted: false, isDeafened: false, hasCamera: false, hasScreen: false }];
-            });
-          }
           if (sig.signal_type === 'force_mute' && sig.to_user_id === userId) {
             setIsForceMuted(true); setMicEnabled(false);
             localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
@@ -267,30 +428,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             setParticipants(prev => prev.map(p => p.userId === sig.from_user_id ? { ...p, isMuted: muted, isForceMuted: muted } : p));
             setForceMutedUsers(prev => { const n = new Set(prev); muted ? n.add(sig.from_user_id) : n.delete(sig.from_user_id); return n; });
           }
-          // ── Screen share request (student → mentor) ──
-          if (sig.signal_type === 'request_screen_share' && isMentor) {
-            const requesterName = String(sig.payload.userName || 'תלמיד');
-            const requesterId = sig.from_user_id;
-            setPendingScreenRequests(prev => {
-              if (prev.find(r => r.userId === requesterId)) return prev;
-              return [...prev, { userId: requesterId, userName: requesterName }];
-            });
-          }
-          // ── Screen share approved (mentor → student) ──
-          if (sig.signal_type === 'screen_share_approved' && sig.to_user_id === userId && !isMentor) {
-            setScreenShareRequested(false);
-            toast({ title: 'המנטור אישר את בקשתך לשתף מסך!' });
-          }
-          // ── Screen share denied (mentor → student) ──
-          if (sig.signal_type === 'screen_share_denied' && sig.to_user_id === userId && !isMentor) {
-            setScreenShareRequested(false);
-            toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
-          }
         })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, userId, mentorId, isMentor, userName]);
+  }, [sessionId, userId, mentorId, isMentor]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Screen share — frame broadcast channel
