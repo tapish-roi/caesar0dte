@@ -483,7 +483,7 @@ function QuizDetail({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('quiz_questions')
-        .select('id, question_text, question_type, position')
+        .select('id, question_text, question_type, position, expected_answer')
         .eq('quiz_id', quizId)
         .order('position');
       if (error) throw error;
