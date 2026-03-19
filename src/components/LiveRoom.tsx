@@ -245,7 +245,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     });
   }, [userId]);
 
-  const getOrCreatePeer = useCallback((remoteId: string, isInitiator: boolean): RTCPeerConnection => {
+  const getOrCreatePeer = useCallback((remoteId: string): RTCPeerConnection => {
     if (peersRef.current.has(remoteId)) return peersRef.current.get(remoteId)!;
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -267,8 +267,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       remoteStreamsRef.current.set(remoteId, stream);
       setRemoteStreams(new Map(remoteStreamsRef.current));
       setParticipants(prev => prev.map(p =>
-        p.userId === remoteId ? { ...p, stream, hasCamera: stream.getVideoTracks().length > 0 } : p
+        p.userId === remoteId ? { ...p, stream, hasCamera: stream.getVideoTracks().some(t => t.readyState === 'live') } : p
       ));
+      // Detect when remote turns camera off
+      e.track.onended = () => {
+        const s = remoteStreamsRef.current.get(remoteId);
+        const hasVid = s ? s.getVideoTracks().some(t => t.readyState === 'live') : false;
+        setParticipants(prev => prev.map(p =>
+          p.userId === remoteId ? { ...p, hasCamera: hasVid } : p
+        ));
+      };
     };
 
     pc.onconnectionstatechange = () => {
@@ -279,19 +287,22 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
     };
 
-    if (isInitiator) {
-      pc.onnegotiationneeded = async () => {
-        try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          sendSignal(remoteId, 'offer', { sdp: pc.localDescription });
-        } catch { /* noop */ }
-      };
-    }
-
     return pc;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sendSignal]);
+
+  // Renegotiate with ALL existing peers — called after adding/removing mic or camera tracks
+  const renegotiateAll = useCallback(async () => {
+    for (const [remoteId, pc] of peersRef.current) {
+      if (pc.signalingState === 'closed') continue;
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        sendSignal(remoteId, 'offer', { sdp: pc.localDescription, senderName: userName });
+      } catch { /* noop */ }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sendSignal, userName]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Presence & signal channel (WebRTC signaling via Realtime broadcast)
@@ -310,24 +321,33 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           if (prev.find(p => p.userId === fromId)) return prev;
           return [...prev, { userId: fromId, name: String(data.name || 'משתמש'), isMuted: true, isDeafened: false, hasCamera: false, hasScreen: false }];
         });
-        // Initiate offer to the new joiner (whoever joined LATER does the offering)
-        // The newcomer announces presence → everyone who is already here creates offer to them
-        const pc = getOrCreatePeer(fromId, true);
+        // Existing participants create an offer to the newcomer (include our name so they can identify us)
+        const pc = getOrCreatePeer(fromId);
         try {
-          const offer = await pc.createOffer();
+          const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
           await pc.setLocalDescription(offer);
-          sendSignal(fromId, 'offer', { sdp: pc.localDescription });
+          sendSignal(fromId, 'offer', { sdp: pc.localDescription, senderName: userName });
         } catch { /* noop */ }
         return;
       }
 
       if (type === 'offer') {
-        const pc = getOrCreatePeer(fromId, false);
+        // ★ KEY FIX: add the offer sender as a participant if not yet known
+        // (student misses mentor's initial presence broadcast since they weren't subscribed yet)
+        setParticipants(prev => {
+          if (prev.find(p => p.userId === fromId)) return prev;
+          return [...prev, { userId: fromId, name: String(data.senderName || 'משתמש'), isMuted: true, isDeafened: false, hasCamera: false, hasScreen: false }];
+        });
+        const pc = getOrCreatePeer(fromId);
         try {
+          // Handle glare: if we also have a pending offer, rollback ours and accept theirs
+          if (pc.signalingState === 'have-local-offer') {
+            await pc.setLocalDescription({ type: 'rollback' } as RTCSessionDescriptionInit);
+          }
           await pc.setRemoteDescription(new RTCSessionDescription(data.sdp as RTCSessionDescriptionInit));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          sendSignal(fromId, 'answer', { sdp: pc.localDescription });
+          sendSignal(fromId, 'answer', { sdp: pc.localDescription, senderName: userName });
         } catch { /* noop */ }
         return;
       }
@@ -911,6 +931,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       localMicStreamForAnalysis.current = null;
       stopSpeakingDetection();
       setMicEnabled(false);
+      // Renegotiate so remote peers know the audio track was removed
+      renegotiateAll();
     } else {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: selectedMic ? { deviceId: { exact: selectedMic } } : true });
@@ -928,9 +950,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         startSpeakingDetection(stream);
         setMicEnabled(true);
         if (deafened) setDeafened(false);
+        // ★ Renegotiate so remote peers receive the new audio track
+        renegotiateAll();
       } catch { toast({ title: 'לא ניתן לגשת למיקרופון', variant: 'destructive' }); }
     }
-  }, [micEnabled, selectedMic, deafened, toast, startSpeakingDetection, stopSpeakingDetection]);
+  }, [micEnabled, selectedMic, deafened, toast, startSpeakingDetection, stopSpeakingDetection, renegotiateAll]);
 
   const toggleDeafen = useCallback(() => {
     setDeafened(v => {
@@ -998,18 +1022,21 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             });
           });
           if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+          // ★ Renegotiate so remote peers receive the new video track
+          renegotiateAll();
         })
         .catch(() => { toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' }); setCameraEnabled(false); });
     } else {
-      // Remove video senders from all peers
+      // Remove video senders from all peers and renegotiate
       peersRef.current.forEach(pc => {
         pc.getSenders().filter(s => s.track?.kind === 'video').forEach(s => pc.removeTrack(s));
       });
       localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
       if (localVideoRef.current) localVideoRef.current.srcObject = null;
+      renegotiateAll();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cameraEnabled, selectedCamera, toast]);
+  }, [cameraEnabled, selectedCamera, toast, renegotiateAll]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Mic test
@@ -1083,6 +1110,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   useEffect(() => { if (!showSettings && micTesting) stopMicTest(); }, [showSettings, micTesting, stopMicTest]);
   useEffect(() => { if (!showSettings && soundTesting) stopSoundTest(); }, [showSettings, soundTesting, stopSoundTest]);
   useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); stopSoundTest(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync volume/deafen state to all remote audio elements whenever they change
+  useEffect(() => {
+    document.querySelectorAll<HTMLAudioElement>('[data-remote-audio]').forEach(el => {
+      el.volume = deafened ? 0 : volume / 100;
+    });
+  }, [deafened, volume]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Screen share request flow
@@ -1195,7 +1229,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         <audio
           key={remoteId}
           autoPlay
-          ref={el => { if (el) el.srcObject = stream; }}
+          playsInline
+          data-remote-audio={remoteId}
+          ref={el => {
+            if (el) {
+              el.srcObject = stream;
+              el.volume = deafened ? 0 : volume / 100;
+            }
+          }}
           style={{ display: 'none' }}
         />
       ))}
