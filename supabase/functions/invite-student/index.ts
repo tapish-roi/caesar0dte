@@ -45,6 +45,8 @@ Deno.serve(async (req) => {
       .from('profiles').select('full_name').eq('user_id', mentorId).maybeSingle();
     const mentorName = mentorProfile?.full_name ?? 'המנטור שלך';
 
+    const acceptInviteUrl = `${appUrl}/accept-invite?mentor=${encodeURIComponent(mentorName)}`;
+
     // Check if user already exists
     const { data: allUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
     const existingUser = allUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());

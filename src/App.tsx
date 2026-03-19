@@ -40,6 +40,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/accept-invite" element={<AcceptInvitePage />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );
