@@ -1111,6 +1111,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   useEffect(() => { if (!showSettings && soundTesting) stopSoundTest(); }, [showSettings, soundTesting, stopSoundTest]);
   useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); stopSoundTest(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sync volume/deafen state to all remote audio elements whenever they change
+  useEffect(() => {
+    document.querySelectorAll<HTMLAudioElement>('[data-remote-audio]').forEach(el => {
+      el.volume = deafened ? 0 : volume / 100;
+    });
+  }, [deafened, volume]);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Screen share request flow
   // ─────────────────────────────────────────────────────────────────────────────
