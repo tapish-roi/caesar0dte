@@ -1221,8 +1221,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   )}
                 </AnimatePresence>
 
-                {/* Camera PiP */}
+                {/* Camera PiP — shown for the sharer (their own cam) AND for viewers (their own cam while watching someone else share) */}
                 {cameraEnabled && (
+                  <div className="absolute bottom-20 right-4 w-36 h-24 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
+                    <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                    <div className="absolute bottom-1 right-1 text-[10px] text-white bg-black/60 px-1.5 rounded font-medium">{userName}</div>
+                  </div>
+                )}
+                {/* PIP for viewers: show their cam even when someone else is sharing */}
+                {!screenSharing && remoteScreenActive && cameraEnabled && (
                   <div className="absolute bottom-20 right-4 w-36 h-24 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
                     <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                     <div className="absolute bottom-1 right-1 text-[10px] text-white bg-black/60 px-1.5 rounded font-medium">{userName}</div>
