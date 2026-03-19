@@ -795,8 +795,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       screenStreamRef.current = stream;
-      if (screenVideoRef.current) screenVideoRef.current.srcObject = stream;
+      // Set state first so the video element becomes visible before srcObject is assigned,
+      // allowing the browser to load metadata and render correctly (no black screen).
       setScreenSharing(true);
+      // Wait one animation frame so React re-renders the video element as visible
+      requestAnimationFrame(() => {
+        if (screenVideoRef.current) {
+          screenVideoRef.current.srcObject = stream;
+          screenVideoRef.current.play().catch(() => {});
+        }
+      });
       stream.getVideoTracks()[0].onended = () => stopScreenShare();
       // Notify others
       screenFrameChannelRef.current?.send({
@@ -1041,19 +1049,32 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               /* ── Screen share ── */
               <div className="relative w-full h-full">
 
-                {/* Sharer sees their own local video directly (no network roundtrip) */}
+                {/* Sharer sees their own local video directly (no network roundtrip).
+                    Using visibility+position instead of display:none so the browser
+                    loads metadata even before the element is fully visible, preventing
+                    the black screen issue. */}
                 <video
                   ref={screenVideoRef}
                   autoPlay playsInline muted
                   className="w-full h-full object-contain bg-black"
-                  style={{ display: screenSharing ? 'block' : 'none' }}
+                  style={{
+                    position: screenSharing ? 'relative' : 'absolute',
+                    visibility: screenSharing ? 'visible' : 'hidden',
+                    pointerEvents: screenSharing ? 'auto' : 'none',
+                    inset: 0,
+                  }}
                 />
 
                 {/* Viewers see broadcast canvas — hidden for the sharer */}
                 <canvas
                   ref={remoteScreenCanvasRef}
                   className="w-full h-full object-contain bg-black"
-                  style={{ display: screenSharing ? 'none' : 'block' }}
+                  style={{
+                    position: screenSharing ? 'absolute' : 'relative',
+                    visibility: screenSharing ? 'hidden' : 'visible',
+                    pointerEvents: screenSharing ? 'none' : 'auto',
+                    inset: 0,
+                  }}
                 />
 
                 {/* Screen share owner label */}
