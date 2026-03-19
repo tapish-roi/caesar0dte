@@ -795,8 +795,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       screenStreamRef.current = stream;
-      if (screenVideoRef.current) screenVideoRef.current.srcObject = stream;
+      // Set state first so the video element becomes visible before srcObject is assigned,
+      // allowing the browser to load metadata and render correctly (no black screen).
       setScreenSharing(true);
+      // Wait one animation frame so React re-renders the video element as visible
+      requestAnimationFrame(() => {
+        if (screenVideoRef.current) {
+          screenVideoRef.current.srcObject = stream;
+          screenVideoRef.current.play().catch(() => {});
+        }
+      });
       stream.getVideoTracks()[0].onended = () => stopScreenShare();
       // Notify others
       screenFrameChannelRef.current?.send({
