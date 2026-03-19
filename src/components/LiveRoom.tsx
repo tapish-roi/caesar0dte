@@ -1190,6 +1190,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#1e1f22]" dir="rtl">
 
+      {/* ── Hidden remote audio elements — always mounted so audio plays in all views ── */}
+      {Array.from(remoteStreams.entries()).map(([remoteId, stream]) => (
+        <audio
+          key={remoteId}
+          autoPlay
+          ref={el => { if (el) el.srcObject = stream; }}
+          style={{ display: 'none' }}
+        />
+      ))}
+
       {/* ── Top bar ── */}
       <div className="flex items-center justify-between px-4 h-12 bg-[#1e1f22] border-b border-white/5 shrink-0">
         <div className="flex items-center gap-2.5">
