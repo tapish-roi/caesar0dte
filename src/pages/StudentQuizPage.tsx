@@ -300,9 +300,17 @@ export default function StudentQuizPage() {
                       })}
                     </div>
                   ) : (
-                    <div className="p-3 bg-muted/30 rounded-xl border border-border">
-                      <p className="text-xs text-muted-foreground mb-1 font-medium">התשובה שלך:</p>
-                      <p className="text-sm text-foreground">{rv?.answer_text || '—'}</p>
+                    <div className="space-y-3">
+                      <div className="p-3 bg-muted/30 rounded-xl border border-border">
+                        <p className="text-xs text-muted-foreground mb-1 font-medium">התשובה שלך:</p>
+                        <p className="text-sm text-foreground">{rv?.answer_text || '—'}</p>
+                      </div>
+                      {q.expected_answer && (
+                        <div className="p-3 bg-accent/8 rounded-xl border border-accent/30">
+                          <p className="text-xs font-medium text-accent mb-1">התשובה שהמנטור חיפש:</p>
+                          <p className="text-sm text-foreground">{q.expected_answer}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
