@@ -150,6 +150,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ── Remote speaking detection (Web Audio API per remote stream) ──
   const remoteAnalysersRef = useRef<Map<string, { ctx: AudioContext; analyser: AnalyserNode; animId: number }>>(new Map());
   const [remoteSpeakingUsers, setRemoteSpeakingUsers] = useState<Set<string>>(new Set());
+  // Stable function refs so getOrCreatePeer (defined earlier) can call them without forward-ref issues
+  const startRemoteSpeakingDetectionRef = useRef<(remoteId: string, stream: MediaStream) => void>(() => {});
+  const stopRemoteSpeakingDetectionRef = useRef<(remoteId: string) => void>(() => {});
 
   // ── Student screen share permission ──
   const [studentScreenShareApproved, setStudentScreenShareApproved] = useState(false);
