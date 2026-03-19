@@ -32,6 +32,7 @@ interface QuizQuestion {
   question_text: string;
   question_type: QuestionType;
   position: number;
+  expected_answer?: string | null;
   options?: QuizOption[];
 }
 
@@ -70,6 +71,7 @@ interface DraftQuestion {
   text: string;
   type: QuestionType;
   options: DraftOption[];
+  expectedAnswer?: string; // for free_text questions
 }
 
 function genId() { return Math.random().toString(36).slice(2); }
@@ -84,6 +86,7 @@ const defaultDraftQuestion = (): DraftQuestion => ({
     { id: genId(), text: '', isCorrect: false },
     { id: genId(), text: '', isCorrect: false },
   ],
+  expectedAnswer: '',
 });
 
 // ═══════════════════════════════════════════════════════
@@ -141,6 +144,7 @@ function QuizBuilder({
         { id: genId(), text: '', isCorrect: false },
         { id: genId(), text: '', isCorrect: false },
       ] : [],
+      expectedAnswer: '',
     };
     setQuestions(prev => [...prev, q]);
   };
@@ -201,6 +205,7 @@ function QuizBuilder({
           question_text: dq.text.trim(),
           question_type: dq.type,
           position: i,
+          expected_answer: dq.type === 'free_text' && dq.expectedAnswer?.trim() ? dq.expectedAnswer.trim() : null,
         }).select('id').single();
         if (qqErr) throw qqErr;
 
@@ -378,11 +383,23 @@ function QuizBuilder({
                   </div>
                 )}
 
-                {/* Free text note */}
+                {/* Free text expected answer */}
                 {q.type === 'free_text' && (
-                  <div className="flex items-center gap-2 p-2.5 bg-accent/5 border border-accent/20 rounded-lg">
-                    <AlignLeft className="w-3.5 h-3.5 text-accent shrink-0" />
-                    <p className="text-xs text-muted-foreground">שאלה פתוחה — התלמיד יוכל לכתוב תשובה חופשית. לשאלה זו לא ינתן ציון אוטומטי.</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 p-2.5 bg-accent/5 border border-accent/20 rounded-lg">
+                      <AlignLeft className="w-3.5 h-3.5 text-accent shrink-0" />
+                      <p className="text-xs text-muted-foreground">שאלה פתוחה — התלמיד יוכל לכתוב תשובה חופשית. לשאלה זו לא ינתן ציון אוטומטי.</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">תשובה רצויה (אופציונלי — תוצג לתלמיד בסיום):</label>
+                      <textarea
+                        value={q.expectedAnswer ?? ''}
+                        onChange={e => updateQuestion(q.id, { expectedAnswer: e.target.value })}
+                        placeholder="לדוגמה: תשובה צריכה לכלול את המושג X, הסבר על Y..."
+                        rows={2}
+                        className="w-full px-3 py-2.5 bg-background ring-1 ring-primary/30 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -466,7 +483,7 @@ function QuizDetail({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('quiz_questions')
-        .select('id, question_text, question_type, position')
+        .select('id, question_text, question_type, position, expected_answer')
         .eq('quiz_id', quizId)
         .order('position');
       if (error) throw error;
@@ -504,6 +521,7 @@ function QuizDetail({
       id: q.id,
       text: q.question_text,
       type: q.question_type,
+      expectedAnswer: q.expected_answer ?? '',
       options: options
         .filter(o => o.question_id === q.id)
         .sort((a, b) => a.position - b.position)
@@ -525,6 +543,7 @@ function QuizDetail({
         { id: genId(), text: '', isCorrect: false },
         { id: genId(), text: '', isCorrect: false },
       ] : [],
+      expectedAnswer: '',
     };
     setEditQuestions(prev => [...prev, q]);
   };
@@ -572,6 +591,7 @@ function QuizDetail({
           question_text: dq.text.trim(),
           question_type: dq.type,
           position: i,
+          expected_answer: dq.type === 'free_text' && dq.expectedAnswer?.trim() ? dq.expectedAnswer.trim() : null,
         }).select('id').single();
         if (qqErr) throw qqErr;
         if (dq.type === 'multiple_choice' && dq.options.length > 0) {
@@ -741,9 +761,21 @@ function QuizDetail({
                     </div>
                   )}
                   {q.type === 'free_text' && (
-                    <div className="flex items-center gap-2 p-2.5 bg-accent/5 border border-accent/20 rounded-lg">
-                      <AlignLeft className="w-3.5 h-3.5 text-accent shrink-0" />
-                      <p className="text-xs text-muted-foreground">שאלה פתוחה — לא ינתן ציון אוטומטי.</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 p-2.5 bg-accent/5 border border-accent/20 rounded-lg">
+                        <AlignLeft className="w-3.5 h-3.5 text-accent shrink-0" />
+                        <p className="text-xs text-muted-foreground">שאלה פתוחה — לא ינתן ציון אוטומטי.</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">תשובה רצויה (אופציונלי — תוצג לתלמיד בסיום):</label>
+                        <textarea
+                          value={q.expectedAnswer ?? ''}
+                          onChange={e => updateEditQuestion(q.id, { expectedAnswer: e.target.value })}
+                          placeholder="לדוגמה: תשובה צריכה לכלול את המושג X, הסבר על Y..."
+                          rows={2}
+                          className="w-full px-3 py-2.5 bg-background ring-1 ring-primary/30 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
