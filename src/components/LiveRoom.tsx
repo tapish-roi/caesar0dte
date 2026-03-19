@@ -903,6 +903,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   const toggleMic = useCallback(async () => {
     if (micEnabled) {
+      // Remove audio senders from all peers
+      peersRef.current.forEach(pc => {
+        pc.getSenders().filter(s => s.track?.kind === 'audio').forEach(s => pc.removeTrack(s));
+      });
       localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
       localMicStreamForAnalysis.current = null;
       stopSpeakingDetection();
@@ -910,7 +914,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     } else {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: selectedMic ? { deviceId: { exact: selectedMic } } : true });
-        stream.getAudioTracks().forEach(t => localStreamRef.current?.addTrack(t));
+        // Store stream so peers can use it
+        if (!localStreamRef.current) localStreamRef.current = new MediaStream();
+        stream.getAudioTracks().forEach(t => {
+          localStreamRef.current!.addTrack(t);
+          // Add to all existing peer connections
+          peersRef.current.forEach(pc => {
+            const alreadyAdded = pc.getSenders().some(s => s.track === t);
+            if (!alreadyAdded) pc.addTrack(t, localStreamRef.current!);
+          });
+        });
         localMicStreamForAnalysis.current = stream;
         startSpeakingDetection(stream);
         setMicEnabled(true);
@@ -974,12 +987,28 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   useEffect(() => {
     if (cameraEnabled) {
       navigator.mediaDevices.getUserMedia({ video: selectedCamera ? { deviceId: { exact: selectedCamera } } : true })
-        .then(stream => { localStreamRef.current = stream; if (localVideoRef.current) localVideoRef.current.srcObject = stream; })
+        .then(stream => {
+          if (!localStreamRef.current) localStreamRef.current = new MediaStream();
+          stream.getVideoTracks().forEach(t => {
+            localStreamRef.current!.addTrack(t);
+            // Add to all existing peer connections
+            peersRef.current.forEach(pc => {
+              const alreadyAdded = pc.getSenders().some(s => s.track === t);
+              if (!alreadyAdded) pc.addTrack(t, localStreamRef.current!);
+            });
+          });
+          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        })
         .catch(() => { toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' }); setCameraEnabled(false); });
     } else {
+      // Remove video senders from all peers
+      peersRef.current.forEach(pc => {
+        pc.getSenders().filter(s => s.track?.kind === 'video').forEach(s => pc.removeTrack(s));
+      });
       localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
       if (localVideoRef.current) localVideoRef.current.srcObject = null;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraEnabled, selectedCamera, toast]);
 
   // ─────────────────────────────────────────────────────────────────────────────
