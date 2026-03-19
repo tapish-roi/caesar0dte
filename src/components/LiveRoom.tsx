@@ -256,6 +256,25 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             setParticipants(prev => prev.map(p => p.userId === sig.from_user_id ? { ...p, isMuted: muted, isForceMuted: muted } : p));
             setForceMutedUsers(prev => { const n = new Set(prev); muted ? n.add(sig.from_user_id) : n.delete(sig.from_user_id); return n; });
           }
+          // ── Screen share request (student → mentor) ──
+          if (sig.signal_type === 'request_screen_share' && isMentor) {
+            const requesterName = String(sig.payload.userName || 'תלמיד');
+            const requesterId = sig.from_user_id;
+            setPendingScreenRequests(prev => {
+              if (prev.find(r => r.userId === requesterId)) return prev;
+              return [...prev, { userId: requesterId, userName: requesterName }];
+            });
+          }
+          // ── Screen share approved (mentor → student) ──
+          if (sig.signal_type === 'screen_share_approved' && sig.to_user_id === userId && !isMentor) {
+            setScreenShareRequested(false);
+            toast({ title: 'המנטור אישר את בקשתך לשתף מסך!' });
+          }
+          // ── Screen share denied (mentor → student) ──
+          if (sig.signal_type === 'screen_share_denied' && sig.to_user_id === userId && !isMentor) {
+            setScreenShareRequested(false);
+            toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
+          }
         })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
