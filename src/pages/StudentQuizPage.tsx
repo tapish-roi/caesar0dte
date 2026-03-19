@@ -73,7 +73,7 @@ export default function StudentQuizPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from('quiz_questions')
-        .select('id, question_text, question_type, position')
+        .select('id, question_text, question_type, position, expected_answer')
         .eq('quiz_id', quizId!)
         .order('position');
       return (data ?? []) as QuizQuestion[];
