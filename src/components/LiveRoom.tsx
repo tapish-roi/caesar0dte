@@ -245,7 +245,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     });
   }, [userId]);
 
-  const getOrCreatePeer = useCallback((remoteId: string, isInitiator: boolean): RTCPeerConnection => {
+  const getOrCreatePeer = useCallback((remoteId: string): RTCPeerConnection => {
     if (peersRef.current.has(remoteId)) return peersRef.current.get(remoteId)!;
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -267,8 +267,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       remoteStreamsRef.current.set(remoteId, stream);
       setRemoteStreams(new Map(remoteStreamsRef.current));
       setParticipants(prev => prev.map(p =>
-        p.userId === remoteId ? { ...p, stream, hasCamera: stream.getVideoTracks().length > 0 } : p
+        p.userId === remoteId ? { ...p, stream, hasCamera: stream.getVideoTracks().some(t => t.readyState === 'live') } : p
       ));
+      // Detect when remote turns camera off
+      e.track.onended = () => {
+        const s = remoteStreamsRef.current.get(remoteId);
+        const hasVid = s ? s.getVideoTracks().some(t => t.readyState === 'live') : false;
+        setParticipants(prev => prev.map(p =>
+          p.userId === remoteId ? { ...p, hasCamera: hasVid } : p
+        ));
+      };
     };
 
     pc.onconnectionstatechange = () => {
@@ -279,19 +287,22 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
     };
 
-    if (isInitiator) {
-      pc.onnegotiationneeded = async () => {
-        try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          sendSignal(remoteId, 'offer', { sdp: pc.localDescription });
-        } catch { /* noop */ }
-      };
-    }
-
     return pc;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sendSignal]);
+
+  // Renegotiate with ALL existing peers — called after adding/removing mic or camera tracks
+  const renegotiateAll = useCallback(async () => {
+    for (const [remoteId, pc] of peersRef.current) {
+      if (pc.signalingState === 'closed') continue;
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        sendSignal(remoteId, 'offer', { sdp: pc.localDescription, senderName: userName });
+      } catch { /* noop */ }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sendSignal, userName]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Presence & signal channel (WebRTC signaling via Realtime broadcast)
