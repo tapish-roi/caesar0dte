@@ -147,6 +147,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map());
   const webrtcChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
+  // ── Remote speaking detection (Web Audio API per remote stream) ──
+  const remoteAnalysersRef = useRef<Map<string, { ctx: AudioContext; analyser: AnalyserNode; animId: number }>>(new Map());
+  const [remoteSpeakingUsers, setRemoteSpeakingUsers] = useState<Set<string>>(new Set());
+
+  // ── Student screen share permission ──
+  const [studentScreenShareApproved, setStudentScreenShareApproved] = useState(false);
+
   const ICE_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
