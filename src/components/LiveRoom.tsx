@@ -130,6 +130,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [isForceMuted, setIsForceMuted] = useState(false);
   const [forceMutedUsers, setForceMutedUsers] = useState<Set<string>>(new Set());
 
+  // ── Screen share requests ──
+  const [screenShareRequested, setScreenShareRequested] = useState(false); // student sent request
+  const [pendingScreenRequests, setPendingScreenRequests] = useState<{ userId: string; userName: string }[]>([]); // mentor sees
+
   // ── Chat ──
   const [showChat, setShowChat] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
@@ -251,6 +255,25 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             const muted = sig.payload.muted as boolean;
             setParticipants(prev => prev.map(p => p.userId === sig.from_user_id ? { ...p, isMuted: muted, isForceMuted: muted } : p));
             setForceMutedUsers(prev => { const n = new Set(prev); muted ? n.add(sig.from_user_id) : n.delete(sig.from_user_id); return n; });
+          }
+          // ── Screen share request (student → mentor) ──
+          if (sig.signal_type === 'request_screen_share' && isMentor) {
+            const requesterName = String(sig.payload.userName || 'תלמיד');
+            const requesterId = sig.from_user_id;
+            setPendingScreenRequests(prev => {
+              if (prev.find(r => r.userId === requesterId)) return prev;
+              return [...prev, { userId: requesterId, userName: requesterName }];
+            });
+          }
+          // ── Screen share approved (mentor → student) ──
+          if (sig.signal_type === 'screen_share_approved' && sig.to_user_id === userId && !isMentor) {
+            setScreenShareRequested(false);
+            toast({ title: 'המנטור אישר את בקשתך לשתף מסך!' });
+          }
+          // ── Screen share denied (mentor → student) ──
+          if (sig.signal_type === 'screen_share_denied' && sig.to_user_id === userId && !isMentor) {
+            setScreenShareRequested(false);
+            toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
           }
         })
       .subscribe();
@@ -872,6 +895,39 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); stopSoundTest(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // Screen share request flow
+  // ─────────────────────────────────────────────────────────────────────────────
+  const requestScreenShare = useCallback(async () => {
+    if (screenShareRequested) return;
+    setScreenShareRequested(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('live_signals') as any).insert({
+      session_id: sessionId, from_user_id: userId, to_user_id: mentorId,
+      signal_type: 'request_screen_share', payload: { userName },
+    });
+    toast({ title: 'בקשת שיתוף מסך נשלחה למנטור' });
+  }, [screenShareRequested, sessionId, userId, mentorId, userName, toast]);
+
+  const approveScreenShare = useCallback(async (targetId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('live_signals') as any).insert({
+      session_id: sessionId, from_user_id: userId, to_user_id: targetId,
+      signal_type: 'screen_share_approved', payload: {},
+    });
+    setPendingScreenRequests(prev => prev.filter(r => r.userId !== targetId));
+    toast({ title: 'אישרת בקשת שיתוף מסך' });
+  }, [sessionId, userId, toast]);
+
+  const denyScreenShare = useCallback(async (targetId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from('live_signals') as any).insert({
+      session_id: sessionId, from_user_id: userId, to_user_id: targetId,
+      signal_type: 'screen_share_denied', payload: {},
+    });
+    setPendingScreenRequests(prev => prev.filter(r => r.userId !== targetId));
+  }, [sessionId, userId]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // Leave
   // ─────────────────────────────────────────────────────────────────────────────
   const handleLeave = useCallback(() => {
@@ -1165,8 +1221,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   )}
                 </AnimatePresence>
 
-                {/* Camera PiP */}
+                {/* Camera PiP — shown for the sharer (their own cam) AND for viewers (their own cam while watching someone else share) */}
                 {cameraEnabled && (
+                  <div className="absolute bottom-20 right-4 w-36 h-24 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
+                    <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                    <div className="absolute bottom-1 right-1 text-[10px] text-white bg-black/60 px-1.5 rounded font-medium">{userName}</div>
+                  </div>
+                )}
+                {/* PIP for viewers: show their cam even when someone else is sharing */}
+                {!screenSharing && remoteScreenActive && cameraEnabled && (
                   <div className="absolute bottom-20 right-4 w-36 h-24 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
                     <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                     <div className="absolute bottom-1 right-1 text-[10px] text-white bg-black/60 px-1.5 rounded font-medium">{userName}</div>
@@ -1218,6 +1281,36 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             )}
           </div>
 
+          {/* ── Screen share request notifications (mentor sees pending requests) ── */}
+          <AnimatePresence>
+            {isMentor && pendingScreenRequests.map(req => (
+              <motion.div
+                key={req.userId}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="shrink-0 bg-amber-500/10 border-b border-amber-500/30 px-5 py-2.5 flex items-center gap-3"
+              >
+                <Monitor className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-sm text-white/80 flex-1">
+                  <span className="font-semibold text-amber-300">{req.userName}</span> מבקש לשתף מסך
+                </span>
+                <button
+                  onClick={() => approveScreenShare(req.userId)}
+                  className="h-7 px-3 rounded-lg bg-green-500/20 text-green-400 text-xs font-semibold hover:bg-green-500/30 border border-green-500/40 transition-all"
+                >
+                  אשר
+                </button>
+                <button
+                  onClick={() => denyScreenShare(req.userId)}
+                  className="h-7 px-3 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 border border-red-500/40 transition-all"
+                >
+                  דחה
+                </button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
           {/* ── Controls bar ── */}
           <div className="shrink-0 bg-[#292b2f] border-t border-white/5 py-4 px-6 flex items-center justify-center gap-3">
             <div className="relative">
@@ -1244,6 +1337,23 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${screenSharing ? 'bg-green-500/90 hover:bg-green-500 text-white' : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50'}`}>
               {screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
             </button>
+            {/* Student: request screen share button (only when not already sharing and mentor is sharing or no one is) */}
+            {!isMentor && !screenSharing && (
+              <button
+                onClick={screenShareRequested ? undefined : requestScreenShare}
+                title={screenShareRequested ? 'הבקשה נשלחה, ממתין לאישור...' : 'בקש לשתף מסך'}
+                className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
+                  screenShareRequested
+                    ? 'bg-amber-500/80 text-white cursor-not-allowed'
+                    : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50 hover:text-white'
+                }`}
+              >
+                <Monitor className="w-5 h-5" />
+                {screenShareRequested && (
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-[#292b2f] animate-pulse" />
+                )}
+              </button>
+            )}
             <button onClick={() => { setShowSettings(true); setSettingsTab('mic'); }} title="הגדרות"
               className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg bg-[#4e5058] hover:bg-[#6d6f78] text-white/50 hover:text-white">
               <Settings className="w-5 h-5" />
