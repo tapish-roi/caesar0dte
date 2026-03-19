@@ -45,6 +45,8 @@ Deno.serve(async (req) => {
       .from('profiles').select('full_name').eq('user_id', mentorId).maybeSingle();
     const mentorName = mentorProfile?.full_name ?? 'המנטור שלך';
 
+    const acceptInviteUrl = `${appUrl}/accept-invite?mentor=${encodeURIComponent(mentorName)}`;
+
     // Check if user already exists
     const { data: allUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
     const existingUser = allUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
@@ -62,14 +64,14 @@ Deno.serve(async (req) => {
 
       // Send password reset so they can access the app
       const anonClient = createClient(supabaseUrl, anonKey);
-      await anonClient.auth.resetPasswordForEmail(email, { redirectTo: appUrl });
+      await anonClient.auth.resetPasswordForEmail(email, { redirectTo: acceptInviteUrl });
       console.log('Sent password reset to existing user:', email);
     } else {
       // New user — inviteUserByEmail creates account AND sends invite email in one step
       const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
         email,
         {
-          redirectTo: appUrl,
+          redirectTo: acceptInviteUrl,
           data: { role: 'student', mentor_name: mentorName },
         }
       );

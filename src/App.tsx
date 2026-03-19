@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import AuthPage from "./pages/AuthPage";
+import AcceptInvitePage from "./pages/AcceptInvitePage";
 import MentorDashboard from "./pages/MentorDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentQuizPage from "./pages/StudentQuizPage";
@@ -39,6 +40,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/accept-invite" element={<AcceptInvitePage />} />
         <Route path="*" element={<Navigate to="/auth" replace />} />
       </Routes>
     );
@@ -71,6 +73,7 @@ function AppRoutes() {
         }
       />
       <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
+      <Route path="/accept-invite" element={<AcceptInvitePage />} />
       <Route path="/auth" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
