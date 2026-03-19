@@ -456,14 +456,12 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
     }
   }, [saveLessonForm, mentorId, recordingUrl, toast]);
 
-  // ── Cleanup on unmount ──
+  // ── Cleanup on unmount — always release camera/mic/screen ──
   useEffect(() => {
     return () => {
-      if (step !== 'live') {
-        localStream?.getTracks().forEach(t => t.stop());
-        micStreamRef.current?.getTracks().forEach(t => t.stop());
-        screenStreamRef.current?.getTracks().forEach(t => t.stop());
-      }
+      localStream?.getTracks().forEach(t => t.stop());
+      micStreamRef.current?.getTracks().forEach(t => t.stop());
+      screenStreamRef.current?.getTracks().forEach(t => t.stop());
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
