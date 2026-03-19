@@ -1022,18 +1022,21 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             });
           });
           if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+          // ★ Renegotiate so remote peers receive the new video track
+          renegotiateAll();
         })
         .catch(() => { toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' }); setCameraEnabled(false); });
     } else {
-      // Remove video senders from all peers
+      // Remove video senders from all peers and renegotiate
       peersRef.current.forEach(pc => {
         pc.getSenders().filter(s => s.track?.kind === 'video').forEach(s => pc.removeTrack(s));
       });
       localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
       if (localVideoRef.current) localVideoRef.current.srcObject = null;
+      renegotiateAll();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cameraEnabled, selectedCamera, toast]);
+  }, [cameraEnabled, selectedCamera, toast, renegotiateAll]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Mic test
