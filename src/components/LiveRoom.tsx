@@ -286,8 +286,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
     ch.on('broadcast', { event: 'screen_share_start' }, ({ payload }) => {
       const { sharerId, sharerName } = payload as { sharerId: string; sharerName: string };
-      setRemoteScreenActive(true);
-      setRemoteScreenSharer(sharerName || sharerId);
+      // Don't mark remote screen active if WE are the one sharing
+      if (sharerId !== userId) {
+        setRemoteScreenActive(true);
+        setRemoteScreenSharer(sharerName || sharerId);
+      }
       setParticipants(prev => prev.map(p => p.userId === sharerId ? { ...p, hasScreen: true } : p));
     });
 
