@@ -897,7 +897,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Speaking detection
+  // Speaking detection — local mic
   // ─────────────────────────────────────────────────────────────────────────────
   const startSpeakingDetection = useCallback((stream: MediaStream) => {
     if (speakingAnimRef.current) cancelAnimationFrame(speakingAnimRef.current);
@@ -924,6 +924,54 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     localAnalyserRef.current = null;
     setSpeakingUsers(prev => { const n = new Set(prev); n.delete(userId); return n; });
   }, [userId]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Speaking detection — remote streams (Web Audio API per peer)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const startRemoteSpeakingDetection = useCallback((remoteId: string, stream: MediaStream) => {
+    // Stop existing analyser for this peer if any
+    const existing = remoteAnalysersRef.current.get(remoteId);
+    if (existing) {
+      cancelAnimationFrame(existing.animId);
+      existing.ctx.close().catch(() => {});
+      remoteAnalysersRef.current.delete(remoteId);
+    }
+    const audioTracks = stream.getAudioTracks();
+    if (audioTracks.length === 0) return;
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.4;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      let animId = 0;
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        setRemoteSpeakingUsers(prev => {
+          const n = new Set(prev);
+          avg > 15 ? n.add(remoteId) : n.delete(remoteId);
+          return n;
+        });
+        animId = requestAnimationFrame(tick);
+        remoteAnalysersRef.current.get(remoteId) && (remoteAnalysersRef.current.get(remoteId)!.animId = animId);
+      };
+      animId = requestAnimationFrame(tick);
+      remoteAnalysersRef.current.set(remoteId, { ctx, analyser, animId });
+    } catch { /* noop */ }
+  }, []);
+
+  const stopRemoteSpeakingDetection = useCallback((remoteId: string) => {
+    const existing = remoteAnalysersRef.current.get(remoteId);
+    if (existing) {
+      cancelAnimationFrame(existing.animId);
+      existing.ctx.close().catch(() => {});
+      remoteAnalysersRef.current.delete(remoteId);
+    }
+    setRemoteSpeakingUsers(prev => { const n = new Set(prev); n.delete(remoteId); return n; });
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Mic
