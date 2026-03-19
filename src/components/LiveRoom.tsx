@@ -1300,6 +1300,23 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${screenSharing ? 'bg-green-500/90 hover:bg-green-500 text-white' : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50'}`}>
               {screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
             </button>
+            {/* Student: request screen share button (only when not already sharing and mentor is sharing or no one is) */}
+            {!isMentor && !screenSharing && (
+              <button
+                onClick={screenShareRequested ? undefined : requestScreenShare}
+                title={screenShareRequested ? 'הבקשה נשלחה, ממתין לאישור...' : 'בקש לשתף מסך'}
+                className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
+                  screenShareRequested
+                    ? 'bg-amber-500/80 text-white cursor-not-allowed'
+                    : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50 hover:text-white'
+                }`}
+              >
+                <Monitor className="w-5 h-5" />
+                {screenShareRequested && (
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-[#292b2f] animate-pulse" />
+                )}
+              </button>
+            )}
             <button onClick={() => { setShowSettings(true); setSettingsTab('mic'); }} title="הגדרות"
               className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg bg-[#4e5058] hover:bg-[#6d6f78] text-white/50 hover:text-white">
               <Settings className="w-5 h-5" />
