@@ -130,6 +130,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [isForceMuted, setIsForceMuted] = useState(false);
   const [forceMutedUsers, setForceMutedUsers] = useState<Set<string>>(new Set());
 
+  // ── Screen share requests ──
+  const [screenShareRequested, setScreenShareRequested] = useState(false); // student sent request
+  const [pendingScreenRequests, setPendingScreenRequests] = useState<{ userId: string; userName: string }[]>([]); // mentor sees
+
   // ── Chat ──
   const [showChat, setShowChat] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
