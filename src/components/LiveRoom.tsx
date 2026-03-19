@@ -1122,6 +1122,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   const handleLeave = useCallback(() => {
     stopScreenShare(); stopSpeakingDetection(); stopMicTest();
+    // Close all WebRTC peers
+    peersRef.current.forEach(pc => pc.close());
+    peersRef.current.clear();
     // Release camera and microphone
     localStreamRef.current?.getTracks().forEach(t => t.stop());
     localStreamRef.current = null;
