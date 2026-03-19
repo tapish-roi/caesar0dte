@@ -141,6 +141,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [chatInput, setChatInput] = useState('');
   const [isSendingMsg, setIsSendingMsg] = useState(false);
 
+  // ── WebRTC ──
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map());
+  const webrtcChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const ICE_SERVERS = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ];
+
   // ── Refs ──
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);       // local sharer
