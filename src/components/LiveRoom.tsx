@@ -62,7 +62,7 @@ const USER_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7'
 const getColorForUser = (uid: string) => USER_COLORS[uid.charCodeAt(0) % USER_COLORS.length];
 
 // How many ms between screen-share frame broadcasts
-const FRAME_INTERVAL_MS = 100; // ~10fps for low bandwidth
+const FRAME_INTERVAL_MS = 67; // ~15fps — balance quality vs bandwidth with the improved WebP encoding
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LiveRoom({ sessionId, mentorId, userId, userName, sessionTitle, isMentor = false, onClose, onSessionEnd }: Props) {
@@ -146,6 +146,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const remoteStreamsRef = useRef<Map<string, MediaStream>>(new Map());
   const webrtcChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // ── Remote speaking detection (Web Audio API per remote stream) ──
+  const remoteAnalysersRef = useRef<Map<string, { ctx: AudioContext; analyser: AnalyserNode; animId: number }>>(new Map());
+  const [remoteSpeakingUsers, setRemoteSpeakingUsers] = useState<Set<string>>(new Set());
+  // Stable function refs so getOrCreatePeer (defined earlier) can call them without forward-ref issues
+  const startRemoteSpeakingDetectionRef = useRef<(remoteId: string, stream: MediaStream) => void>(() => {});
+  const stopRemoteSpeakingDetectionRef = useRef<(remoteId: string) => void>(() => {});
+
+  // ── Student screen share permission ──
+  const [studentScreenShareApproved, setStudentScreenShareApproved] = useState(false);
 
   const ICE_SERVERS = [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -269,6 +279,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       setParticipants(prev => prev.map(p =>
         p.userId === remoteId ? { ...p, stream, hasCamera: stream.getVideoTracks().some(t => t.readyState === 'live') } : p
       ));
+      // Start remote speaking detection when we get a stream with audio
+      if (stream.getAudioTracks().length > 0) {
+        startRemoteSpeakingDetectionRef.current(remoteId, stream);
+      }
       // Detect when remote turns camera off
       e.track.onended = () => {
         const s = remoteStreamsRef.current.get(remoteId);
@@ -284,6 +298,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         peersRef.current.delete(remoteId);
         remoteStreamsRef.current.delete(remoteId);
         setRemoteStreams(new Map(remoteStreamsRef.current));
+        stopRemoteSpeakingDetectionRef.current(remoteId);
       }
     };
 
@@ -396,11 +411,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
       if (type === 'screen_share_approved' && !isMentor) {
         setScreenShareRequested(false);
+        setStudentScreenShareApproved(true);
         toast({ title: 'המנטור אישר את בקשתך לשתף מסך!' });
         return;
       }
       if (type === 'screen_share_denied' && !isMentor) {
         setScreenShareRequested(false);
+        setStudentScreenShareApproved(false);
         toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
         return;
       }
@@ -520,10 +537,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const captureFrame = () => {
       const video = screenVideoRef.current;
       if (!video || video.readyState < 2) return;
-      // Limit to 640px wide to stay within Supabase Realtime payload limits (~256KB)
-      const MAX_W = 640;
-      const origW = video.videoWidth || 640;
-      const origH = video.videoHeight || 360;
+      // Use 1280px wide for crisp HD screen sharing while staying close to Supabase's payload limit
+      // We use WebP at 0.85 quality which gives much better clarity than JPEG 0.35
+      const MAX_W = 1280;
+      const origW = video.videoWidth || 1280;
+      const origH = video.videoHeight || 720;
       const scale = Math.min(1, MAX_W / origW);
       const w = Math.round(origW * scale);
       const h = Math.round(origH * scale);
@@ -533,7 +551,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       if (!ctx) return;
       ctx.drawImage(video, 0, 0, w, h);
       // Don't bake strokes — each client renders them locally via the drawing canvas overlay
-      const dataUrl = offscreen.toDataURL('image/jpeg', 0.35);
+      // Try WebP first (much better quality/size ratio), fall back to JPEG
+      const dataUrl = offscreen.toDataURL('image/webp', 0.85) || offscreen.toDataURL('image/jpeg', 0.75);
       screenFrameChannelRef.current?.send({
         type: 'broadcast', event: 'screen_frame',
         payload: { dataUrl, sharerId: userId, sharerName: userName },
@@ -890,7 +909,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Speaking detection
+  // Speaking detection — local mic
   // ─────────────────────────────────────────────────────────────────────────────
   const startSpeakingDetection = useCallback((stream: MediaStream) => {
     if (speakingAnimRef.current) cancelAnimationFrame(speakingAnimRef.current);
@@ -917,6 +936,57 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     localAnalyserRef.current = null;
     setSpeakingUsers(prev => { const n = new Set(prev); n.delete(userId); return n; });
   }, [userId]);
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Speaking detection — remote streams (Web Audio API per peer)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const startRemoteSpeakingDetection = useCallback((remoteId: string, stream: MediaStream) => {
+    // Stop existing analyser for this peer if any
+    const existing = remoteAnalysersRef.current.get(remoteId);
+    if (existing) {
+      cancelAnimationFrame(existing.animId);
+      existing.ctx.close().catch(() => {});
+      remoteAnalysersRef.current.delete(remoteId);
+    }
+    const audioTracks = stream.getAudioTracks();
+    if (audioTracks.length === 0) return;
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.4;
+      source.connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      let animId = 0;
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        setRemoteSpeakingUsers(prev => {
+          const n = new Set(prev);
+          avg > 15 ? n.add(remoteId) : n.delete(remoteId);
+          return n;
+        });
+        animId = requestAnimationFrame(tick);
+        remoteAnalysersRef.current.get(remoteId) && (remoteAnalysersRef.current.get(remoteId)!.animId = animId);
+      };
+      animId = requestAnimationFrame(tick);
+      remoteAnalysersRef.current.set(remoteId, { ctx, analyser, animId });
+    } catch { /* noop */ }
+  }, []);
+  // Keep stable ref in sync so getOrCreatePeer (defined earlier) can call it
+  startRemoteSpeakingDetectionRef.current = startRemoteSpeakingDetection;
+
+  const stopRemoteSpeakingDetection = useCallback((remoteId: string) => {
+    const existing = remoteAnalysersRef.current.get(remoteId);
+    if (existing) {
+      cancelAnimationFrame(existing.animId);
+      existing.ctx.close().catch(() => {});
+      remoteAnalysersRef.current.delete(remoteId);
+    }
+    setRemoteSpeakingUsers(prev => { const n = new Set(prev); n.delete(remoteId); return n; });
+  }, []);
+  stopRemoteSpeakingDetectionRef.current = stopRemoteSpeakingDetection;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Mic
@@ -1512,28 +1582,32 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
                 {/* Local avatar */}
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative">
-                  <div className={`w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-2xl border-4 transition-all ${micEnabled ? 'border-green-500 shadow-green-500/30' : 'border-white/10'}`}
+                  <div className={`w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-2xl border-4 transition-all ${speakingUsers.has(userId) ? 'border-green-400 shadow-green-500/40' : micEnabled ? 'border-green-500/50 shadow-green-500/20' : 'border-white/10'}`}
                     style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
                     {initials(userName)}
                   </div>
-                  {micEnabled && <div className="absolute inset-0 rounded-full border-4 border-green-500/40 animate-ping" />}
+                  {speakingUsers.has(userId) && <div className="absolute inset-0 rounded-full border-4 border-green-400/60 animate-ping" />}
                   <div className={`absolute bottom-1 right-1 w-7 h-7 rounded-full border-4 border-[#313338] flex items-center justify-center ${micEnabled ? 'bg-green-500' : 'bg-[#4e5058]'}`}>
                     {micEnabled ? <Mic className="w-3 h-3 text-white" /> : <MicOff className="w-3 h-3 text-white/60" />}
                   </div>
                 </motion.div>
                 <div className="text-center">
                   <p className="text-xl font-bold text-white">{userName}</p>
-                  <p className="text-sm text-white/40 mt-0.5">{deafened ? 'מושתק לחלוטין' : micEnabled ? 'מדבר...' : 'מיקרופון כבוי'}</p>
+                  <p className="text-sm text-white/40 mt-0.5">{deafened ? 'מושתק לחלוטין' : speakingUsers.has(userId) ? 'מדבר...' : micEnabled ? 'מיקרופון פעיל' : 'מיקרופון כבוי'}</p>
                 </div>
                 {participants.length > 1 && (
                   <div className="flex gap-4 mt-2 flex-wrap justify-center">
                     {participants.filter(p => p.userId !== userId).map(p => {
                       const remoteStream = remoteStreams.get(p.userId);
-                      const hasVideo = remoteStream && remoteStream.getVideoTracks().length > 0;
+                      const hasVideo = remoteStream && remoteStream.getVideoTracks().some(t => t.readyState === 'live');
+                      const isSpeaking = remoteSpeakingUsers.has(p.userId);
                       return (
                         <div key={p.userId} className="flex flex-col items-center gap-2">
                           {hasVideo ? (
-                            <div className="w-24 h-16 rounded-xl overflow-hidden border-2 border-green-500/50 shadow-lg">
+                            <div className={`relative w-28 h-20 rounded-xl overflow-hidden shadow-lg border-2 transition-all ${isSpeaking ? 'border-green-400 shadow-green-500/40' : 'border-white/10'}`}>
+                              {isSpeaking && (
+                                <div className="absolute inset-0 rounded-xl border-2 border-green-400/50 animate-ping pointer-events-none" />
+                              )}
                               <video
                                 autoPlay playsInline
                                 ref={el => { if (el && remoteStream) el.srcObject = remoteStream; }}
@@ -1541,10 +1615,21 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                               />
                             </div>
                           ) : (
-                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white border-2 ${p.isMuted ? 'border-white/10' : 'border-green-500'}`}
-                              style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>{initials(p.name)}</div>
+                            <div className="relative">
+                              <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white border-4 transition-all ${isSpeaking ? 'border-green-400 shadow-green-400/50 shadow-lg' : 'border-white/10'}`}
+                                style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
+                                {initials(p.name)}
+                              </div>
+                              {/* Pulsing speaking ring */}
+                              {isSpeaking && (
+                                <div className="absolute inset-0 rounded-full border-4 border-green-400/60 animate-ping" />
+                              )}
+                            </div>
                           )}
-                          <p className="text-xs text-white/60">{p.name}</p>
+                          <div className="flex items-center gap-1">
+                            {isSpeaking && <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+                            <p className="text-xs text-white/60">{p.name}</p>
+                          </div>
                         </div>
                       );
                     })}
@@ -1606,26 +1691,36 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg bg-[#4e5058] hover:bg-[#6d6f78] text-white">
               {cameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5 opacity-50" />}
             </button>
-            <button onClick={toggleScreenShare} title={screenSharing ? 'הפסק שיתוף מסך' : 'שתף מסך'}
-              className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${screenSharing ? 'bg-green-500/90 hover:bg-green-500 text-white' : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50'}`}>
-              {screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
-            </button>
-            {/* Student: request screen share button (only when not already sharing and mentor is sharing or no one is) */}
-            {!isMentor && !screenSharing && (
-              <button
-                onClick={screenShareRequested ? undefined : requestScreenShare}
-                title={screenShareRequested ? 'הבקשה נשלחה, ממתין לאישור...' : 'בקש לשתף מסך'}
-                className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
-                  screenShareRequested
-                    ? 'bg-amber-500/80 text-white cursor-not-allowed'
-                    : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50 hover:text-white'
-                }`}
-              >
-                <Monitor className="w-5 h-5" />
-                {screenShareRequested && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-[#292b2f] animate-pulse" />
-                )}
+            {/* Mentor: full screen share toggle. Student: request-only button that requires approval */}
+            {isMentor ? (
+              <button onClick={toggleScreenShare} title={screenSharing ? 'הפסק שיתוף מסך' : 'שתף מסך'}
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${screenSharing ? 'bg-green-500/90 hover:bg-green-500 text-white' : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50'}`}>
+                {screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
               </button>
+            ) : (
+              /* Student can only request permission. Once approved they see a share button. */
+              studentScreenShareApproved ? (
+                <button onClick={screenSharing ? stopScreenShare : toggleScreenShare}
+                  title={screenSharing ? 'הפסק שיתוף מסך' : 'שתף מסך (אושר)'}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${screenSharing ? 'bg-green-500/90 hover:bg-green-500 text-white' : 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/40'}`}>
+                  {screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+                </button>
+              ) : (
+                <button
+                  onClick={screenShareRequested ? undefined : requestScreenShare}
+                  title={screenShareRequested ? 'הבקשה נשלחה, ממתין לאישור המנטור...' : 'בקש מהמנטור לשתף מסך'}
+                  className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg ${
+                    screenShareRequested
+                      ? 'bg-amber-500/80 text-white cursor-not-allowed'
+                      : 'bg-[#4e5058] hover:bg-[#6d6f78] text-white/50 hover:text-white'
+                  }`}
+                >
+                  <Monitor className="w-5 h-5" />
+                  {screenShareRequested && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-[#292b2f] animate-pulse" />
+                  )}
+                </button>
+              )
             )}
             <button onClick={() => { setShowSettings(true); setSettingsTab('mic'); }} title="הגדרות"
               className="w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg bg-[#4e5058] hover:bg-[#6d6f78] text-white/50 hover:text-white">
