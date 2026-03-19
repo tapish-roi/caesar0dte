@@ -7,6 +7,8 @@ import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info } from 'lucide-react
 type Tab = 'mentor' | 'student';
 type MentorMode = 'login' | 'signup';
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
 export default function AuthPage() {
   const [tab, setTab] = useState<Tab>('student');
   const [mentorMode, setMentorMode] = useState<MentorMode>('login');
@@ -24,19 +26,18 @@ export default function AuthPage() {
 
     try {
       if (tab === 'mentor' && mentorMode === 'signup') {
-        // Mentor signup — create new account with role=mentor
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: fullName, role: 'mentor' },
-            emailRedirectTo: window.location.origin,
-          },
+        // Mentor signup — use Edge Function to create user + profile + role atomically
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/create-mentor`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, fullName, phone }),
         });
-        if (error) throw error;
-        if (data.user && phone) {
-          await supabase.from('profiles').update({ phone }).eq('user_id', data.user.id);
-        }
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'שגיאה ביצירת החשבון');
+
+        // Sign in after successful creation
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
       } else {
         // Mentor login OR Student login — plain signIn
         const { error } = await supabase.auth.signInWithPassword({ email, password });
