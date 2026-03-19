@@ -1574,28 +1574,32 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
                 {/* Local avatar */}
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative">
-                  <div className={`w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-2xl border-4 transition-all ${micEnabled ? 'border-green-500 shadow-green-500/30' : 'border-white/10'}`}
+                  <div className={`w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-2xl border-4 transition-all ${speakingUsers.has(userId) ? 'border-green-400 shadow-green-500/40' : micEnabled ? 'border-green-500/50 shadow-green-500/20' : 'border-white/10'}`}
                     style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
                     {initials(userName)}
                   </div>
-                  {micEnabled && <div className="absolute inset-0 rounded-full border-4 border-green-500/40 animate-ping" />}
+                  {speakingUsers.has(userId) && <div className="absolute inset-0 rounded-full border-4 border-green-400/60 animate-ping" />}
                   <div className={`absolute bottom-1 right-1 w-7 h-7 rounded-full border-4 border-[#313338] flex items-center justify-center ${micEnabled ? 'bg-green-500' : 'bg-[#4e5058]'}`}>
                     {micEnabled ? <Mic className="w-3 h-3 text-white" /> : <MicOff className="w-3 h-3 text-white/60" />}
                   </div>
                 </motion.div>
                 <div className="text-center">
                   <p className="text-xl font-bold text-white">{userName}</p>
-                  <p className="text-sm text-white/40 mt-0.5">{deafened ? 'מושתק לחלוטין' : micEnabled ? 'מדבר...' : 'מיקרופון כבוי'}</p>
+                  <p className="text-sm text-white/40 mt-0.5">{deafened ? 'מושתק לחלוטין' : speakingUsers.has(userId) ? 'מדבר...' : micEnabled ? 'מיקרופון פעיל' : 'מיקרופון כבוי'}</p>
                 </div>
                 {participants.length > 1 && (
                   <div className="flex gap-4 mt-2 flex-wrap justify-center">
                     {participants.filter(p => p.userId !== userId).map(p => {
                       const remoteStream = remoteStreams.get(p.userId);
-                      const hasVideo = remoteStream && remoteStream.getVideoTracks().length > 0;
+                      const hasVideo = remoteStream && remoteStream.getVideoTracks().some(t => t.readyState === 'live');
+                      const isSpeaking = remoteSpeakingUsers.has(p.userId);
                       return (
                         <div key={p.userId} className="flex flex-col items-center gap-2">
                           {hasVideo ? (
-                            <div className="w-24 h-16 rounded-xl overflow-hidden border-2 border-green-500/50 shadow-lg">
+                            <div className={`relative w-28 h-20 rounded-xl overflow-hidden shadow-lg border-2 transition-all ${isSpeaking ? 'border-green-400 shadow-green-500/40' : 'border-white/10'}`}>
+                              {isSpeaking && (
+                                <div className="absolute inset-0 rounded-xl border-2 border-green-400/50 animate-ping pointer-events-none" />
+                              )}
                               <video
                                 autoPlay playsInline
                                 ref={el => { if (el && remoteStream) el.srcObject = remoteStream; }}
@@ -1603,10 +1607,21 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                               />
                             </div>
                           ) : (
-                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white border-2 ${p.isMuted ? 'border-white/10' : 'border-green-500'}`}
-                              style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>{initials(p.name)}</div>
+                            <div className="relative">
+                              <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white border-4 transition-all ${isSpeaking ? 'border-green-400 shadow-green-400/50 shadow-lg' : 'border-white/10'}`}
+                                style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
+                                {initials(p.name)}
+                              </div>
+                              {/* Pulsing speaking ring */}
+                              {isSpeaking && (
+                                <div className="absolute inset-0 rounded-full border-4 border-green-400/60 animate-ping" />
+                              )}
+                            </div>
                           )}
-                          <p className="text-xs text-white/60">{p.name}</p>
+                          <div className="flex items-center gap-1">
+                            {isSpeaking && <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+                            <p className="text-xs text-white/60">{p.name}</p>
+                          </div>
                         </div>
                       );
                     })}
