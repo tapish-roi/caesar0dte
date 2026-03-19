@@ -36,6 +36,17 @@ function AppRoutes() {
     );
   }
 
+  // Always allow /accept-invite regardless of auth state
+  // (student arrives from invite email — may or may not have a session)
+  if (window.location.pathname === '/accept-invite') {
+    return (
+      <Routes>
+        <Route path="/accept-invite" element={<AcceptInvitePage />} />
+        <Route path="*" element={<AcceptInvitePage />} />
+      </Routes>
+    );
+  }
+
   if (!user) {
     return (
       <Routes>

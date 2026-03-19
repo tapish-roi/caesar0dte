@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,38 +11,23 @@ export default function AcceptInvitePage() {
   const { toast } = useToast();
 
   const mentorName = searchParams.get('mentor') ?? 'המנטור שלך';
+  const mentorId = searchParams.get('mentor_id') ?? '';
+  const prefillEmail = searchParams.get('email') ?? '';
 
+  const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
   const [done, setDone] = useState(false);
-
-  // Supabase automatically processes the invite token from the URL hash
-  // and fires onAuthStateChange with the user logged in.
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        setUserEmail(session.user.email ?? '');
-        setSessionReady(true);
-      }
-    });
-
-    // Also check existing session (in case page is reloaded after token exchange)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUserEmail(session.user.email ?? '');
-        setSessionReady(true);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!email.trim()) {
+      toast({ title: 'שגיאה', description: 'יש להזין כתובת מייל', variant: 'destructive' });
+      return;
+    }
     if (password !== confirmPassword) {
       toast({ title: 'שגיאה', description: 'הסיסמאות אינן תואמות', variant: 'destructive' });
       return;
@@ -54,8 +39,51 @@ export default function AcceptInvitePage() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      // Check if there's already an active session (from invite token in hash)
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+
+      if (existingSession?.user) {
+        // User is already signed in via the invite token — just update the password
+        const { error: updateError } = await supabase.auth.updateUser({ password });
+        if (updateError) throw updateError;
+      } else {
+        // Try signing in first (existing user who got a recovery link)
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          // If sign-in fails, the token hasn't been processed yet — try OTP exchange from hash
+          // and then update password, OR sign up as new user
+          const hash = window.location.hash;
+          if (hash && hash.includes('access_token')) {
+            // Let Supabase process the hash token
+            // onAuthStateChange will fire — wait for session
+            await new Promise<void>((resolve, reject) => {
+              const timeout = setTimeout(() => reject(new Error('תם הזמן לאימות הטוקן')), 8000);
+              const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+                if (session?.user) {
+                  clearTimeout(timeout);
+                  subscription.unsubscribe();
+                  const { error: updErr } = await supabase.auth.updateUser({ password });
+                  if (updErr) reject(updErr);
+                  else resolve();
+                }
+              });
+            });
+          } else {
+            throw new Error('לא ניתן להתחבר עם פרטים אלה. אנא בדוק/י את כתובת המייל.');
+          }
+        }
+      }
+
+      // Join mentor's community if mentorId is provided
+      if (mentorId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await supabase.from('community_members').upsert(
+            { student_id: session.user.id, mentor_id: mentorId },
+            { onConflict: 'student_id,mentor_id' } as never
+          );
+        }
+      }
 
       setDone(true);
       setTimeout(() => navigate('/'), 2000);
@@ -109,16 +137,8 @@ export default function AcceptInvitePage() {
                 <h2 className="text-xl font-bold text-foreground">ברוך הבא!</h2>
                 <p className="text-sm text-muted-foreground">החשבון שלך מוכן. מעביר אותך לפלטפורמה...</p>
               </motion.div>
-            ) : !sessionReady ? (
-              <div className="text-center py-8 space-y-3">
-                <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin mx-auto" />
-                <p className="text-sm text-muted-foreground">מאמת את ההזמנה...</p>
-              </div>
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
@@ -126,19 +146,29 @@ export default function AcceptInvitePage() {
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-foreground">הצטרפות לקהילה</h2>
-                    <p className="text-sm text-muted-foreground">הוזמנת על ידי <span className="font-medium text-foreground">{mentorName}</span></p>
+                    <p className="text-sm text-muted-foreground">
+                      הוזמנת על ידי <span className="font-medium text-foreground">{mentorName}</span>
+                    </p>
                   </div>
                 </div>
 
-                {userEmail && (
-                  <div className="bg-accent/8 border border-accent/20 rounded-xl px-4 py-3 mb-6">
-                    <p className="text-xs text-muted-foreground">
-                      מצטרף/ת בתור: <span className="font-medium text-foreground" dir="ltr">{userEmail}</span>
-                    </p>
-                  </div>
-                )}
-
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Email field */}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">כתובת מייל</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      required
+                      placeholder="your@email.com"
+                      dir="ltr"
+                      className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-left"
+                      autoFocus={!prefillEmail}
+                    />
+                  </div>
+
+                  {/* Password field */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">בחר/י סיסמה</label>
                     <div className="relative">
@@ -150,7 +180,7 @@ export default function AcceptInvitePage() {
                         minLength={6}
                         placeholder="לפחות 6 תווים"
                         className="w-full h-11 px-4 pl-11 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
-                        autoFocus
+                        autoFocus={!!prefillEmail}
                       />
                       <button
                         type="button"
@@ -162,6 +192,7 @@ export default function AcceptInvitePage() {
                     </div>
                   </div>
 
+                  {/* Confirm password */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">אמת/י סיסמה</label>
                     <input
@@ -180,7 +211,7 @@ export default function AcceptInvitePage() {
                     disabled={loading}
                     className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
                   >
-                    {loading ? '...' : 'כניסה לפלטפורמה'}
+                    {loading ? '...' : 'הצטרף/י לקהילה'}
                   </button>
                 </form>
               </motion.div>
