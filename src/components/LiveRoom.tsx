@@ -264,10 +264,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   useEffect(() => {
     const ch = supabase.channel(`screen-share-${sessionId}`, { config: { broadcast: { self: true } } });
 
-    // Receive remote frames
+    // Receive remote frames — ignore frames we ourselves are sending
     ch.on('broadcast', { event: 'screen_frame' }, ({ payload }) => {
       const { dataUrl, sharerId, sharerName } = payload as { dataUrl: string; sharerId: string; sharerName: string };
-      // Show on remote canvas for everyone (including the sharer who sees their own broadcast)
+      // If WE are the sharer, don't render on the remote canvas — we already show the local video element
+      if (sharerId === userId) return;
       const canvas = remoteScreenCanvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
