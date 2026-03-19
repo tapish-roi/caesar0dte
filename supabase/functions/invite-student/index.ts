@@ -64,14 +64,14 @@ Deno.serve(async (req) => {
 
       // Send password reset so they can access the app
       const anonClient = createClient(supabaseUrl, anonKey);
-      await anonClient.auth.resetPasswordForEmail(email, { redirectTo: appUrl });
+      await anonClient.auth.resetPasswordForEmail(email, { redirectTo: acceptInviteUrl });
       console.log('Sent password reset to existing user:', email);
     } else {
       // New user — inviteUserByEmail creates account AND sends invite email in one step
       const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
         email,
         {
-          redirectTo: appUrl,
+          redirectTo: acceptInviteUrl,
           data: { role: 'student', mentor_name: mentorName },
         }
       );
