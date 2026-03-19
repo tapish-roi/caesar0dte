@@ -521,6 +521,7 @@ function QuizDetail({
       id: q.id,
       text: q.question_text,
       type: q.question_type,
+      expectedAnswer: q.expected_answer ?? '',
       options: options
         .filter(o => o.question_id === q.id)
         .sort((a, b) => a.position - b.position)
