@@ -591,6 +591,7 @@ function QuizDetail({
           question_text: dq.text.trim(),
           question_type: dq.type,
           position: i,
+          expected_answer: dq.type === 'free_text' && dq.expectedAnswer?.trim() ? dq.expectedAnswer.trim() : null,
         }).select('id').single();
         if (qqErr) throw qqErr;
         if (dq.type === 'multiple_choice' && dq.options.length > 0) {
