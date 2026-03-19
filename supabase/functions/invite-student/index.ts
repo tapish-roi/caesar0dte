@@ -83,28 +83,27 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const mentorName = mentorProfile?.full_name ?? 'המנטור שלך';
 
-    // 5. Send password reset email so student can set their password and login
+    // 5. Send password reset/setup email so student can access the app
     const appUrl = req.headers.get('origin') || supabaseUrl.replace('.supabase.co', '.app');
-    const { error: resetError } = await adminClient.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-      options: { redirectTo: appUrl },
-    });
 
-    if (resetError) {
-      console.error('Failed to generate reset link:', resetError.message);
-      // Non-fatal: student can use "forgot password" later
-    }
-
-    // 6. Send invitation email via Supabase's built-in invite mechanism
-    const { error: inviteEmailError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-      redirectTo: appUrl,
-      data: { mentor_name: mentorName, role: 'student' },
-    });
-
-    if (inviteEmailError) {
-      console.log('Invite email note:', inviteEmailError.message);
-      // If user already exists, invite fails — that's ok, they can login directly
+    if (!existingUser) {
+      // New user — send invite email (magic link to set up account)
+      const { error: inviteEmailError } = await adminClient.auth.admin.inviteUserByEmail(email, {
+        redirectTo: appUrl,
+        data: { mentor_name: mentorName, role: 'student' },
+      });
+      if (inviteEmailError) {
+        console.log('Invite email note (new user):', inviteEmailError.message);
+      }
+    } else {
+      // Existing user — send password reset email so they can login
+      const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!);
+      const { error: resetError } = await anonClient.auth.resetPasswordForEmail(email, {
+        redirectTo: appUrl,
+      });
+      if (resetError) {
+        console.log('Reset email note (existing user):', resetError.message);
+      }
     }
 
     return new Response(JSON.stringify({ success: true, studentId }), {
