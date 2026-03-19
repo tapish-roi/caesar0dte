@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
 
     if (profileError) {
       console.error('profile upsert error:', JSON.stringify(profileError));
-      // Non-fatal — profile may already exist from trigger
+      throw new Error(`Profile error: ${profileError.message}`);
     }
 
     // 3. Ensure role exists
