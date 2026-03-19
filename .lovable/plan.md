@@ -1,81 +1,71 @@
 
-## שתי בעיות ופתרונן
+## שורש הבעיה
 
-### בעיה 1 — תוכן המייל: "איפוס סיסמה" במקום "הזמנה לקהילה"
+לאחר קריאה מלאה של `LiveRoom.tsx` (1665 שורות), הבעיה ברורה:
 
-הסיבה: כאשר ה-edge function קוראת ל-`inviteUserByEmail`, Supabase שולח את תבנית ברירת המחדל שלו שנראית כמו איפוס סיסמה (כי לא הוגדרה תבנית מותאמת). כדי לשנות את תוכן המייל צריך לגדיר תבניות email מותאמות.
+**אין WebRTC בכלל.** הקומפוננטה משתמשת ב-Supabase Realtime רק לשידור פריימים של שיתוף מסך (JPEG images), אבל **מיקרופון ומצלמה לא נשלחים אף פעם לצד השני.** הנתונים נשמרים רק locally בדפדפן.
 
-**הפתרון:** להקים תבניות email מותאמות דרך מנגנון ה-auth email templates, ולהתאים את תבנית ה-`invite` לתוכן הנכון ("הוזמנת לקהילה של [שם מנטור]").
+בנוסף — הנוכחות (`presence`) חד-כיוונית: תלמידים שולחים `presence` למנטור, אבל המנטור לא מכריז על עצמו → התלמיד לא רואה את המנטור ברשימת המשתתפים ולא שומע אותו.
 
----
+## הפתרון — הוספת WebRTC
 
-### בעיה 2 — כפתור במייל מוביל ל"מאמת את ההזמנה" ונתקע
+### מה נוסיף
 
-הסיבה: הכפתור ממייל ההזמנה מכיל URL עם `#access_token=...&type=invite` ב-hash. Supabase Gotrue מעבד את ה-token אוטומטית ב-`onAuthStateChange`. אם עמוד ה-`/accept-invite` נטען לפני ש-Supabase מסיים לעבד את ה-token, נוצר מצב שבו:
-- הדף מחכה ל-`sessionReady = true`
-- ה-`AuthContext` כבר מגיב לסשן ומנתב את המשתמש לדשבורד
-- התוצאה: `loading = true` לנצח כי `AuthContext.loading` מסיים עבודה לפני ש-`AcceptInvitePage` רואה את הסשן
+**1. ניהול Peer Connections**
+- `peersRef: Map<userId, RTCPeerConnection>` — מילון של חיבורי WebRTC לכל משתתף
+- STUN servers ציבוריים של Google ל-ICE negotiation
+- כשמשתתף חדש מצטרף — יוצרים `RTCPeerConnection`, שולחים offer/answer, מחליפים ICE candidates
 
-**שורש הבעיה הספציפי:** כשמשתמש חדש לוחץ על כפתור ההזמנה במייל, URL נראה כך:
+**2. ערוץ Signaling דרך Supabase Realtime Broadcast**
+- ערוץ `webrtc-signal-{sessionId}` לאירועים: `offer`, `answer`, `ice_candidate`
+- כל הודעת signaling כוללת `fromId` ו-`toId` — כל משתתף מסנן רק הודעות אליו
+
+**3. נוכחות דו-כיוונית**
+- המנטור גם שולח `presence` signal עם הצטרפותו
+- כשתלמיד רואה `presence` של המנטור — מוסיף אותו לרשימת המשתתפים ופותח חיבור WebRTC
+
+**4. ניהול Tracks**
+- `toggleMic` — מוסיף/מסיר `audioTrack` מכל ה-peer connections הפעילים
+- `toggleCamera` — מוסיף/מסיר `videoTrack` מכל ה-peer connections הפעילים
+- כשמגיע `ontrack` event — שומרים את ה-`MediaStream` ברשימת המשתתפים
+
+**5. עיבוד שמע ווידאו רחוק**
+- לכל משתתף עם `stream` — מרנדרים `<audio autoPlay>` (נסתר) לשמע
+- אם למשתתף יש track וידאו — מרנדרים `<video>` קטן בפאנל הצדדי
+
+### קבצים לשינוי
+
+רק `src/components/LiveRoom.tsx`:
+
+- **שורות 127-160**: הוספת `peersRef`, `remoteStreamsRef`, `signalingChannelRef` ו-state `remoteStreams`
+- **שורות 229-282** (presence channel): שינוי ל-broadcast דו-כיווני; הוספת טיפול ב-`offer/answer/ice_candidate`; גם mentor שולח presence
+- **שורות 751-767** (toggleMic): אחרי `setMicEnabled(true)`, מוסיף את ה-audio track לכל peer connections
+- **שורות 821-830** (camera useEffect): אחרי פתיחת המצלמה, מוסיף video track לכל peer connections
+- **שורות 1273-1301** (avatar grid): הוספת `<audio>` elements לכל remote stream + הצגת וידאו למשתתפים עם מצלמה פעילה
+
+### פונקציות חדשות שנוסיף
+
+```typescript
+// יצירת/קבלת peer connection למשתמש
+const getOrCreatePeer = (remoteId: string, isInitiator: boolean): RTCPeerConnection
+
+// שליחת offer ל-peer חדש
+const initiateOffer = async (remoteId: string)
+
+// קבלת offer ושליחת answer
+const handleOffer = async (fromId: string, offer: RTCSessionDescriptionInit)
+
+// קבלת answer
+const handleAnswer = async (fromId: string, answer: RTCSessionDescriptionInit)
+
+// קבלת ICE candidate
+const handleIceCandidate = async (fromId: string, candidate: RTCIceCandidateInit)
 ```
-https://tradelearning.lovable.app/accept-invite?mentor=X#access_token=...&type=invite
-```
-ה-`AuthContext` קורא `onAuthStateChange` ומזהה סשן חדש עם `event = SIGNED_IN`. הוא טוען role → מוצא `student` → מנתב את המשתמש ל-`/` (StudentDashboard) — לפני שהמשתמש הספיק לבחור סיסמה.
 
----
+### דגשים ביישום
 
-## תוכנית הפתרון
-
-### תיקון 1 — שינוי תוכן המייל
-
-**א.** אין domain מוגדר, כך שלא ניתן להתאים תבניות email מובנות עכשיו.
-
-**ב.** כחלופה: שלוח מייל מותאם דרך ה-edge function עצמה (בלי להסתמך על מייל של Supabase). במקום `inviteUserByEmail` שמשתמש בתבנית של Supabase, נשתמש ב:
-1. `adminClient.auth.admin.createUser({ email, email_confirm: false })` — יוצר משתמש בלי לשלוח מייל
-2. יצירת OTP token ידני לסוג `invite` דרך `adminClient.auth.admin.generateLink({ type: 'invite', email, redirectTo })`
-3. שליחת מייל מותאם עם הקישור
-
----
-
-### תיקון 2 — תיקון ה-flow של `/accept-invite`
-
-הבעיה האמיתית: כשהתלמיד מגיע מהמייל, `AuthContext` מזהה סשן ומנתב ל-dashboard לפני שהמשתמש בחר סיסמה.
-
-**הפתרון:**
-- זיהוי שה-URL מכיל `type=invite` ב-hash → לא לנתב לדשבורד, לתת ל-`AcceptInvitePage` לטפל בזה
-- שינוי ב-`App.tsx`: כשה-URL מכיל `type=invite` בהאש — תמיד להציג את `AcceptInvitePage` גם אם יש משתמש מחובר
-- שינוי ב-`AcceptInvitePage`: במקום לחכות לסשן קיים (שנוצר אוטומטית מה-token) — המשתמש מזין מייל + סיסמה → מחבר עם `signInWithPassword` → אם מצליח, מעדכן סיסמה → ממשיך
-
-**גישה חדשה יותר נכונה לדף accept-invite:**
-
-כשתלמיד מגיע מהמייל, הוא כבר מחובר אוטומטית (Supabase מעבד את token). אבל הניתוב ב-`AuthContext` מקדים אותו לדשבורד. הפתרון:
-
-1. **ב-`AuthContext`**: להוסיף בדיקה — אם event הוא `SIGNED_IN` ו-URL מכיל `type=invite` ב-hash, לא לנתב (לשמור `loading = false` אך לאפשר ל-route לטפל)
-2. **ב-`App.tsx`**: לתת עדיפות ל-`/accept-invite` גם כשהמשתמש מחובר — route זה יקדים את ה-redirect לדשבורד
-3. **ב-`AcceptInvitePage`**: הסרת מצב "מאמת את ההזמנה" כ-default — במקומו להציג טופס ישירות עם שדה מייל + סיסמה + אישור סיסמה, שמאפשר לתלמיד להירשם/להתחבר
-
-**הגישה הפשוטה ביותר (ללא תלות ב-token flow):**
-
-שנה את `AcceptInvitePage` כך שיציג תמיד את הטופס מיד (ללא המתנה לסשן):
-- שדה מייל (מאוכלס מ-query param אם קיים, אחרת ריק)
-- שדה סיסמה
-- כפתור "הצטרף לקהילה"
-
-בלחיצה: קודם `signInWithPassword`. אם מצליח (משתמש כבר קיים עם session מה-token) → `updateUser({ password })` → navigate. אם נכשל → נסה `signUp` → navigate.
-
----
-
-## קבצים לשינוי
-
-**`supabase/functions/invite-student/index.ts`:**
-- שימוש ב-`generateLink` במקום `inviteUserByEmail` כדי לשלוח מייל עם תוכן מותאם (שם מנטור, הודעת הזמנה לקהילה), לא "איפוס סיסמה"
-
-**`src/pages/AcceptInvitePage.tsx`:**
-- הסרת ה-"מאמת את ההזמנה" loading state
-- הצגת טופס מיד: שדה מייל + סיסמה + אישור סיסמה
-- לוגיקה: קבלת מייל מ-URL param (`?email=...`) שיעביר ה-edge function
-- כשהמשתמש שולח: sign-in עם הסיסמה החדשה, אם הסשן קיים מה-token → `updateUser({ password })`, אחרת → try sign-in / sign-up
-- רישום אוטומטי ל-`community_members` של המנטור מ-URL param
-
-**`src/App.tsx`:**
-- העברת `/accept-invite` לפני הבדיקה של authenticated user כדי שהדף תמיד יוצג גם אם יש סשן קיים
+- STUN: `stun:stun.l.google.com:19302` + `stun:stun1.l.google.com:19302`
+- כשמשתתף עוזב — `pc.close()` ומחיקה מ-`peersRef`
+- כשמגיע `ontrack` — מעדכנים `remoteStreams` map ו-`participants` state עם `hasCamera: true`
+- audio elements מרונדרים עם `useEffect` על `remoteStreams` state
+- לא נדרש שינוי ב-DB, migrations, או קבצים אחרים
