@@ -32,6 +32,7 @@ interface QuizQuestion {
   question_text: string;
   question_type: QuestionType;
   position: number;
+  expected_answer?: string | null;
   options?: QuizOption[];
 }
 
