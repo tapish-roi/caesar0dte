@@ -307,7 +307,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     ch.subscribe();
     screenFrameChannelRef.current = ch;
     return () => { supabase.removeChannel(ch); };
-  }, [sessionId]);
+  }, [sessionId, userId]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Broadcast screen frames while sharing
