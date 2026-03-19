@@ -144,6 +144,7 @@ function QuizBuilder({
         { id: genId(), text: '', isCorrect: false },
         { id: genId(), text: '', isCorrect: false },
       ] : [],
+      expectedAnswer: '',
     };
     setQuestions(prev => [...prev, q]);
   };
