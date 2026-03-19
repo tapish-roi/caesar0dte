@@ -1281,6 +1281,36 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             )}
           </div>
 
+          {/* ── Screen share request notifications (mentor sees pending requests) ── */}
+          <AnimatePresence>
+            {isMentor && pendingScreenRequests.map(req => (
+              <motion.div
+                key={req.userId}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="shrink-0 bg-amber-500/10 border-b border-amber-500/30 px-5 py-2.5 flex items-center gap-3"
+              >
+                <Monitor className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-sm text-white/80 flex-1">
+                  <span className="font-semibold text-amber-300">{req.userName}</span> מבקש לשתף מסך
+                </span>
+                <button
+                  onClick={() => approveScreenShare(req.userId)}
+                  className="h-7 px-3 rounded-lg bg-green-500/20 text-green-400 text-xs font-semibold hover:bg-green-500/30 border border-green-500/40 transition-all"
+                >
+                  אשר
+                </button>
+                <button
+                  onClick={() => denyScreenShare(req.userId)}
+                  className="h-7 px-3 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 border border-red-500/40 transition-all"
+                >
+                  דחה
+                </button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
           {/* ── Controls bar ── */}
           <div className="shrink-0 bg-[#292b2f] border-t border-white/5 py-4 px-6 flex items-center justify-center gap-3">
             <div className="relative">
