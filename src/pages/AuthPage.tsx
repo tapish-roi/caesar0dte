@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { TrendingUp, User, GraduationCap, Eye, EyeOff } from 'lucide-react';
+import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info } from 'lucide-react';
 
 type Tab = 'mentor' | 'student';
-type Mode = 'login' | 'signup';
+type MentorMode = 'login' | 'signup';
 
 export default function AuthPage() {
   const [tab, setTab] = useState<Tab>('student');
-  const [mode, setMode] = useState<Mode>('login');
+  const [mentorMode, setMentorMode] = useState<MentorMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -23,12 +23,13 @@ export default function AuthPage() {
     setLoading(true);
 
     try {
-      if (mode === 'signup') {
+      if (tab === 'mentor' && mentorMode === 'signup') {
+        // Mentor signup — create new account with role=mentor
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { full_name: fullName, role: tab },
+            data: { full_name: fullName, role: 'mentor' },
             emailRedirectTo: window.location.origin,
           },
         });
@@ -36,25 +37,30 @@ export default function AuthPage() {
         if (data.user && phone) {
           await supabase.from('profiles').update({ phone }).eq('user_id', data.user.id);
         }
-        // Don't show toast here — AuthContext redirect handles it
-        // Just clear loading; redirect happens via App.tsx when role is set
       } else {
+        // Mentor login OR Student login — plain signIn
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        // Redirect happens reactively via App.tsx once role loads
+        if (error) {
+          if (error.message.toLowerCase().includes('invalid login credentials')) {
+            throw new Error(
+              tab === 'student'
+                ? 'אימייל או סיסמה שגויים. שים לב — תלמידים מקבלים גישה רק דרך הזמנת המנטור.'
+                : 'אימייל או סיסמה שגויים.'
+            );
+          }
+          throw error;
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
       toast({ title: 'שגיאה', description: message, variant: 'destructive' });
-      setLoading(false); // Only clear on error; success navigates away
+      setLoading(false);
     }
-    // Note: on success we intentionally leave loading=true while redirect happens
-    // App.tsx will unmount this component once role is resolved
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-bg">
-      {/* Soft radial gradient blobs */}
+      {/* Background blobs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div
           className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.12]"
@@ -70,14 +76,13 @@ export default function AuthPage() {
         />
       </div>
 
-
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
         className="w-full max-w-[480px]"
       >
-        {/* Logo / Brand */}
+        {/* Logo */}
         <div className="text-center mb-8 flex flex-col items-center gap-2">
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
             <TrendingUp className="w-6 h-6 text-primary-foreground" />
@@ -88,7 +93,7 @@ export default function AuthPage() {
 
         {/* Card */}
         <div className="bg-card rounded-2xl card-shadow overflow-hidden">
-          {/* Role Toggle */}
+          {/* Role tabs */}
           <div className="flex border-b border-border">
             {([
               { key: 'student', label: 'כניסת תלמיד', icon: GraduationCap },
@@ -98,9 +103,7 @@ export default function AuthPage() {
                 key={key}
                 onClick={() => setTab(key)}
                 className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm font-medium transition-all relative ${
-                  tab === key
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
+                  tab === key ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <Icon className="w-4 h-4" />
@@ -116,138 +119,212 @@ export default function AuthPage() {
           </div>
 
           <div className="p-8">
-            {/* Mode Sub-toggle */}
-            <div className="flex gap-1 bg-muted rounded-lg p-1 mb-6">
-              {([
-                { key: 'login', label: 'כניסה' },
-                { key: 'signup', label: 'הרשמה' },
-              ] as { key: Mode; label: string }[]).map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setMode(key)}
-                  className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                    mode === key
-                      ? 'bg-card text-foreground card-shadow'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Headline */}
             <AnimatePresence mode="wait">
-              <motion.div
-                key={`${tab}-${mode}`}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 8 }}
-                transition={{ duration: 0.2 }}
-                className="mb-6"
-              >
-                <h2 className="text-xl font-bold text-foreground">
-                  {tab === 'mentor'
-                    ? mode === 'login' ? 'ברוך הבא, מנטור' : 'צור חשבון מנטור'
-                    : mode === 'login' ? 'המסע שלך מתחיל כאן' : 'הצטרף לקהילת הלמידה'}
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {tab === 'mentor'
-                    ? mode === 'login' ? 'נהל את הקהילה והשיעורים שלך' : 'בנה קהילת תלמידים ועצב קורסים'
-                    : mode === 'login' ? 'המשך את מסע הלמידה שלך' : 'המסע שלך למסחר מקצועי מתחיל כאן.'}
-                </p>
-              </motion.div>
-            </AnimatePresence>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <AnimatePresence>
-                {mode === 'signup' && (
-                  <motion.div
-                    key="signup-fields"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-4 overflow-hidden"
-                  >
+              {/* ── STUDENT TAB ── */}
+              {tab === 'student' && (
+                <motion.div
+                  key="student"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <h2 className="text-xl font-bold text-foreground mb-1">המסע שלך מתחיל כאן</h2>
+                  <p className="text-sm text-muted-foreground mb-5">המשך את מסע הלמידה שלך</p>
+
+                  {/* Info banner */}
+                  <div className="flex items-start gap-3 bg-accent/8 border border-accent/20 rounded-xl px-4 py-3 mb-6">
+                    <Info className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      <span className="font-semibold text-foreground">תלמידים מצטרפים רק דרך הזמנה מהמנטור.</span>
+                      {' '}לאחר שהמנטור שולח לך הזמנה, תקבל/י מייל עם פרטי הכניסה ותוכל/י להתחבר כאן.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-1.5">שם מלא</label>
+                      <label className="block text-sm font-medium text-foreground mb-1.5">אימייל</label>
                       <input
-                        type="text"
-                        value={fullName}
-                        onChange={e => setFullName(e.target.value)}
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
                         required
-                        placeholder="ישראל ישראלי"
-                        className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        placeholder="you@example.com"
+                        className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        dir="ltr"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-foreground mb-1.5">טלפון (אופציונלי)</label>
+                      <label className="block text-sm font-medium text-foreground mb-1.5">סיסמה</label>
+                      <div className="relative">
+                        <input
+                          type={showPass ? 'text' : 'password'}
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          required
+                          minLength={6}
+                          placeholder="••••••••"
+                          className="w-full h-11 px-4 pl-11 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPass(v => !v)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                    >
+                      {loading ? '...' : 'כניסה'}
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+
+              {/* ── MENTOR TAB ── */}
+              {tab === 'mentor' && (
+                <motion.div
+                  key="mentor"
+                  initial={{ opacity: 0, x: 8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {/* Login / Signup sub-toggle */}
+                  <div className="flex gap-1 bg-muted rounded-lg p-1 mb-6">
+                    {([
+                      { key: 'login', label: 'כניסה' },
+                      { key: 'signup', label: 'הרשמה' },
+                    ] as { key: MentorMode; label: string }[]).map(({ key, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => setMentorMode(key)}
+                        className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
+                          mentorMode === key
+                            ? 'bg-card text-foreground card-shadow'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={mentorMode}
+                      initial={{ opacity: 0, x: -6 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 6 }}
+                      transition={{ duration: 0.15 }}
+                      className="mb-6"
+                    >
+                      <h2 className="text-xl font-bold text-foreground">
+                        {mentorMode === 'login' ? 'ברוך הבא, מנטור' : 'צור חשבון מנטור'}
+                      </h2>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {mentorMode === 'login' ? 'נהל את הקהילה והשיעורים שלך' : 'בנה קהילת תלמידים ועצב קורסים'}
+                      </p>
+                    </motion.div>
+                  </AnimatePresence>
+
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <AnimatePresence>
+                      {mentorMode === 'signup' && (
+                        <motion.div
+                          key="signup-fields"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-4 overflow-hidden"
+                        >
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">שם מלא</label>
+                            <input
+                              type="text"
+                              value={fullName}
+                              onChange={e => setFullName(e.target.value)}
+                              required
+                              placeholder="ישראל ישראלי"
+                              className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1.5">טלפון (אופציונלי)</label>
+                            <input
+                              type="tel"
+                              value={phone}
+                              onChange={e => setPhone(e.target.value)}
+                              placeholder="050-0000000"
+                              className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1.5">אימייל</label>
                       <input
-                        type="tel"
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        placeholder="050-0000000"
-                        className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        required
+                        placeholder="you@example.com"
+                        className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        dir="ltr"
                       />
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1.5">סיסמה</label>
+                      <div className="relative">
+                        <input
+                          type={showPass ? 'text' : 'password'}
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          required
+                          minLength={6}
+                          placeholder="••••••••"
+                          className="w-full h-11 px-4 pl-11 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPass(v => !v)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">אימייל</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  placeholder="you@example.com"
-                  className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
-                  dir="ltr"
-                />
-              </div>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                    >
+                      {loading ? '...' : mentorMode === 'login' ? 'כניסה' : 'צור חשבון'}
+                    </button>
+                  </form>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">סיסמה</label>
-                <div className="relative">
-                  <input
-                    type={showPass ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    placeholder="••••••••"
-                    className="w-full h-11 px-4 pl-11 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
+                  <p className="text-center text-xs text-muted-foreground mt-6">
+                    {mentorMode === 'login' ? 'אין לך חשבון מנטור?' : 'כבר רשום?'}{' '}
+                    <button
+                      onClick={() => setMentorMode(mentorMode === 'login' ? 'signup' : 'login')}
+                      className="text-accent font-medium hover:underline"
+                    >
+                      {mentorMode === 'login' ? 'הירשם עכשיו' : 'כנס לחשבון'}
+                    </button>
+                  </p>
+                </motion.div>
+              )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
-              >
-                {loading ? '...' : mode === 'login' ? 'כניסה' : 'צור חשבון'}
-              </button>
-            </form>
-
-            <p className="text-center text-xs text-muted-foreground mt-6">
-              {mode === 'login' ? 'אין לך חשבון?' : 'כבר רשום?'}{' '}
-              <button
-                onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-                className="text-accent font-medium hover:underline"
-              >
-                {mode === 'login' ? 'הירשם עכשיו' : 'כנס לחשבון'}
-              </button>
-            </p>
+            </AnimatePresence>
           </div>
         </div>
       </motion.div>
