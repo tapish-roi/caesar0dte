@@ -532,15 +532,41 @@ export default function MentorDashboard() {
 
   const sendInvite = useMutation({
     mutationFn: async (contact: string) => {
-      const { error } = await supabase.from('community_invites').insert({ mentor_id: user!.id, invited_by: user!.id, contact: contact.trim() });
-      if (error) throw error;
+      const trimmed = contact.trim();
+      const isEmail = trimmed.includes('@');
+
+      // 1. Create the invite record
+      const { data: inviteData, error: insertError } = await supabase
+        .from('community_invites')
+        .insert({ mentor_id: user!.id, invited_by: user!.id, contact: trimmed })
+        .select('id')
+        .single();
+      if (insertError) throw insertError;
+
+      // 2. If email invite → create student account + send invite email via edge function
+      if (isEmail) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-student`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session?.access_token}`,
+            },
+            body: JSON.stringify({ inviteId: inviteData.id, email: trimmed, mentorId: user!.id }),
+          }
+        );
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'שגיאה בשליחת ההזמנה');
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['invites'] });
       setInviteContact('');
-      toast({ title: 'הזמנה נשלחה' });
+      toast({ title: 'הזמנה נשלחה ✉️', description: 'התלמיד יקבל מייל עם קישור להגדרת סיסמה' });
     },
-    onError: () => toast({ title: 'שגיאה', description: 'לא ניתן לשלוח הזמנה', variant: 'destructive' }),
+    onError: (err) => toast({ title: 'שגיאה', description: err instanceof Error ? err.message : 'לא ניתן לשלוח הזמנה', variant: 'destructive' }),
   });
 
   const deleteInvite = useMutation({
