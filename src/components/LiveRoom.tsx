@@ -321,24 +321,33 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           if (prev.find(p => p.userId === fromId)) return prev;
           return [...prev, { userId: fromId, name: String(data.name || 'משתמש'), isMuted: true, isDeafened: false, hasCamera: false, hasScreen: false }];
         });
-        // Initiate offer to the new joiner (whoever joined LATER does the offering)
-        // The newcomer announces presence → everyone who is already here creates offer to them
-        const pc = getOrCreatePeer(fromId, true);
+        // Existing participants create an offer to the newcomer (include our name so they can identify us)
+        const pc = getOrCreatePeer(fromId);
         try {
-          const offer = await pc.createOffer();
+          const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
           await pc.setLocalDescription(offer);
-          sendSignal(fromId, 'offer', { sdp: pc.localDescription });
+          sendSignal(fromId, 'offer', { sdp: pc.localDescription, senderName: userName });
         } catch { /* noop */ }
         return;
       }
 
       if (type === 'offer') {
-        const pc = getOrCreatePeer(fromId, false);
+        // ★ KEY FIX: add the offer sender as a participant if not yet known
+        // (student misses mentor's initial presence broadcast since they weren't subscribed yet)
+        setParticipants(prev => {
+          if (prev.find(p => p.userId === fromId)) return prev;
+          return [...prev, { userId: fromId, name: String(data.senderName || 'משתמש'), isMuted: true, isDeafened: false, hasCamera: false, hasScreen: false }];
+        });
+        const pc = getOrCreatePeer(fromId);
         try {
+          // Handle glare: if we also have a pending offer, rollback ours and accept theirs
+          if (pc.signalingState === 'have-local-offer') {
+            await pc.setLocalDescription({ type: 'rollback' } as RTCSessionDescriptionInit);
+          }
           await pc.setRemoteDescription(new RTCSessionDescription(data.sdp as RTCSessionDescriptionInit));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          sendSignal(fromId, 'answer', { sdp: pc.localDescription });
+          sendSignal(fromId, 'answer', { sdp: pc.localDescription, senderName: userName });
         } catch { /* noop */ }
         return;
       }
