@@ -727,6 +727,7 @@ export type Database = {
       quiz_questions: {
         Row: {
           created_at: string
+          expected_answer: string | null
           id: string
           position: number
           question_text: string
@@ -735,6 +736,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          expected_answer?: string | null
           id?: string
           position?: number
           question_text: string
@@ -743,6 +745,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          expected_answer?: string | null
           id?: string
           position?: number
           question_text?: string
