@@ -70,6 +70,7 @@ interface DraftQuestion {
   text: string;
   type: QuestionType;
   options: DraftOption[];
+  expectedAnswer?: string; // for free_text questions
 }
 
 function genId() { return Math.random().toString(36).slice(2); }
@@ -84,6 +85,7 @@ const defaultDraftQuestion = (): DraftQuestion => ({
     { id: genId(), text: '', isCorrect: false },
     { id: genId(), text: '', isCorrect: false },
   ],
+  expectedAnswer: '',
 });
 
 // ═══════════════════════════════════════════════════════
