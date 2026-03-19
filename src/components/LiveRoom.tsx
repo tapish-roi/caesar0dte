@@ -1458,6 +1458,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             ) : (
               /* ── Avatar grid ── */
               <div className="flex flex-col items-center gap-5 select-none">
+                {/* Hidden audio elements for all remote streams — always rendered for audio playback */}
+                {Array.from(remoteStreams.entries()).map(([remoteId, stream]) => (
+                  <audio
+                    key={remoteId}
+                    autoPlay
+                    ref={el => { if (el) el.srcObject = stream; }}
+                    style={{ display: 'none' }}
+                  />
+                ))}
+
+                {/* Local avatar */}
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative">
                   <div className={`w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold text-white shadow-2xl border-4 transition-all ${micEnabled ? 'border-green-500 shadow-green-500/30' : 'border-white/10'}`}
                     style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>
@@ -1473,14 +1484,28 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   <p className="text-sm text-white/40 mt-0.5">{deafened ? 'מושתק לחלוטין' : micEnabled ? 'מדבר...' : 'מיקרופון כבוי'}</p>
                 </div>
                 {participants.length > 1 && (
-                  <div className="flex gap-4 mt-2">
-                    {participants.filter(p => p.userId !== userId).map(p => (
-                      <div key={p.userId} className="flex flex-col items-center gap-2">
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white border-2 ${p.isMuted ? 'border-white/10' : 'border-green-500'}`}
-                          style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>{initials(p.name)}</div>
-                        <p className="text-xs text-white/60">{p.name}</p>
-                      </div>
-                    ))}
+                  <div className="flex gap-4 mt-2 flex-wrap justify-center">
+                    {participants.filter(p => p.userId !== userId).map(p => {
+                      const remoteStream = remoteStreams.get(p.userId);
+                      const hasVideo = remoteStream && remoteStream.getVideoTracks().length > 0;
+                      return (
+                        <div key={p.userId} className="flex flex-col items-center gap-2">
+                          {hasVideo ? (
+                            <div className="w-24 h-16 rounded-xl overflow-hidden border-2 border-green-500/50 shadow-lg">
+                              <video
+                                autoPlay playsInline
+                                ref={el => { if (el && remoteStream) el.srcObject = remoteStream; }}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold text-white border-2 ${p.isMuted ? 'border-white/10' : 'border-green-500'}`}
+                              style={{ background: 'linear-gradient(135deg, #5865f2, #7289da)' }}>{initials(p.name)}</div>
+                          )}
+                          <p className="text-xs text-white/60">{p.name}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
