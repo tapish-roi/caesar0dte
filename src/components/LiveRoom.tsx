@@ -1468,15 +1468,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             ) : (
               /* ── Avatar grid ── */
               <div className="flex flex-col items-center gap-5 select-none">
-                {/* Hidden audio elements for all remote streams — always rendered for audio playback */}
-                {Array.from(remoteStreams.entries()).map(([remoteId, stream]) => (
-                  <audio
-                    key={remoteId}
-                    autoPlay
-                    ref={el => { if (el) el.srcObject = stream; }}
-                    style={{ display: 'none' }}
-                  />
-                ))}
 
                 {/* Local avatar */}
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative">
