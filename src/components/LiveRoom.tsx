@@ -1229,7 +1229,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         <audio
           key={remoteId}
           autoPlay
-          ref={el => { if (el) el.srcObject = stream; }}
+          playsInline
+          data-remote-audio={remoteId}
+          ref={el => {
+            if (el) {
+              el.srcObject = stream;
+              el.volume = deafened ? 0 : volume / 100;
+            }
+          }}
           style={{ display: 'none' }}
         />
       ))}
