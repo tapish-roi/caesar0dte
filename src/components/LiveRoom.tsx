@@ -408,11 +408,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
       if (type === 'screen_share_approved' && !isMentor) {
         setScreenShareRequested(false);
+        setStudentScreenShareApproved(true);
         toast({ title: 'המנטור אישר את בקשתך לשתף מסך!' });
         return;
       }
       if (type === 'screen_share_denied' && !isMentor) {
         setScreenShareRequested(false);
+        setStudentScreenShareApproved(false);
         toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
         return;
       }
