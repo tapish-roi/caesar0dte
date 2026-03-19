@@ -974,6 +974,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       remoteAnalysersRef.current.set(remoteId, { ctx, analyser, animId });
     } catch { /* noop */ }
   }, []);
+  // Keep stable ref in sync so getOrCreatePeer (defined earlier) can call it
+  startRemoteSpeakingDetectionRef.current = startRemoteSpeakingDetection;
 
   const stopRemoteSpeakingDetection = useCallback((remoteId: string) => {
     const existing = remoteAnalysersRef.current.get(remoteId);
@@ -984,6 +986,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     }
     setRemoteSpeakingUsers(prev => { const n = new Set(prev); n.delete(remoteId); return n; });
   }, []);
+  stopRemoteSpeakingDetectionRef.current = stopRemoteSpeakingDetection;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Mic
