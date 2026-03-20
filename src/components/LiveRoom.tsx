@@ -176,8 +176,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   // ── Screen share frame streaming ──
   const screenFrameChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const screenFrameTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const screenFrameTimerRef = useRef<number | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isSendingFrameRef = useRef(false);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Recording (mentor only)
