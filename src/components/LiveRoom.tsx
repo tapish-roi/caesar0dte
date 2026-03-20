@@ -975,7 +975,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const audioTracks = stream.getAudioTracks();
     if (audioTracks.length === 0) return;
     try {
-      const ctx = new AudioContext();
+      // latencyHint: 'interactive' — prioritise low latency to prevent jitter buffer buildup
+      const ctx = new AudioContext({ latencyHint: 'interactive' });
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
@@ -984,6 +985,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       const data = new Uint8Array(analyser.frequencyBinCount);
       let animId = 0;
       const tick = () => {
+        // Auto-resume if Chrome suspended the context after inactivity
+        if (ctx.state === 'suspended') ctx.resume();
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length;
         setRemoteSpeakingUsers(prev => {
