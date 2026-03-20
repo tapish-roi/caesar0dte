@@ -936,7 +936,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const startSpeakingDetection = useCallback((stream: MediaStream) => {
     if (speakingAnimRef.current) cancelAnimationFrame(speakingAnimRef.current);
     try {
-      const ctx = new AudioContext();
+      // latencyHint: 'interactive' tells the browser to prioritise low latency over throughput
+      const ctx = new AudioContext({ latencyHint: 'interactive' });
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512; analyser.smoothingTimeConstant = 0.4;
@@ -944,6 +945,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       localAnalyserRef.current = analyser;
       const data = new Uint8Array(analyser.frequencyBinCount);
       const tick = () => {
+        if (ctx.state === 'suspended') ctx.resume();
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length;
         setSpeakingUsers(prev => { const n = new Set(prev); avg > 18 ? n.add(userId) : n.delete(userId); return n; });
