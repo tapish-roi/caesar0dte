@@ -528,19 +528,24 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!screenSharing) {
-      if (screenFrameTimerRef.current) { clearInterval(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
+      if (screenFrameTimerRef.current !== null) { cancelAnimationFrame(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
+      isSendingFrameRef.current = false;
       return;
     }
     // Create offscreen canvas for frame capture
     if (!offscreenCanvasRef.current) offscreenCanvasRef.current = document.createElement('canvas');
     const offscreen = offscreenCanvasRef.current;
 
-    const captureFrame = () => {
+    // Use requestAnimationFrame so frame capture runs in sync with vsync and does NOT
+    // block the main thread with a tight setInterval — preventing WebRTC jitter buffer buildup.
+    // isSendingFrameRef prevents overlap if toDataURL takes longer than one frame interval.
+    let lastCapture = 0;
+    const captureFrame = async () => {
+      if (isSendingFrameRef.current) return;
       const video = screenVideoRef.current;
       if (!video || video.readyState < 2) return;
-      // Use 1280px wide for crisp HD screen sharing while staying close to Supabase's payload limit
-      // We use WebP at 0.85 quality which gives much better clarity than JPEG 0.35
-      const MAX_W = 1280;
+      // Reduced to 960px + WebP 65% — still visually crisp but ~40% smaller payload
+      const MAX_W = 960;
       const origW = video.videoWidth || 1280;
       const origH = video.videoHeight || 720;
       const scale = Math.min(1, MAX_W / origW);
@@ -550,18 +555,34 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       offscreen.height = h;
       const ctx = offscreen.getContext('2d');
       if (!ctx) return;
-      ctx.drawImage(video, 0, 0, w, h);
-      // Don't bake strokes — each client renders them locally via the drawing canvas overlay
-      // Try WebP first (much better quality/size ratio), fall back to JPEG
-      const dataUrl = offscreen.toDataURL('image/webp', 0.85) || offscreen.toDataURL('image/jpeg', 0.75);
-      screenFrameChannelRef.current?.send({
-        type: 'broadcast', event: 'screen_frame',
-        payload: { dataUrl, sharerId: userId, sharerName: userName },
-      });
+      isSendingFrameRef.current = true;
+      try {
+        ctx.drawImage(video, 0, 0, w, h);
+        // Don't bake strokes — each client renders them locally via the drawing canvas overlay
+        const dataUrl = offscreen.toDataURL('image/webp', 0.65) || offscreen.toDataURL('image/jpeg', 0.60);
+        await screenFrameChannelRef.current?.send({
+          type: 'broadcast', event: 'screen_frame',
+          payload: { dataUrl, sharerId: userId, sharerName: userName },
+        });
+      } finally {
+        isSendingFrameRef.current = false;
+      }
     };
 
-    screenFrameTimerRef.current = setInterval(captureFrame, FRAME_INTERVAL_MS);
-    return () => { if (screenFrameTimerRef.current) clearInterval(screenFrameTimerRef.current); };
+    const loop = (ts: number) => {
+      if (!screenFrameTimerRef.current && screenFrameTimerRef.current !== 0) return; // stopped
+      if (ts - lastCapture >= FRAME_INTERVAL_MS) {
+        lastCapture = ts;
+        captureFrame();
+      }
+      screenFrameTimerRef.current = requestAnimationFrame(loop);
+    };
+    screenFrameTimerRef.current = requestAnimationFrame(loop);
+
+    return () => {
+      if (screenFrameTimerRef.current !== null) { cancelAnimationFrame(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
+      isSendingFrameRef.current = false;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenSharing, userId, userName]);
 
