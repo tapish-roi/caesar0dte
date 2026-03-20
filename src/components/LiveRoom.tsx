@@ -62,7 +62,7 @@ const USER_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7'
 const getColorForUser = (uid: string) => USER_COLORS[uid.charCodeAt(0) % USER_COLORS.length];
 
 // How many ms between screen-share frame broadcasts
-const FRAME_INTERVAL_MS = 67; // ~15fps — balance quality vs bandwidth with the improved WebP encoding
+const FRAME_INTERVAL_MS = 100; // ~10fps — reduced to avoid blocking main thread and causing audio jitter
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LiveRoom({ sessionId, mentorId, userId, userName, sessionTitle, isMentor = false, onClose, onSessionEnd }: Props) {
@@ -176,8 +176,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   // ── Screen share frame streaming ──
   const screenFrameChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const screenFrameTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const screenFrameTimerRef = useRef<number | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isSendingFrameRef = useRef(false);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Recording (mentor only)
@@ -527,19 +528,24 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!screenSharing) {
-      if (screenFrameTimerRef.current) { clearInterval(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
+      if (screenFrameTimerRef.current !== null) { cancelAnimationFrame(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
+      isSendingFrameRef.current = false;
       return;
     }
     // Create offscreen canvas for frame capture
     if (!offscreenCanvasRef.current) offscreenCanvasRef.current = document.createElement('canvas');
     const offscreen = offscreenCanvasRef.current;
 
-    const captureFrame = () => {
+    // Use requestAnimationFrame so frame capture runs in sync with vsync and does NOT
+    // block the main thread with a tight setInterval — preventing WebRTC jitter buffer buildup.
+    // isSendingFrameRef prevents overlap if toDataURL takes longer than one frame interval.
+    let lastCapture = 0;
+    const captureFrame = async () => {
+      if (isSendingFrameRef.current) return;
       const video = screenVideoRef.current;
       if (!video || video.readyState < 2) return;
-      // Use 1280px wide for crisp HD screen sharing while staying close to Supabase's payload limit
-      // We use WebP at 0.85 quality which gives much better clarity than JPEG 0.35
-      const MAX_W = 1280;
+      // Reduced to 960px + WebP 65% — still visually crisp but ~40% smaller payload
+      const MAX_W = 960;
       const origW = video.videoWidth || 1280;
       const origH = video.videoHeight || 720;
       const scale = Math.min(1, MAX_W / origW);
@@ -549,18 +555,34 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       offscreen.height = h;
       const ctx = offscreen.getContext('2d');
       if (!ctx) return;
-      ctx.drawImage(video, 0, 0, w, h);
-      // Don't bake strokes — each client renders them locally via the drawing canvas overlay
-      // Try WebP first (much better quality/size ratio), fall back to JPEG
-      const dataUrl = offscreen.toDataURL('image/webp', 0.85) || offscreen.toDataURL('image/jpeg', 0.75);
-      screenFrameChannelRef.current?.send({
-        type: 'broadcast', event: 'screen_frame',
-        payload: { dataUrl, sharerId: userId, sharerName: userName },
-      });
+      isSendingFrameRef.current = true;
+      try {
+        ctx.drawImage(video, 0, 0, w, h);
+        // Don't bake strokes — each client renders them locally via the drawing canvas overlay
+        const dataUrl = offscreen.toDataURL('image/webp', 0.65) || offscreen.toDataURL('image/jpeg', 0.60);
+        await screenFrameChannelRef.current?.send({
+          type: 'broadcast', event: 'screen_frame',
+          payload: { dataUrl, sharerId: userId, sharerName: userName },
+        });
+      } finally {
+        isSendingFrameRef.current = false;
+      }
     };
 
-    screenFrameTimerRef.current = setInterval(captureFrame, FRAME_INTERVAL_MS);
-    return () => { if (screenFrameTimerRef.current) clearInterval(screenFrameTimerRef.current); };
+    const loop = (ts: number) => {
+      if (!screenFrameTimerRef.current && screenFrameTimerRef.current !== 0) return; // stopped
+      if (ts - lastCapture >= FRAME_INTERVAL_MS) {
+        lastCapture = ts;
+        captureFrame();
+      }
+      screenFrameTimerRef.current = requestAnimationFrame(loop);
+    };
+    screenFrameTimerRef.current = requestAnimationFrame(loop);
+
+    return () => {
+      if (screenFrameTimerRef.current !== null) { cancelAnimationFrame(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
+      isSendingFrameRef.current = false;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenSharing, userId, userName]);
 
@@ -914,7 +936,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const startSpeakingDetection = useCallback((stream: MediaStream) => {
     if (speakingAnimRef.current) cancelAnimationFrame(speakingAnimRef.current);
     try {
-      const ctx = new AudioContext();
+      // latencyHint: 'interactive' tells the browser to prioritise low latency over throughput
+      const ctx = new AudioContext({ latencyHint: 'interactive' });
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512; analyser.smoothingTimeConstant = 0.4;
@@ -922,6 +945,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       localAnalyserRef.current = analyser;
       const data = new Uint8Array(analyser.frequencyBinCount);
       const tick = () => {
+        if (ctx.state === 'suspended') ctx.resume();
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length;
         setSpeakingUsers(prev => { const n = new Set(prev); avg > 18 ? n.add(userId) : n.delete(userId); return n; });
@@ -951,7 +975,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const audioTracks = stream.getAudioTracks();
     if (audioTracks.length === 0) return;
     try {
-      const ctx = new AudioContext();
+      // latencyHint: 'interactive' — prioritise low latency to prevent jitter buffer buildup
+      const ctx = new AudioContext({ latencyHint: 'interactive' });
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
@@ -960,6 +985,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       const data = new Uint8Array(analyser.frequencyBinCount);
       let animId = 0;
       const tick = () => {
+        // Auto-resume if Chrome suspended the context after inactivity
+        if (ctx.state === 'suspended') ctx.resume();
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length;
         setRemoteSpeakingUsers(prev => {
@@ -1182,9 +1209,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); stopSoundTest(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync volume/deafen state to all remote audio elements whenever they change
+  // Also resume any suspended AudioContexts — Chrome suspends them after inactivity
   useEffect(() => {
     document.querySelectorAll<HTMLAudioElement>('[data-remote-audio]').forEach(el => {
       el.volume = deafened ? 0 : volume / 100;
+    });
+    remoteAnalysersRef.current.forEach(({ ctx }) => {
+      if (ctx.state === 'suspended') ctx.resume();
     });
   }, [deafened, volume]);
 
