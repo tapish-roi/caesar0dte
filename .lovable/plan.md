@@ -1,71 +1,68 @@
 
-## שורש הבעיה
+## הבעיה האמיתית — Audio Delay בזמן Screen Share
 
-לאחר קריאה מלאה של `LiveRoom.tsx` (1665 שורות), הבעיה ברורה:
+הדיליי **אינו** קשור לרשת Supabase. WebRTC audio הוא P2P — עובר ישירות בין דפדפנים. הדיליי שגדל עם הזמן הוא בעיה של **WebRTC jitter buffer** שנגרמת כך:
 
-**אין WebRTC בכלל.** הקומפוננטה משתמשת ב-Supabase Realtime רק לשידור פריימים של שיתוף מסך (JPEG images), אבל **מיקרופון ומצלמה לא נשלחים אף פעם לצד השני.** הנתונים נשמרים רק locally בדפדפן.
+`setInterval(captureFrame, 67ms)` — פונקציית `captureFrame` מריצה `canvas.toDataURL('image/webp', 0.85)` על canvas של 1280px. זוהי **פעולה סינכרונית כבדה** שחוסמת את main thread כל 67ms. כשה-main thread חסום, WebRTC לא יכול לעבד את ה-RTP audio packets בזמן — הם מצטברים ב-jitter buffer, וה-buffer גדל בקצב קבוע.
 
-בנוסף — הנוכחות (`presence`) חד-כיוונית: תלמידים שולחים `presence` למנטור, אבל המנטור לא מכריז על עצמו → התלמיד לא רואה את המנטור ברשימת המשתתפים ולא שומע אותו.
+## הפתרון
 
-## הפתרון — הוספת WebRTC
+### שינוי 1 — הורדת עומס ה-main thread ב-captureFrame
 
-### מה נוסיף
+**בעיה ספציפית**: `offscreen.toDataURL()` היא synchronous ומפעילה GPU pipeline. על canvas 1280×720 היא לוקחת 10-40ms בכל קריאה. בתדירות 67ms זה אומר שה-main thread חסום 15-60% מהזמן.
 
-**1. ניהול Peer Connections**
-- `peersRef: Map<userId, RTCPeerConnection>` — מילון של חיבורי WebRTC לכל משתתף
-- STUN servers ציבוריים של Google ל-ICE negotiation
-- כשמשתתף חדש מצטרף — יוצרים `RTCPeerConnection`, שולחים offer/answer, מחליפים ICE candidates
+**פתרון**: לשנות את הלוגיקה כך שהפריים יצולם ב-`requestAnimationFrame` (מסונכרן עם vsync, לא חוסם), עם debounce שמונע שני captures ברצף, ולהוריד רזולוציה ל-960px + WebP 65%:
 
-**2. ערוץ Signaling דרך Supabase Realtime Broadcast**
-- ערוץ `webrtc-signal-{sessionId}` לאירועים: `offer`, `answer`, `ice_candidate`
-- כל הודעת signaling כוללת `fromId` ו-`toId` — כל משתתף מסנן רק הודעות אליו
+```typescript
+// השתמש ב-requestAnimationFrame במקום setInterval
+const scheduleCapture = () => {
+  screenFrameTimerRef.current = requestAnimationFrame(async () => {
+    if (!isSendingFrameRef.current) {
+      await captureFrame();
+    }
+    if (screenSharing) scheduleCapture();
+  });
+};
+```
 
-**3. נוכחות דו-כיוונית**
-- המנטור גם שולח `presence` signal עם הצטרפותו
-- כשתלמיד רואה `presence` של המנטור — מוסיף אותו לרשימת המשתתפים ופותח חיבור WebRTC
+### שינוי 2 — מניעת jitter buffer buildup עם explicit latency hints
 
-**4. ניהול Tracks**
-- `toggleMic` — מוסיף/מסיר `audioTrack` מכל ה-peer connections הפעילים
-- `toggleCamera` — מוסיף/מסיר `videoTrack` מכל ה-peer connections הפעילים
-- כשמגיע `ontrack` event — שומרים את ה-`MediaStream` ברשימת המשתתפים
+להוסיף `latencyHint: 'interactive'` ל-AudioContext ב-`startRemoteSpeakingDetection` כדי שהדפדפן יעדיף latency נמוך על פני throughput:
 
-**5. עיבוד שמע ווידאו רחוק**
-- לכל משתתף עם `stream` — מרנדרים `<audio autoPlay>` (נסתר) לשמע
-- אם למשתתף יש track וידאו — מרנדרים `<video>` קטן בפאנל הצדדי
+```typescript
+const ctx = new AudioContext({ latencyHint: 'interactive' });
+```
 
-### קבצים לשינוי
+גם ב-`startSpeakingDetection` (local).
+
+### שינוי 3 — resume AudioContext אוטומטית
+
+ב-Chrome, AudioContext נעצר אחרי interactivity timeout. להוסיף listener שמחדש אותו:
+
+```typescript
+const resumeAudioContexts = () => {
+  remoteAnalysersRef.current.forEach(({ ctx }) => {
+    if (ctx.state === 'suspended') ctx.resume();
+  });
+};
+document.addEventListener('click', resumeAudioContexts, { once: false });
+```
+
+### שינוי 4 — isSendingFrameRef להימנע מ-overlap
+
+להוסיף ref `isSendingFrameRef` שמונע שליחת פריים חדש בעוד הקודם עדיין בתהליך:
+
+```typescript
+const isSendingFrameRef = useRef(false);
+```
+
+## קבצים לשינוי
 
 רק `src/components/LiveRoom.tsx`:
 
-- **שורות 127-160**: הוספת `peersRef`, `remoteStreamsRef`, `signalingChannelRef` ו-state `remoteStreams`
-- **שורות 229-282** (presence channel): שינוי ל-broadcast דו-כיווני; הוספת טיפול ב-`offer/answer/ice_candidate`; גם mentor שולח presence
-- **שורות 751-767** (toggleMic): אחרי `setMicEnabled(true)`, מוסיף את ה-audio track לכל peer connections
-- **שורות 821-830** (camera useEffect): אחרי פתיחת המצלמה, מוסיף video track לכל peer connections
-- **שורות 1273-1301** (avatar grid): הוספת `<audio>` elements לכל remote stream + הצגת וידאו למשתתפים עם מצלמה פעילה
-
-### פונקציות חדשות שנוסיף
-
-```typescript
-// יצירת/קבלת peer connection למשתמש
-const getOrCreatePeer = (remoteId: string, isInitiator: boolean): RTCPeerConnection
-
-// שליחת offer ל-peer חדש
-const initiateOffer = async (remoteId: string)
-
-// קבלת offer ושליחת answer
-const handleOffer = async (fromId: string, offer: RTCSessionDescriptionInit)
-
-// קבלת answer
-const handleAnswer = async (fromId: string, answer: RTCSessionDescriptionInit)
-
-// קבלת ICE candidate
-const handleIceCandidate = async (fromId: string, candidate: RTCIceCandidateInit)
-```
-
-### דגשים ביישום
-
-- STUN: `stun:stun.l.google.com:19302` + `stun:stun1.l.google.com:19302`
-- כשמשתתף עוזב — `pc.close()` ומחיקה מ-`peersRef`
-- כשמגיע `ontrack` — מעדכנים `remoteStreams` map ו-`participants` state עם `hasCamera: true`
-- audio elements מרונדרים עם `useEffect` על `remoteStreams` state
-- לא נדרש שינוי ב-DB, migrations, או קבצים אחרים
+- **שורה 65**: `FRAME_INTERVAL_MS = 100` (10fps)
+- **שורות 177-180**: הוספת `isSendingFrameRef`
+- **שורות 528-565**: החלפת `setInterval` ב-`requestAnimationFrame` + isSendingFrameRef guard + רזולוציה 960px + WebP 65%
+- **שורות 914-932**: הוספת `latencyHint: 'interactive'` ל-AudioContext
+- **שורות 943-976**: הוספת `latencyHint: 'interactive'` + auto-resume listener
+- **שורות 1185-1189**: הוספת resume ל-AudioContexts כשה-volume משתנה
