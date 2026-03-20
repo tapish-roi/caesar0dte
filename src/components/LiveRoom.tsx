@@ -62,7 +62,7 @@ const USER_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7'
 const getColorForUser = (uid: string) => USER_COLORS[uid.charCodeAt(0) % USER_COLORS.length];
 
 // How many ms between screen-share frame broadcasts
-const FRAME_INTERVAL_MS = 67; // ~15fps — balance quality vs bandwidth with the improved WebP encoding
+const FRAME_INTERVAL_MS = 100; // ~10fps — reduced to avoid blocking main thread and causing audio jitter
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LiveRoom({ sessionId, mentorId, userId, userName, sessionTitle, isMentor = false, onClose, onSessionEnd }: Props) {
