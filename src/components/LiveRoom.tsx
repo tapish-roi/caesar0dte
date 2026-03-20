@@ -1209,9 +1209,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   useEffect(() => () => { stopMicTest(); stopSpeakingDetection(); stopSoundTest(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync volume/deafen state to all remote audio elements whenever they change
+  // Also resume any suspended AudioContexts — Chrome suspends them after inactivity
   useEffect(() => {
     document.querySelectorAll<HTMLAudioElement>('[data-remote-audio]').forEach(el => {
       el.volume = deafened ? 0 : volume / 100;
+    });
+    remoteAnalysersRef.current.forEach(({ ctx }) => {
+      if (ctx.state === 'suspended') ctx.resume();
     });
   }, [deafened, volume]);
 
