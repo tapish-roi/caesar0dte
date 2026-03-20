@@ -404,9 +404,45 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       // ── Screen share request signals ──
       if (type === 'request_screen_share' && isMentor) {
         const requesterName = String(data.userName || 'תלמיד');
+        const requesterId = String(fromId);
         setPendingScreenRequests(prev => {
-          if (prev.find(r => r.userId === fromId)) return prev;
-          return [...prev, { userId: fromId, userName: requesterName }];
+          if (prev.find(r => r.userId === requesterId)) return prev;
+          return [...prev, { userId: requesterId, userName: requesterName }];
+        });
+        // Fire a prominent toast with approve/deny action buttons
+        toast({
+          title: `📺 בקשת שיתוף מסך`,
+          description: `${requesterName} מבקש לשתף מסך`,
+          duration: 30000,
+          action: (
+            <div className="flex gap-2 mt-1">
+              <button
+                onClick={async () => {
+                  await (supabase.from('live_signals') as any).insert({
+                    session_id: sessionId, from_user_id: userId, to_user_id: requesterId,
+                    signal_type: 'screen_share_approved', payload: {},
+                  });
+                  setPendingScreenRequests(prev => prev.filter(r => r.userId !== requesterId));
+                  toast({ title: `✅ אישרת את ${requesterName} לשתף מסך` });
+                }}
+                className="px-3 py-1 text-xs font-semibold rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
+              >
+                אשר
+              </button>
+              <button
+                onClick={async () => {
+                  await (supabase.from('live_signals') as any).insert({
+                    session_id: sessionId, from_user_id: userId, to_user_id: requesterId,
+                    signal_type: 'screen_share_denied', payload: {},
+                  });
+                  setPendingScreenRequests(prev => prev.filter(r => r.userId !== requesterId));
+                }}
+                className="px-3 py-1 text-xs font-semibold rounded-lg bg-red-500/80 text-white hover:bg-red-500 transition-colors"
+              >
+                דחה
+              </button>
+            </div>
+          ) as any,
         });
         return;
       }
