@@ -894,24 +894,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     return { x: pt.x / c.width, y: pt.y / c.height };
   }, []);
 
-  /** Denormalize [0,1] coords to pixels for the current canvas size */
-  const denormalizePoint = useCallback((pt: DrawPoint): DrawPoint => {
-    const c = canvasRef.current;
-    if (!c || c.width === 0 || c.height === 0) return pt;
-    return { x: pt.x * c.width, y: pt.y * c.height };
-  }, []);
-
-  /** Denormalize an entire stroke's points (and text position) to local canvas pixels */
-  const denormalizeStroke = useCallback((stroke: DrawStroke): DrawStroke => {
-    const c = canvasRef.current;
-    if (!c || c.width === 0 || c.height === 0) return stroke;
-    return {
-      ...stroke,
-      points: stroke.points.map(p => ({ x: p.x * c.width, y: p.y * c.height })),
-      textX: stroke.textX != null ? stroke.textX * c.width : stroke.textX,
-      textY: stroke.textY != null ? stroke.textY * c.height : stroke.textY,
-    };
-  }, []);
 
   const broadcastStroke = useCallback((stroke: DrawStroke) => {
     // Normalize before sending so every receiver scales to their own canvas
