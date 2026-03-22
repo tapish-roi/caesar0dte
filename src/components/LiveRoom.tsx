@@ -688,7 +688,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const ch = supabase.channel(`drawing-${sessionId}`, { config: { broadcast: { self: true } } });
 
     ch.on('broadcast', { event: 'stroke_add' }, ({ payload }) => {
-      const stroke = payload.stroke as DrawStroke;
+      // Incoming strokes use normalized [0,1] coords — convert to local canvas pixels
+      const raw = payload.stroke as DrawStroke;
+      const c = canvasRef.current;
+      const w = c?.width ?? 1;
+      const h = c?.height ?? 1;
+      const stroke: DrawStroke = {
+        ...raw,
+        points: raw.points.map(p => ({ x: p.x * w, y: p.y * h })),
+        textX: raw.textX != null ? raw.textX * w : raw.textX,
+        textY: raw.textY != null ? raw.textY * h : raw.textY,
+      };
       strokesRef.current = [...strokesRef.current, stroke];
       setStrokes(s => [...s, stroke]);
     });
@@ -704,11 +714,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       setStrokes([]);
     });
 
-    // Remote cursor positions
+    // Remote cursor positions — stored as normalized [0,1], rendered via CSS %
     ch.on('broadcast', { event: 'cursor_move' }, ({ payload }) => {
       const { cursorUserId, cursorUserName, color, x, y } = payload as { cursorUserId: string; cursorUserName: string; color: string; x: number; y: number };
       setRemoteCursors(prev => {
         const next = new Map(prev);
+        // x,y are already [0,1] — store as-is, render with `left: x*100%`
         next.set(cursorUserId, { userId: cursorUserId, userName: cursorUserName, color, x, y, updatedAt: Date.now() });
         return next;
       });
