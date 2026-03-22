@@ -1525,7 +1525,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   <div
                     key={cursor.userId}
                     className="absolute pointer-events-none z-30 flex flex-col items-start"
-                    style={{ left: cursor.x, top: cursor.y, transform: 'translate(4px, 4px)' }}
+                    style={{ left: `${cursor.x * 100}%`, top: `${cursor.y * 100}%`, transform: 'translate(4px, 4px)' }}
                   >
                     {/* Cursor dot */}
                     <div className="w-3 h-3 rounded-full border-2 border-white shadow-lg" style={{ backgroundColor: cursor.color }} />
