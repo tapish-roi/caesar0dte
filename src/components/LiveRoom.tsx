@@ -632,7 +632,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         ctx.globalAlpha = 1;
         ctx.font = `bold ${stroke.fontSize ?? 20}px sans-serif`;
         ctx.fillStyle = stroke.color;
-        ctx.fillText(stroke.text ?? '', (stroke.textX ?? 0) / (canvasRef.current?.width || w) * w, (stroke.textY ?? 0) / (canvasRef.current?.height || h) * h);
+        ctx.fillText(stroke.text ?? '', (stroke.textX ?? 0) * w, (stroke.textY ?? 0) * h);
         continue;
       }
       if (stroke.tool === 'laser') {
