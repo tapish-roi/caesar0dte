@@ -688,7 +688,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const ch = supabase.channel(`drawing-${sessionId}`, { config: { broadcast: { self: true } } });
 
     ch.on('broadcast', { event: 'stroke_add' }, ({ payload }) => {
-      const stroke = payload.stroke as DrawStroke;
+      // Incoming strokes use normalized [0,1] coords — convert to local canvas pixels
+      const raw = payload.stroke as DrawStroke;
+      const c = canvasRef.current;
+      const w = c?.width ?? 1;
+      const h = c?.height ?? 1;
+      const stroke: DrawStroke = {
+        ...raw,
+        points: raw.points.map(p => ({ x: p.x * w, y: p.y * h })),
+        textX: raw.textX != null ? raw.textX * w : raw.textX,
+        textY: raw.textY != null ? raw.textY * h : raw.textY,
+      };
       strokesRef.current = [...strokesRef.current, stroke];
       setStrokes(s => [...s, stroke]);
     });
@@ -704,11 +714,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       setStrokes([]);
     });
 
-    // Remote cursor positions
+    // Remote cursor positions — stored as normalized [0,1], rendered via CSS %
     ch.on('broadcast', { event: 'cursor_move' }, ({ payload }) => {
       const { cursorUserId, cursorUserName, color, x, y } = payload as { cursorUserId: string; cursorUserName: string; color: string; x: number; y: number };
       setRemoteCursors(prev => {
         const next = new Map(prev);
+        // x,y are already [0,1] — store as-is, render with `left: x*100%`
         next.set(cursorUserId, { userId: cursorUserId, userName: cursorUserName, color, x, y, updatedAt: Date.now() });
         return next;
       });
@@ -866,23 +877,45 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, [screenSharing, remoteScreenActive, renderCanvas]);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Canvas input helpers
+  // Canvas input helpers — all coordinates are normalized [0,1] for broadcasting
+  // so that drawings appear at the same relative position on every screen size.
   // ─────────────────────────────────────────────────────────────────────────────
+
+  /** Convert a mouse event to canvas-relative pixel coords */
   const getPos = (e: React.MouseEvent<HTMLCanvasElement>): DrawPoint => {
     const r = canvasRef.current!.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
-  const broadcastStroke = useCallback((stroke: DrawStroke) => {
-    drawBroadcastChannelRef.current?.send({ type: 'broadcast', event: 'stroke_add', payload: { stroke } });
-    strokesRef.current = [...strokesRef.current, stroke];
-    setStrokes(s => [...s, stroke]);
+  /** Normalize pixel coords to [0,1] relative to the current canvas size */
+  const normalizePoint = useCallback((pt: DrawPoint): DrawPoint => {
+    const c = canvasRef.current;
+    if (!c || c.width === 0 || c.height === 0) return pt;
+    return { x: pt.x / c.width, y: pt.y / c.height };
   }, []);
 
+
+  const broadcastStroke = useCallback((stroke: DrawStroke) => {
+    // Normalize before sending so every receiver scales to their own canvas
+    const normalized: DrawStroke = {
+      ...stroke,
+      points: stroke.points.map(normalizePoint),
+      textX: stroke.textX != null ? (stroke.textX / (canvasRef.current?.width || 1)) : stroke.textX,
+      textY: stroke.textY != null ? (stroke.textY / (canvasRef.current?.height || 1)) : stroke.textY,
+    };
+    drawBroadcastChannelRef.current?.send({ type: 'broadcast', event: 'stroke_add', payload: { stroke: normalized } });
+    // Store locally as-is (pixel coords) — we already have our own canvas size
+    strokesRef.current = [...strokesRef.current, stroke];
+    setStrokes(s => [...s, stroke]);
+  }, [normalizePoint]);
+
   const broadcastCursor = useCallback((x: number, y: number) => {
+    const c = canvasRef.current;
+    const nx = c && c.width ? x / c.width : x;
+    const ny = c && c.height ? y / c.height : y;
     drawBroadcastChannelRef.current?.send({
       type: 'broadcast', event: 'cursor_move',
-      payload: { cursorUserId: userId, cursorUserName: userName, color: getColorForUser(userId), x, y },
+      payload: { cursorUserId: userId, cursorUserName: userName, color: getColorForUser(userId), x: nx, y: ny },
     });
   }, [userId, userName]);
 
@@ -1474,7 +1507,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   <div
                     key={cursor.userId}
                     className="absolute pointer-events-none z-30 flex flex-col items-start"
-                    style={{ left: cursor.x, top: cursor.y, transform: 'translate(4px, 4px)' }}
+                    style={{ left: `${cursor.x * 100}%`, top: `${cursor.y * 100}%`, transform: 'translate(4px, 4px)' }}
                   >
                     {/* Cursor dot */}
                     <div className="w-3 h-3 rounded-full border-2 border-white shadow-lg" style={{ backgroundColor: cursor.color }} />
