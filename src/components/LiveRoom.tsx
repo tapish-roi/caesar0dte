@@ -866,23 +866,63 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, [screenSharing, remoteScreenActive, renderCanvas]);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Canvas input helpers
+  // Canvas input helpers — all coordinates are normalized [0,1] for broadcasting
+  // so that drawings appear at the same relative position on every screen size.
   // ─────────────────────────────────────────────────────────────────────────────
+
+  /** Convert a mouse event to canvas-relative pixel coords */
   const getPos = (e: React.MouseEvent<HTMLCanvasElement>): DrawPoint => {
     const r = canvasRef.current!.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
-  const broadcastStroke = useCallback((stroke: DrawStroke) => {
-    drawBroadcastChannelRef.current?.send({ type: 'broadcast', event: 'stroke_add', payload: { stroke } });
-    strokesRef.current = [...strokesRef.current, stroke];
-    setStrokes(s => [...s, stroke]);
+  /** Normalize pixel coords to [0,1] relative to the current canvas size */
+  const normalizePoint = useCallback((pt: DrawPoint): DrawPoint => {
+    const c = canvasRef.current;
+    if (!c || c.width === 0 || c.height === 0) return pt;
+    return { x: pt.x / c.width, y: pt.y / c.height };
   }, []);
 
+  /** Denormalize [0,1] coords to pixels for the current canvas size */
+  const denormalizePoint = useCallback((pt: DrawPoint): DrawPoint => {
+    const c = canvasRef.current;
+    if (!c || c.width === 0 || c.height === 0) return pt;
+    return { x: pt.x * c.width, y: pt.y * c.height };
+  }, []);
+
+  /** Denormalize an entire stroke's points (and text position) to local canvas pixels */
+  const denormalizeStroke = useCallback((stroke: DrawStroke): DrawStroke => {
+    const c = canvasRef.current;
+    if (!c || c.width === 0 || c.height === 0) return stroke;
+    return {
+      ...stroke,
+      points: stroke.points.map(p => ({ x: p.x * c.width, y: p.y * c.height })),
+      textX: stroke.textX != null ? stroke.textX * c.width : stroke.textX,
+      textY: stroke.textY != null ? stroke.textY * c.height : stroke.textY,
+    };
+  }, []);
+
+  const broadcastStroke = useCallback((stroke: DrawStroke) => {
+    // Normalize before sending so every receiver scales to their own canvas
+    const normalized: DrawStroke = {
+      ...stroke,
+      points: stroke.points.map(normalizePoint),
+      textX: stroke.textX != null ? (stroke.textX / (canvasRef.current?.width || 1)) : stroke.textX,
+      textY: stroke.textY != null ? (stroke.textY / (canvasRef.current?.height || 1)) : stroke.textY,
+    };
+    drawBroadcastChannelRef.current?.send({ type: 'broadcast', event: 'stroke_add', payload: { stroke: normalized } });
+    // Store locally as-is (pixel coords) — we already have our own canvas size
+    strokesRef.current = [...strokesRef.current, stroke];
+    setStrokes(s => [...s, stroke]);
+  }, [normalizePoint]);
+
   const broadcastCursor = useCallback((x: number, y: number) => {
+    const c = canvasRef.current;
+    const nx = c && c.width ? x / c.width : x;
+    const ny = c && c.height ? y / c.height : y;
     drawBroadcastChannelRef.current?.send({
       type: 'broadcast', event: 'cursor_move',
-      payload: { cursorUserId: userId, cursorUserName: userName, color: getColorForUser(userId), x, y },
+      payload: { cursorUserId: userId, cursorUserName: userName, color: getColorForUser(userId), x: nx, y: ny },
     });
   }, [userId, userName]);
 
