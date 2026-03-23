@@ -118,6 +118,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [textPos, setTextPos] = useState<DrawPoint | null>(null);
   const [showTextInput, setShowTextInput] = useState(false);
   const [remoteCursors, setRemoteCursors] = useState<Map<string, RemoteCursor>>(new Map());
+  const [contentRect, setContentRect] = useState<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: 0, h: 0 });
   const currentStrokeRef = useRef<DrawStroke | null>(null);
   const strokesRef = useRef<DrawStroke[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
