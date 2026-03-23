@@ -1,103 +1,71 @@
 
-## The Real Coordinate Mismatch Problem
+## Root Cause
 
-The drawing canvas is `absolute inset-0 w-full h-full` — it covers the **full container** including black letterbox bars from `object-contain`. But the screen content (video/remote canvas) only occupies a centered sub-rectangle inside that container.
+There are **two bugs** that together cause drawings to move when a user resizes their window:
 
-Example:
-- User A: container 1400×900, video 16:9 → content fills 1400×787, with 56.5px black bars top and bottom
-- User B: container 1000×700, video 16:9 → content fills 1000×562, with 69px bars top and bottom
+**Bug 1 — Strokes denormalized too early on receive**
 
-When User A draws at canvas pixel `(100, 100)`:
-- Normalized: `(100/1400, 100/900)` = `(0.071, 0.111)`
-- On User B: `(0.071 × 1000, 0.111 × 700)` = `(71, 78)` — but this is inside the black bar area on User B, not in the same relative spot on the video
+`stroke_add` handler (line 696-710) immediately converts normalized [0,1] coords to canvas pixels (`p.x * w, p.y * h`) and stores pixel coords in `strokesRef`. When the window resizes, `syncSize` runs and **changes `canvas.width/height`**, but the already-stored strokes still hold the old pixel values — so they render at wrong positions on the resized canvas.
 
-**The fix: size the canvas to exactly match the content rectangle, not the full container.**
+**Bug 2 — Local strokes stored in pixel form**
 
-## Solution
+`broadcastStroke` (line 968) normalizes coords for the broadcast but stores the **original pixel-coord stroke** locally in `strokesRef`. If the canvas resizes, the same mismatch happens.
 
-### Change 1 — `syncSize` calculates the actual content rect
+## The Fix — Keep All Strokes in Normalized [0,1] Form
 
-Instead of using `el.offsetWidth / offsetHeight` (the container size), compute the actual video content bounding box using the video's intrinsic aspect ratio:
+The simplest and most robust fix: **always store strokes in normalized [0,1] coords**. Scale to pixels only at render time (`renderCanvas`/`renderStrokesOnCtx`).
+
+### Change 1 — `stroke_add` handler: store normalized, don't denormalize (line 696-710)
 
 ```typescript
-const syncSize = () => {
-  const canvas = canvasRef.current;
-  if (!canvas) return;
-  const container = canvas.parentElement;
-  if (!container) return;
-  
-  // Get intrinsic aspect ratio from the source
-  let intrinsicW: number, intrinsicH: number;
-  if (screenSharing && screenVideoRef.current) {
-    intrinsicW = screenVideoRef.current.videoWidth || 16;
-    intrinsicH = screenVideoRef.current.videoHeight || 9;
-  } else if (remoteScreenCanvasRef.current) {
-    intrinsicW = remoteScreenCanvasRef.current.width || 16;
-    intrinsicH = remoteScreenCanvasRef.current.height || 9;
-  } else return;
-  
-  const containerW = container.clientWidth;
-  const containerH = container.clientHeight;
-  const scale = Math.min(containerW / intrinsicW, containerH / intrinsicH);
-  const contentW = intrinsicW * scale;
-  const contentH = intrinsicH * scale;
-  const offsetX = (containerW - contentW) / 2;
-  const offsetY = (containerH - contentH) / 2;
-  
-  // Set canvas dimensions to content area only
-  canvas.width = Math.round(contentW);
-  canvas.height = Math.round(contentH);
-  canvas.style.width = `${contentW}px`;
-  canvas.style.height = `${contentH}px`;
-  canvas.style.left = `${offsetX}px`;
-  canvas.style.top = `${offsetY}px`;
-  canvas.style.position = 'absolute';
-  canvas.style.inset = 'unset'; // override inset-0
-  renderCanvas();
-};
+// Store stroke exactly as received (already normalized [0,1])
+strokesRef.current = [...strokesRef.current, raw];
+setStrokes(s => [...s, raw]);
 ```
 
-### Change 2 — Same for the remote canvas (`remoteScreenCanvasRef`)
+### Change 2 — `broadcastStroke`: store normalized locally too (line 968-980)
 
-The remote canvas receives frames that are `w × h` pixels (e.g. 960×540). Its CSS should also be sized to match the container's content rect. When `screen_frame` is received and drawn:
-- Read the image's natural aspect ratio from `img.naturalWidth / naturalHeight`
-- Compute content rect in the container
-- Set canvas CSS `width/height/left/top` the same way as above
+Currently stores the pixel-coord original locally. Instead, store the normalized version:
 
-Add a helper `syncRemoteCanvasLayout(imgW: number, imgH: number)` that is called after each frame draw, and also on container resize via `ResizeObserver`.
-
-### Change 3 — Remote cursor positioning
-
-Cursors currently use `left: cursor.x * 100%` of the container div. After this fix, cursors should be positioned relative to the canvas element itself (which now sits at the right offset). Since cursors are placed as siblings to the canvas inside the same container, position them relative to the canvas's offset:
-
-```tsx
-style={{ 
-  left: `${offsetX + cursor.x * canvasW}px`, 
-  top: `${offsetY + cursor.y * canvasH}px`,
-  transform: 'translate(4px, 4px)' 
-}}
+```typescript
+const normalized = { ...stroke, points: stroke.points.map(normalizePoint), ... };
+strokesRef.current = [...strokesRef.current, normalized]; // normalized, not stroke
+setStrokes(s => [...s, normalized]);
 ```
 
-This requires storing `contentRect` in state: `{ x, y, w, h }` updated by `syncSize`.
+### Change 3 — `renderCanvas`: scale points at draw time (line 760-831)
 
-### Change 4 — Text input overlay
+`renderCanvas` currently calls `renderStrokesOnCtx(ctx, canvas.width, canvas.height, stks)` and `renderStrokesOnCtx` already multiplies text coords by `w,h`. But the **points** (`moveTo/lineTo`) are passed raw — it expects them already in pixels.
 
-`textPos` coordinates are canvas-relative pixels. The text input overlay is also positioned inside the container, so it needs the same `+ offsetX / + offsetY` correction:
+The fix: in `renderStrokesOnCtx`, scale all point coords by `w,h` before drawing:
 
-```tsx
-style={{ left: textPos.x + contentRect.x, top: textPos.y + contentRect.y - fontSize }}
+```typescript
+// In renderStrokesOnCtx, before drawing paths:
+const px = (pt: DrawPoint) => ({ x: pt.x * w, y: pt.y * h });
+
+// Then:
+ctx.moveTo(px(stroke.points[0]).x, px(stroke.points[0]).y);
+stroke.points.slice(1).forEach(p => ctx.lineTo(px(p).x, px(p).y));
 ```
+
+And for arc (single point dot):
+```typescript
+ctx.arc(px(stroke.points[0]).x, px(stroke.points[0]).y, stroke.size / 2, 0, Math.PI * 2);
+```
+
+### Change 4 — `handleCanvasMouseDown` / text input: normalize `textPos`
+
+`textPos` is stored in pixel coords and used in the text stroke. After change 2, `textX/textY` are stored normalized. So when creating the text stroke, normalize `textPos` using `normalizePoint` before storing in `textX/textY`.
 
 ## Files to Change
 
 Only `src/components/LiveRoom.tsx`:
 
-- **Line 853-877** (`syncSize` useEffect): Replace with the content-rect calculation above. Add `contentRect` state (`{ x: number; y: number; w: number; h: number }`).
-- **Line 1494-1503** (drawing canvas JSX): Remove `inset-0 w-full h-full` — canvas is now positioned absolutely by `syncSize`.
-- **Line 1506-1521** (remote cursors JSX): Use `contentRect.x + cursor.x * contentRect.w` and `contentRect.y + cursor.y * contentRect.h`.
-- **Line 1524-1537** (text input overlay): Add `contentRect.x` and `contentRect.y` offset to `textPos`.
-- **Receive frame handler** (~line 510-540): After drawing the image to the remote canvas, call `syncRemoteCanvasLayout(img.naturalWidth, img.naturalHeight)` to keep the remote canvas sized to match the image aspect ratio.
+- **Lines 634-688** (`renderStrokesOnCtx`): add `const px = (p: DrawPoint) => ({ x: p.x * w, y: p.y * h })` and use `px(...)` for all point coordinates
+- **Lines 696-710** (`stroke_add` handler): remove denormalization — store `raw` directly
+- **Lines 968-980** (`broadcastStroke`): store `normalized` locally instead of original `stroke`
+- **Lines 1040-1055** (`handleTextConfirm`): normalize `textPos` before setting `textX/textY` in the stroke
 
-## Why This Fully Fixes the Problem
+## Why This Permanently Fixes the Problem
 
-Every user's drawing canvas is now exactly the same logical size as the screen content, with zero black-bar offset. Normalization divides by the content area size (not the container). Denormalization multiplies by the same content area size on the receiving end. Coordinates are now truly universal.
+All strokes are now stored as [0,1] normalized values. `renderCanvas` converts to pixels on every frame using the current canvas size. When the window resizes, `syncSize` updates `canvas.width/height` — the next `renderCanvas` call automatically renders everything in the correct positions for the new size. No stale pixel coordinates anywhere.
