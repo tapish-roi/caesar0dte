@@ -1561,23 +1561,27 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   </span>
                 </div>
 
-                {/* Drawing canvas overlay */}
+                {/* Drawing canvas overlay — positioned by syncSize to match content rect */}
                 <canvas
                   ref={canvasRef}
-                  className={`absolute inset-0 w-full h-full ${showDrawToolbar ? (activeTool === 'text' ? 'cursor-text' : 'cursor-crosshair') : 'pointer-events-none'}`}
-                  style={{ touchAction: 'none' }}
+                  className={`absolute ${showDrawToolbar ? (activeTool === 'text' ? 'cursor-text' : 'cursor-crosshair') : 'pointer-events-none'}`}
+                  style={{ touchAction: 'none', zIndex: 20 }}
                   onMouseDown={handleCanvasMouseDown}
                   onMouseMove={handleCanvasMouseMove}
                   onMouseUp={handleCanvasMouseUp}
                   onMouseLeave={handleCanvasMouseLeave}
                 />
 
-                {/* Remote cursor indicators */}
+                {/* Remote cursor indicators — positioned relative to content rect */}
                 {Array.from(remoteCursors.values()).map(cursor => (
                   <div
                     key={cursor.userId}
                     className="absolute pointer-events-none z-30 flex flex-col items-start"
-                    style={{ left: `${cursor.x * 100}%`, top: `${cursor.y * 100}%`, transform: 'translate(4px, 4px)' }}
+                    style={{
+                      left: `${contentRect.x + cursor.x * contentRect.w}px`,
+                      top: `${contentRect.y + cursor.y * contentRect.h}px`,
+                      transform: 'translate(4px, 4px)',
+                    }}
                   >
                     {/* Cursor dot */}
                     <div className="w-3 h-3 rounded-full border-2 border-white shadow-lg" style={{ backgroundColor: cursor.color }} />
@@ -1591,9 +1595,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   </div>
                 ))}
 
-                {/* Text input overlay */}
+                {/* Text input overlay — offset by contentRect so it aligns with the canvas */}
                 {showTextInput && textPos && (
-                  <div className="absolute z-30" style={{ left: textPos.x, top: textPos.y - fontSize }}>
+                  <div className="absolute z-30" style={{ left: contentRect.x + textPos.x, top: contentRect.y + textPos.y - fontSize }}>
                     <input
                       autoFocus
                       value={textInput}
