@@ -854,25 +854,88 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, [strokes, renderCanvas]);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Canvas size sync — to the active screen area (local or remote)
+  // Canvas size sync — sizes drawing canvas to the CONTENT rect (no letterbox bars)
+  // so that normalized [0,1] coords map identically on every screen size.
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     const isScreenVisible = screenSharing || remoteScreenActive;
     if (!isScreenVisible) return;
 
+    /** Compute the pixel rect of the video/canvas content inside its container,
+     *  accounting for object-contain letterboxing. */
+    const computeContentRect = (intrinsicW: number, intrinsicH: number, container: HTMLElement) => {
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      if (intrinsicW === 0 || intrinsicH === 0) return null;
+      const scale = Math.min(cw / intrinsicW, ch / intrinsicH);
+      const contentW = intrinsicW * scale;
+      const contentH = intrinsicH * scale;
+      const offsetX = (cw - contentW) / 2;
+      const offsetY = (ch - contentH) / 2;
+      return { x: offsetX, y: offsetY, w: contentW, h: contentH };
+    };
+
     const syncSize = () => {
-      // Sharer syncs to local video; viewers sync to remote canvas
-      const el = screenSharing ? screenVideoRef.current : remoteScreenCanvasRef.current;
       const canvas = canvasRef.current;
-      if (!el || !canvas) return;
-      canvas.width = el.offsetWidth;
-      canvas.height = el.offsetHeight;
+      if (!canvas) return;
+      const container = canvas.parentElement;
+      if (!container) return;
+
+      let intrinsicW = 0;
+      let intrinsicH = 0;
+      if (screenSharing && screenVideoRef.current) {
+        intrinsicW = screenVideoRef.current.videoWidth || 0;
+        intrinsicH = screenVideoRef.current.videoHeight || 0;
+      } else if (remoteScreenCanvasRef.current) {
+        intrinsicW = remoteScreenCanvasRef.current.width || 0;
+        intrinsicH = remoteScreenCanvasRef.current.height || 0;
+      }
+      if (intrinsicW === 0 || intrinsicH === 0) return; // not ready yet
+
+      const rect = computeContentRect(intrinsicW, intrinsicH, container);
+      if (!rect) return;
+
+      // Size the drawing canvas to exactly the content area (no black bars)
+      canvas.width = Math.round(rect.w);
+      canvas.height = Math.round(rect.h);
+      canvas.style.position = 'absolute';
+      canvas.style.inset = 'unset';
+      canvas.style.left = `${rect.x}px`;
+      canvas.style.top = `${rect.y}px`;
+      canvas.style.width = `${rect.w}px`;
+      canvas.style.height = `${rect.h}px`;
+      setContentRect(rect);
       renderCanvas();
     };
+
+    /** Called after each remote frame draw to keep CSS layout in sync */
+    const syncRemoteCanvasLayout = (imgW: number, imgH: number) => {
+      const remoteCanvas = remoteScreenCanvasRef.current;
+      if (!remoteCanvas || !remoteCanvas.parentElement) return;
+      const container = remoteCanvas.parentElement;
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      if (imgW === 0 || imgH === 0) return;
+      const scale = Math.min(cw / imgW, ch / imgH);
+      const contentW = imgW * scale;
+      const contentH = imgH * scale;
+      const offsetX = (cw - contentW) / 2;
+      const offsetY = (ch - contentH) / 2;
+      remoteCanvas.style.position = 'absolute';
+      remoteCanvas.style.inset = 'unset';
+      remoteCanvas.style.left = `${offsetX}px`;
+      remoteCanvas.style.top = `${offsetY}px`;
+      remoteCanvas.style.width = `${contentW}px`;
+      remoteCanvas.style.height = `${contentH}px`;
+      // Re-sync drawing canvas too
+      syncSize();
+    };
+    syncRemoteCanvasLayoutRef.current = syncRemoteCanvasLayout;
+
     const ro = new ResizeObserver(syncSize);
-    const target = screenSharing ? screenVideoRef.current : remoteScreenCanvasRef.current;
-    if (target) ro.observe(target);
-    // Also sync on video loadedmetadata for the sharer
+    const containerEl = canvasRef.current?.parentElement;
+    if (containerEl) ro.observe(containerEl);
+    // Sync on video metadata ready (local sharer)
     const vid = screenVideoRef.current;
     if (screenSharing && vid) vid.addEventListener('loadedmetadata', syncSize);
     syncSize();
@@ -881,6 +944,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       if (screenSharing && vid) vid.removeEventListener('loadedmetadata', syncSize);
     };
   }, [screenSharing, remoteScreenActive, renderCanvas]);
+
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Canvas input helpers — all coordinates are normalized [0,1] for broadcasting
