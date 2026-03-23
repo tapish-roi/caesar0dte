@@ -180,6 +180,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const screenFrameTimerRef = useRef<number | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const isSendingFrameRef = useRef(false);
+  // Stable ref so screen_frame handler (defined before syncSize) can call syncRemoteCanvasLayout
+  const syncRemoteCanvasLayoutRef = useRef<(imgW: number, imgH: number) => void>(() => {});
+
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Recording (mentor only)
