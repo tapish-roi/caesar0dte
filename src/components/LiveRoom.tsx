@@ -529,6 +529,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
+        // Sync remote canvas CSS layout to match content aspect ratio inside its container
+        syncRemoteCanvasLayoutRef.current(img.naturalWidth, img.naturalHeight);
       };
       img.src = dataUrl;
       setRemoteScreenActive(true);
