@@ -633,6 +633,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   const renderStrokesOnCtx = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number, stks: DrawStroke[]) => {
     const now = Date.now();
+    // All strokes are stored in normalized [0,1] coords — scale to pixels at render time
+    const px = (pt: DrawPoint) => ({ x: pt.x * w, y: pt.y * h });
     for (const stroke of stks) {
       if (stroke.tool === 'text') {
         ctx.globalAlpha = 1;
@@ -654,8 +656,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         ctx.globalCompositeOperation = 'source-over';
         if (stroke.points.length >= 2) {
           ctx.beginPath();
-          ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-          stroke.points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+          ctx.moveTo(px(stroke.points[0]).x, px(stroke.points[0]).y);
+          stroke.points.slice(1).forEach(p => ctx.lineTo(px(p).x, px(p).y));
           ctx.stroke();
         }
         ctx.shadowBlur = 0;
@@ -673,12 +675,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
       if (stroke.points.length >= 2) {
         ctx.beginPath();
-        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-        stroke.points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.moveTo(px(stroke.points[0]).x, px(stroke.points[0]).y);
+        stroke.points.slice(1).forEach(p => ctx.lineTo(px(p).x, px(p).y));
         ctx.stroke();
       } else if (stroke.points.length === 1) {
         ctx.beginPath();
-        ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.size / 2, 0, Math.PI * 2);
+        ctx.arc(px(stroke.points[0]).x, px(stroke.points[0]).y, stroke.size / 2, 0, Math.PI * 2);
         ctx.fillStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
         ctx.fill();
       }
@@ -694,19 +696,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const ch = supabase.channel(`drawing-${sessionId}`, { config: { broadcast: { self: true } } });
 
     ch.on('broadcast', { event: 'stroke_add' }, ({ payload }) => {
-      // Incoming strokes use normalized [0,1] coords — convert to local canvas pixels
+      // Incoming strokes are already normalized [0,1] — store as-is, scale at render time
       const raw = payload.stroke as DrawStroke;
-      const c = canvasRef.current;
-      const w = c?.width ?? 1;
-      const h = c?.height ?? 1;
-      const stroke: DrawStroke = {
-        ...raw,
-        points: raw.points.map(p => ({ x: p.x * w, y: p.y * h })),
-        textX: raw.textX != null ? raw.textX * w : raw.textX,
-        textY: raw.textY != null ? raw.textY * h : raw.textY,
-      };
-      strokesRef.current = [...strokesRef.current, stroke];
-      setStrokes(s => [...s, stroke]);
+      strokesRef.current = [...strokesRef.current, raw];
+      setStrokes(s => [...s, raw]);
     });
 
     ch.on('broadcast', { event: 'stroke_undo' }, ({ payload }) => {
@@ -966,7 +959,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
 
   const broadcastStroke = useCallback((stroke: DrawStroke) => {
-    // Normalize before sending so every receiver scales to their own canvas
+    // Normalize before sending — scale pixels to [0,1] relative to current canvas size
     const normalized: DrawStroke = {
       ...stroke,
       points: stroke.points.map(normalizePoint),
@@ -974,9 +967,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       textY: stroke.textY != null ? (stroke.textY / (canvasRef.current?.height || 1)) : stroke.textY,
     };
     drawBroadcastChannelRef.current?.send({ type: 'broadcast', event: 'stroke_add', payload: { stroke: normalized } });
-    // Store locally as-is (pixel coords) — we already have our own canvas size
-    strokesRef.current = [...strokesRef.current, stroke];
-    setStrokes(s => [...s, stroke]);
+    // Store normalized locally — renderCanvas scales at draw time, resize-proof
+    strokesRef.current = [...strokesRef.current, normalized];
+    setStrokes(s => [...s, normalized]);
   }, [normalizePoint]);
 
   const broadcastCursor = useCallback((x: number, y: number) => {
@@ -1039,13 +1032,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   const handleTextConfirm = useCallback(() => {
     if (!textInput.trim() || !textPos) { setShowTextInput(false); return; }
+    const c = canvasRef.current;
+    const normX = c && c.width ? textPos.x / c.width : textPos.x;
+    const normY = c && c.height ? textPos.y / c.height : textPos.y;
     const stroke: DrawStroke = {
       id: `${userId}-${Date.now()}`,
       userId, userName,
       userColor: getColorForUser(userId),
       tool: 'text',
       points: [], color: drawColor, size: fontSize,
-      text: textInput, textX: textPos.x, textY: textPos.y, fontSize,
+      text: textInput, textX: normX, textY: normY, fontSize,
       createdAt: Date.now(),
     };
     broadcastStroke(stroke);
