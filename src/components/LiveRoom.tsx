@@ -758,8 +758,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
     const now = Date.now();
+    // All strokes stored in normalized [0,1] — scale to pixels at render time
+    const px = (pt: DrawPoint) => ({ x: pt.x * w, y: pt.y * h });
 
     const allStrokes = [...strokesRef.current];
     if (currentStrokeRef.current) allStrokes.push(currentStrokeRef.current);
@@ -769,7 +773,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         ctx.globalAlpha = 1;
         ctx.font = `bold ${stroke.fontSize ?? 20}px sans-serif`;
         ctx.fillStyle = stroke.color;
-        ctx.fillText(stroke.text ?? '', stroke.textX ?? 0, stroke.textY ?? 0);
+        ctx.fillText(stroke.text ?? '', (stroke.textX ?? 0) * w, (stroke.textY ?? 0) * h);
         continue;
       }
 
@@ -788,8 +792,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         ctx.shadowColor = stroke.color;
         if (stroke.points.length >= 2) {
           ctx.beginPath();
-          ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-          for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+          ctx.moveTo(px(stroke.points[0]).x, px(stroke.points[0]).y);
+          for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(px(stroke.points[i]).x, px(stroke.points[i]).y);
           ctx.stroke();
         }
         ctx.shadowBlur = 0;
@@ -809,12 +813,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
       if (stroke.points.length >= 2) {
         ctx.beginPath();
-        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-        for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        ctx.moveTo(px(stroke.points[0]).x, px(stroke.points[0]).y);
+        for (let i = 1; i < stroke.points.length; i++) ctx.lineTo(px(stroke.points[i]).x, px(stroke.points[i]).y);
         ctx.stroke();
       } else if (stroke.points.length === 1) {
         ctx.beginPath();
-        ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.size / 2, 0, Math.PI * 2);
+        ctx.arc(px(stroke.points[0]).x, px(stroke.points[0]).y, stroke.size / 2, 0, Math.PI * 2);
         ctx.fillStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
         ctx.fill();
       }
