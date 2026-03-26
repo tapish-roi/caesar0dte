@@ -633,6 +633,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   const renderStrokesOnCtx = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number, stks: DrawStroke[]) => {
     const now = Date.now();
+    // All strokes are stored in normalized [0,1] coords — scale to pixels at render time
+    const px = (pt: DrawPoint) => ({ x: pt.x * w, y: pt.y * h });
     for (const stroke of stks) {
       if (stroke.tool === 'text') {
         ctx.globalAlpha = 1;
@@ -654,8 +656,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         ctx.globalCompositeOperation = 'source-over';
         if (stroke.points.length >= 2) {
           ctx.beginPath();
-          ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-          stroke.points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+          ctx.moveTo(px(stroke.points[0]).x, px(stroke.points[0]).y);
+          stroke.points.slice(1).forEach(p => ctx.lineTo(px(p).x, px(p).y));
           ctx.stroke();
         }
         ctx.shadowBlur = 0;
@@ -673,12 +675,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
       if (stroke.points.length >= 2) {
         ctx.beginPath();
-        ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
-        stroke.points.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.moveTo(px(stroke.points[0]).x, px(stroke.points[0]).y);
+        stroke.points.slice(1).forEach(p => ctx.lineTo(px(p).x, px(p).y));
         ctx.stroke();
       } else if (stroke.points.length === 1) {
         ctx.beginPath();
-        ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.size / 2, 0, Math.PI * 2);
+        ctx.arc(px(stroke.points[0]).x, px(stroke.points[0]).y, stroke.size / 2, 0, Math.PI * 2);
         ctx.fillStyle = stroke.tool === 'eraser' ? 'rgba(0,0,0,1)' : stroke.color;
         ctx.fill();
       }
