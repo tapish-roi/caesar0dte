@@ -696,19 +696,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const ch = supabase.channel(`drawing-${sessionId}`, { config: { broadcast: { self: true } } });
 
     ch.on('broadcast', { event: 'stroke_add' }, ({ payload }) => {
-      // Incoming strokes use normalized [0,1] coords — convert to local canvas pixels
+      // Incoming strokes are already normalized [0,1] — store as-is, scale at render time
       const raw = payload.stroke as DrawStroke;
-      const c = canvasRef.current;
-      const w = c?.width ?? 1;
-      const h = c?.height ?? 1;
-      const stroke: DrawStroke = {
-        ...raw,
-        points: raw.points.map(p => ({ x: p.x * w, y: p.y * h })),
-        textX: raw.textX != null ? raw.textX * w : raw.textX,
-        textY: raw.textY != null ? raw.textY * h : raw.textY,
-      };
-      strokesRef.current = [...strokesRef.current, stroke];
-      setStrokes(s => [...s, stroke]);
+      strokesRef.current = [...strokesRef.current, raw];
+      setStrokes(s => [...s, raw]);
     });
 
     ch.on('broadcast', { event: 'stroke_undo' }, ({ payload }) => {
