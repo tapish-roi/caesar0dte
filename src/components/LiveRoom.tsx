@@ -959,7 +959,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
 
   const broadcastStroke = useCallback((stroke: DrawStroke) => {
-    // Normalize before sending so every receiver scales to their own canvas
+    // Normalize before sending — scale pixels to [0,1] relative to current canvas size
     const normalized: DrawStroke = {
       ...stroke,
       points: stroke.points.map(normalizePoint),
@@ -967,9 +967,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       textY: stroke.textY != null ? (stroke.textY / (canvasRef.current?.height || 1)) : stroke.textY,
     };
     drawBroadcastChannelRef.current?.send({ type: 'broadcast', event: 'stroke_add', payload: { stroke: normalized } });
-    // Store locally as-is (pixel coords) — we already have our own canvas size
-    strokesRef.current = [...strokesRef.current, stroke];
-    setStrokes(s => [...s, stroke]);
+    // Store normalized locally — renderCanvas scales at draw time, resize-proof
+    strokesRef.current = [...strokesRef.current, normalized];
+    setStrokes(s => [...s, normalized]);
   }, [normalizePoint]);
 
   const broadcastCursor = useCallback((x: number, y: number) => {
