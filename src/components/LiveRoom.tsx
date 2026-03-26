@@ -1032,13 +1032,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   const handleTextConfirm = useCallback(() => {
     if (!textInput.trim() || !textPos) { setShowTextInput(false); return; }
+    const c = canvasRef.current;
+    const normX = c && c.width ? textPos.x / c.width : textPos.x;
+    const normY = c && c.height ? textPos.y / c.height : textPos.y;
     const stroke: DrawStroke = {
       id: `${userId}-${Date.now()}`,
       userId, userName,
       userColor: getColorForUser(userId),
       tool: 'text',
       points: [], color: drawColor, size: fontSize,
-      text: textInput, textX: textPos.x, textY: textPos.y, fontSize,
+      text: textInput, textX: normX, textY: normY, fontSize,
       createdAt: Date.now(),
     };
     broadcastStroke(stroke);
