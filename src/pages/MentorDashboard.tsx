@@ -17,6 +17,7 @@ import LiveHubMentor from '@/components/LiveHubMentor';
 import MentorQuestionsHub from '@/components/MentorQuestionsHub';
 import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
+import LessonStudentProgress from '@/components/LessonStudentProgress';
 
 // ── LessonQuizPanel: shows the published quiz for a lesson ──────────────────
 function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: string; mentorId: string; onCreateQuiz: () => void }) {
