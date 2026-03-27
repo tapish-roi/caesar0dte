@@ -17,6 +17,7 @@ import LiveHubMentor from '@/components/LiveHubMentor';
 import MentorQuestionsHub from '@/components/MentorQuestionsHub';
 import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
+import LessonStudentProgress from '@/components/LessonStudentProgress';
 
 // ── LessonQuizPanel: shows the published quiz for a lesson ──────────────────
 function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: string; mentorId: string; onCreateQuiz: () => void }) {
@@ -975,6 +976,16 @@ export default function MentorDashboard() {
                               studentName={mentorProfile?.full_name || user?.email || 'מנטור'}
                               isMentor={true}
                             />
+                          </div>
+                          {/* Student watch progress */}
+                          <div className="px-6 pb-6">
+                            <div className="border border-border rounded-xl p-4">
+                              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                <Eye className="w-4 h-4 text-primary" />
+                                התקדמות צפייה של תלמידים
+                              </h3>
+                              <LessonStudentProgress lessonId={lesson.id} />
+                            </div>
                           </div>
                         </div>
                         {/* Right column: quiz panel */}
