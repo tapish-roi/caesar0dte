@@ -1216,6 +1216,31 @@ export default function StudentDashboard() {
                         </div>
                       )}
                     </motion.div>
+                  ) : isMobile ? (
+                    /* On mobile, show lesson list inline since there's no sidebar */
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-bold text-foreground mb-3">{lessonViewMode.categoryTitle}</h3>
+                      {(() => {
+                        const catLessons = lessons.filter(l => l.category_id === lessonViewMode.categoryId);
+                        if (catLessons.length === 0) return <p className="text-sm text-muted-foreground text-center py-8">אין שיעורים בקטגוריה זו</p>;
+                        return catLessons.map((lesson, idx) => {
+                          const prog = getProgress(lesson.id);
+                          return (
+                            <button
+                              key={lesson.id}
+                              onClick={() => setSelectedLesson(lesson.id)}
+                              className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-right"
+                            >
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0">
+                                {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : <span className="text-xs font-bold text-muted-foreground">{idx + 1}</span>}
+                              </div>
+                              <span className="text-sm font-medium text-foreground flex-1 truncate">{lesson.title}</span>
+                              {lesson.duration_minutes && <span className="text-[10px] text-muted-foreground">{lesson.duration_minutes} דק'</span>}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
                   ) : (
                     <div className="text-center py-24 text-muted-foreground">
                       <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
