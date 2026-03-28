@@ -47,13 +47,15 @@ type Answers = Record<string, { type: 'multiple_choice'; optionId: string } | { 
 export default function StudentQuizPage() {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const reviewFromUrl = searchParams.get('review') === 'true';
   const { user } = useAuth();
   const { toast } = useToast();
   const [answers, setAnswers] = useState<Answers>({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState<{ got: number; max: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showReview, setShowReview] = useState(false);
+  const [showReview, setShowReview] = useState(reviewFromUrl);
 
   const { data: quiz, isLoading: quizLoading } = useQuery<Quiz | null>({
     queryKey: ['student-quiz', quizId],
