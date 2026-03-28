@@ -1219,11 +1219,6 @@ export default function StudentDashboard() {
                                     {lesson.duration_minutes && (
                                       <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
                                     )}
-                                    {prog && !prog.completed && prog.progress_percent > 0 && (
-                                      <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
-                                        <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
-                                      </div>
-                                    )}
                                   </div>
                                 );
                               })}
