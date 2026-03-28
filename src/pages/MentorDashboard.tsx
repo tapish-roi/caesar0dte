@@ -1340,35 +1340,75 @@ export default function MentorDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {members.map((m) => (
+                    {members.map((m) => {
+                      const displayName = m.display_name || m.profiles?.full_name || 'תלמיד';
+                      const isEditing = editingNickname === m.student_id;
+                      return (
                       <div key={m.student_id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors group">
                         <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold">
-                          {m.profiles?.full_name?.[0]?.toUpperCase() ?? '?'}
+                          {displayName[0]?.toUpperCase() ?? '?'}
                         </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-foreground">{m.profiles?.full_name ?? 'תלמיד'}</div>
+                        <div className="flex-1 min-w-0">
+                          {isEditing ? (
+                            <form
+                              className="flex items-center gap-2"
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                updateNickname.mutate({ studentId: m.student_id, displayName: nicknameValue });
+                              }}
+                            >
+                              <input
+                                autoFocus
+                                className="h-7 px-2 text-sm border border-border rounded-md bg-background text-foreground w-full max-w-[180px]"
+                                value={nicknameValue}
+                                onChange={(e) => setNicknameValue(e.target.value)}
+                                placeholder={m.profiles?.full_name || 'כינוי'}
+                              />
+                              <button type="submit" className="w-6 h-6 flex items-center justify-center rounded text-accent hover:bg-accent/10">
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button type="button" onClick={() => setEditingNickname(null)} className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:bg-muted">
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </form>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium text-foreground">{displayName}</span>
+                              {m.display_name && (
+                                <span className="text-[10px] text-muted-foreground">({m.profiles?.full_name})</span>
+                              )}
+                              <button
+                                onClick={() => { setEditingNickname(m.student_id); setNicknameValue(m.display_name || ''); }}
+                                className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-primary transition-all"
+                                title="ערוך כינוי"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
                           <div className="text-xs text-muted-foreground">{m.profiles?.email}</div>
                         </div>
-                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full shrink-0">
                           הצטרף {new Date(m.joined_at).toLocaleDateString('he-IL')}
                         </div>
                         {/* Permissions button */}
                         <button
-                          onClick={() => { setAccessStudentId(m.student_id); setAccessStudentName(m.profiles?.full_name ?? 'תלמיד'); }}
+                          onClick={() => { setAccessStudentId(m.student_id); setAccessStudentName(displayName); }}
                           className="w-8 h-8 flex items-center justify-center rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-all"
                           title="נהל הרשאות קטגוריות"
                         >
                           <ShieldCheck className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => setRemoveConfirm({ studentId: m.student_id, name: m.profiles?.full_name ?? 'תלמיד' })}
+                          onClick={() => setRemoveConfirm({ studentId: m.student_id, name: displayName })}
                           className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                           title="הסר מהקהילה"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
