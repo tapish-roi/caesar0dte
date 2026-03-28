@@ -418,6 +418,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
 
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
 
   const { toast } = useToast();
   const qc = useQueryClient();
