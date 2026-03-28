@@ -2111,8 +2111,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white/80 truncate">
                           {p.name}
-                          {isMe && <span className="text-[10px] text-white/30 mr-1">(אתה)</span>}
-                          {isMentorEntry && !isMe && <span className="text-[10px] text-indigo-400 mr-1">מנטור</span>}
+                          {isMe && <span className="text-[10px] text-white/30 ms-1">(אתה)</span>}
+                          {isMentorEntry && !isMe && <span className="text-[10px] text-indigo-400 ms-1">מנטור</span>}
                         </p>
                         <p className={`text-[10px] transition-colors ${showSpeakingRing ? 'text-green-400' : 'text-white/30'}`}>
                           {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מושתק' : isSpeaking ? 'מדבר...' : 'פעיל'}
