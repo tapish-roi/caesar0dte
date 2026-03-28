@@ -1585,7 +1585,7 @@ export default function MentorDashboard() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 h-full w-[440px] bg-card z-50 shadow-2xl border-l border-border overflow-y-auto"
+              className="fixed top-0 end-0 h-full w-[440px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">

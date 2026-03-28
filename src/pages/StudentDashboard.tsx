@@ -1286,7 +1286,7 @@ export default function StudentDashboard() {
                   <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
                   <p className="text-sm text-muted-foreground mt-1">
                     {mentorName ? `עדכונים מ${mentorName}` : 'עדכונים מהמנטור שלך'}
-                    {communityDateRange?.from && <span className="mr-2 text-primary font-medium">· מסונן לפי תאריך</span>}
+                    {communityDateRange?.from && <span className="ms-2 text-primary font-medium">· מסונן לפי תאריך</span>}
                   </p>
                 </div>
                 <DateRangeFilter range={communityDateRange} onChange={setCommunityDateRange} />
