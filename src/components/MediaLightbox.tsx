@@ -1,5 +1,5 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { X } from 'lucide-react';
 
 interface MediaLightboxProps {
@@ -13,7 +13,7 @@ export default function MediaLightbox({ open, onOpenChange, url, type }: MediaLi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 border-none bg-transparent shadow-none overflow-hidden [&>button]:hidden">
-        <VisuallyHidden><DialogTitle>תצוגת מדיה</DialogTitle></VisuallyHidden>
+        <DialogTitle className="sr-only">תצוגת מדיה</DialogTitle>
         <button
           onClick={() => onOpenChange(false)}
           className="absolute top-3 left-3 z-10 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
@@ -28,4 +28,13 @@ export default function MediaLightbox({ open, onOpenChange, url, type }: MediaLi
       </DialogContent>
     </Dialog>
   );
+}
+
+export function useMediaLightbox() {
+  const [lightbox, setLightbox] = useState<{ url: string; type: 'video' | 'image' } | null>(null);
+  return {
+    lightbox,
+    openLightbox: (url: string, type: 'video' | 'image') => setLightbox({ url, type }),
+    closeLightbox: () => setLightbox(null),
+  };
 }
