@@ -66,11 +66,12 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
       if (error) throw error;
       const enriched = await Promise.all(
         (data ?? []).map(async (q) => {
-          const [{ data: sp }, { data: answers }] = await Promise.all([
+          const [{ data: sp }, { data: cm }, { data: answers }] = await Promise.all([
             supabase.from('profiles').select('full_name').eq('user_id', q.student_id).single(),
+            supabase.from('community_members').select('display_name').eq('mentor_id', q.mentor_id).eq('student_id', q.student_id).maybeSingle(),
             supabase.from('lesson_question_answers').select('id, content, created_at, updated_at').eq('question_id', q.id).order('created_at'),
           ]);
-          const name = sp?.full_name ?? 'תלמיד';
+          const name = (cm as any)?.display_name || (sp?.full_name ?? 'תלמיד');
           return {
             ...q,
             studentName: name,
