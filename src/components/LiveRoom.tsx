@@ -2157,7 +2157,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 {chatMessages.map(msg => (
                   <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.user_id === userId ? 'items-end' : 'items-start'}`}>
                     <span className="text-[10px] text-white/30 px-1">{msg.user_id === userId ? 'אתה' : msg.display_name}</span>
-                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${msg.user_id === userId ? 'bg-indigo-500 text-white rounded-tl-sm' : 'bg-[#2b2d31] text-white/80 rounded-tr-sm'}`}>
+                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${msg.user_id === userId ? 'bg-indigo-500 text-white rounded-ee-sm' : 'bg-[#2b2d31] text-white/80 rounded-es-sm'}`}>
                       {msg.message}
                     </div>
                   </div>
