@@ -1,35 +1,61 @@
 
 
-# הוספת התראות WhatsApp לתלמידים
+# התאמת האפליקציה למובייל
 
-## מצב נוכחי
-- קיימות התראות SMS (דרך Twilio) ואימייל בפונקציות `notify-new-post` ו-`notify-live`
-- Twilio עדיין לא מחובר כ-connector לפרויקט (אין חיבורים פעילים)
-- בפרופיל התלמיד יש כבר שדות `notify_sms` ו-`notify_email`
+## הבעיה
+שני הדשבורדים (מנטור ותלמיד) בנויים עם sidebar קבוע ברוחב 256px (`w-64`) שתמיד מוצג. במסך טלפון (390px) ה-sidebar תופס 65% מהמסך ולא נשאר מקום לתוכן.
 
-## מה צריך לעשות
+## הפתרון
+הפיכת ה-sidebar ל-**bottom navigation bar** במובייל, והתאמת כל אזורי התוכן למסכים קטנים.
 
-### 1. חיבור Twilio כ-connector
-Twilio נדרש גם ל-WhatsApp (משתמש באותו API). נחבר את ה-connector לפרויקט.
+## שינויים עיקריים
 
-### 2. הוספת שדה `notify_whatsapp` לטבלת profiles
-מיגרציה שמוסיפה עמודה boolean לפרופיל התלמיד כדי שיוכל לבחור אם לקבל התראות בוואטסאפ.
+### 1. StudentDashboard — מבנה מובייל
+- **Sidebar**: מוסתר במובייל (`hidden md:flex`), מוחלף ב-bottom tab bar קבוע עם 4 טאבים (שיעורים, קהילה, לייב, שאלות)
+- **Header מובייל**: שורה עליונה עם לוגו, שם הקהילה, ואייקון הגדרות פרופיל
+- **Lesson View Mode במובייל**: ה-sidebar של רשימת השיעורים הופך ל-sheet/drawer שנפתח מלמטה, או שרשימת השיעורים מוצגת מעל ה-player
+- **Content padding**: `p-8` → `p-4 md:p-8`
+- **פרופיל popup**: במובייל ייפתח כ-full-screen sheet במקום popover קטן
 
-### 3. עדכון Edge Functions
-הוספת שליחת WhatsApp ל-`notify-new-post` ו-`notify-live` באמצעות Twilio WhatsApp API דרך ה-gateway. הפורמט דומה ל-SMS אבל עם prefix של `whatsapp:` למספר הטלפון.
+### 2. MentorDashboard — מבנה מובייל
+- אותו עיקרון: sidebar מוסתר, bottom nav עם 6 טאבים (שיעורים, קהילה, תלמידים, לייב, שאלות, מבחנים) — ייתכן שנצמצם ל-5 עם "עוד"
+- **Lesson View Mode**: ה-quiz panel (`w-80`) שמופיע בצד ירד מתחת לתוכן השיעור (`flex-col` במקום `flex-row`)
+- **טפסים**: טופס יצירת שיעור, הזמנת תלמיד וכו' יותאמו לרוחב מלא
 
-### 4. עדכון ממשק הגדרות התלמיד
-הוספת toggle "התראות WhatsApp" ליד ה-toggles הקיימים של SMS ואימייל.
+### 3. AuthPage
+- בדיקה שדף ההתחברות כבר responsive (סביר שכן כי הוא פשוט יותר)
+
+### 4. LiveViewer / LiveRoom
+- התאמת ממדי הוידאו ל-portrait mode
+- כפתורי ציור/סמנים מותאמים למגע
+
+### 5. שינויים גלובליים
+- שימוש ב-`useIsMobile()` hook שכבר קיים בפרויקט
+- הוספת safe area padding לתחתית (bottom nav)
+- וידוא שכל ה-dialogs/popovers מותאמים למובייל
+
+## סדר עבודה
+1. **StudentDashboard** — bottom nav + header + content padding (הכי נצפה ע"י משתמשים)
+2. **MentorDashboard** — אותו pattern
+3. **רכיבי תוכן פנימיים** — lesson view, community posts, profile popup
+4. **Live components** — התאמת הוידאו והציור
 
 ## פרטים טכניים
 
-**Twilio WhatsApp API** — שימוש באותו endpoint של SMS (`/Messages.json`) עם:
-- `To: whatsapp:+972...`
-- `From: whatsapp:+14155238886` (מספר ה-WhatsApp של Twilio)
+```text
+┌─────────────────────┐
+│  Header (mobile)    │  ← לוגו + שם קהילה + settings
+├─────────────────────┤
+│                     │
+│   Main Content      │  ← full width, scrollable
+│                     │
+├─────────────────────┤
+│ 📚  👥  📻  ❓     │  ← bottom tab bar (fixed)
+└─────────────────────┘
+```
 
-**דרישות מצד Twilio:**
-- חשבון Twilio עם WhatsApp Sandbox מופעל (לבדיקות) או WhatsApp Business sender מאושר (לפרודקשן)
-- מספר WhatsApp sender (שונה ממספר ה-SMS)
-
-**Secret חדש:** `TWILIO_WHATSAPP_FROM` — מספר WhatsApp sender
+- Bottom nav: `fixed bottom-0 left-0 right-0` עם `pb-safe` (safe area)
+- Main content: `pb-20 md:pb-0` לפינוי מקום ל-bottom nav
+- Sidebar: `hidden md:flex w-64`
+- Breakpoint: `md` (768px) — תואם את ה-`useIsMobile()` hook
 
