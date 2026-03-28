@@ -600,7 +600,21 @@ export default function MentorDashboard() {
     onError: () => toast({ title: 'שגיאה בהסרת התלמיד', variant: 'destructive' }),
   });
 
-  const grantAccess = useMutation({
+  const updateNickname = useMutation({
+    mutationFn: async ({ studentId, displayName }: { studentId: string; displayName: string }) => {
+      const val = displayName.trim() || null;
+      const { error } = await supabase.from('community_members').update({ display_name: val } as any).eq('mentor_id', user!.id).eq('student_id', studentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['members'] });
+      setEditingNickname(null);
+      toast({ title: 'הכינוי עודכן בהצלחה' });
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון הכינוי', variant: 'destructive' }),
+  });
+
+
     mutationFn: async (categoryId: string) => {
       const { error } = await supabase.from('student_category_access').insert({
         mentor_id: user!.id,
