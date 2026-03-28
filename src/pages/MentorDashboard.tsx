@@ -1395,7 +1395,7 @@ export default function MentorDashboard() {
                         </div>
                         <button
                           onClick={() => deleteInvite.mutate(inv.id)}
-                          className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                           title="בטל הזמנה"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
