@@ -298,10 +298,10 @@ export default function MentorDashboard() {
     refetchInterval: 30000,
   });
 
-  const { data: members = [] } = useQuery<{ student_id: string; joined_at: string; profiles: { full_name: string; email: string } | null }[]>({
+  const { data: members = [] } = useQuery<{ student_id: string; joined_at: string; display_name: string | null; profiles: { full_name: string; email: string } | null }[]>({
     queryKey: ['members', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('community_members').select('student_id, joined_at').eq('mentor_id', user!.id);
+      const { data, error } = await supabase.from('community_members').select('student_id, joined_at, display_name').eq('mentor_id', user!.id);
       if (error) throw error;
       const enriched = await Promise.all(
         (data ?? []).map(async (m) => {
