@@ -1097,23 +1097,23 @@ export default function MentorDashboard() {
                 </AnimatePresence>
               ) : (
                 <>
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">שיעורים וקורסים</h1>
-                  <p className="text-sm text-muted-foreground mt-1">{lessons.length} שיעורים · {categories.length} קטגוריות</p>
+                  <h1 className="text-xl md:text-2xl font-bold text-foreground">שיעורים וקורסים</h1>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">{lessons.length} שיעורים · {categories.length} קטגוריות</p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowCategoryForm(true)}
-                    className="flex items-center gap-2 h-9 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+                    className="flex items-center gap-1.5 md:gap-2 h-8 md:h-9 px-2.5 md:px-4 rounded-lg border border-border text-xs md:text-sm font-medium text-foreground hover:bg-muted transition-all"
                   >
-                    <LayoutGrid className="w-4 h-4" />קטגוריה חדשה
+                    <LayoutGrid className="w-3.5 h-3.5 md:w-4 md:h-4" />קטגוריה חדשה
                   </button>
                   <button
                     onClick={() => { setSelectedCategoryId(null); setShowLessonPanel(true); }}
-                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
+                    className="flex items-center gap-1.5 md:gap-2 h-8 md:h-9 px-2.5 md:px-4 rounded-lg bg-primary text-primary-foreground text-xs md:text-sm font-medium hover:opacity-90 transition-all"
                   >
-                    <Plus className="w-4 h-4" />צור שיעור חדש
+                    <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />צור שיעור חדש
                   </button>
                 </div>
               </div>
@@ -1361,7 +1361,7 @@ export default function MentorDashboard() {
               <div className="bg-card rounded-xl card-shadow p-6 mb-6">
                 <h2 className="font-semibold text-foreground mb-1">הזמן תלמיד לקהילה</h2>
                 <p className="text-sm text-muted-foreground mb-4">הכנס אימייל או טלפון של התלמיד</p>
-                <div className="flex gap-2">
+              <div className="flex flex-col md:flex-row gap-2">
                   <input
                     value={inviteContact} onChange={e => setInviteContact(e.target.value)}
                     placeholder="אימייל@example.com או 050-0000000"
@@ -1371,7 +1371,7 @@ export default function MentorDashboard() {
                   <button
                     onClick={() => inviteContact.trim() && sendInvite.mutate(inviteContact)}
                     disabled={!inviteContact.trim() || sendInvite.isPending}
-                    className="h-11 px-6 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2"
+                    className="h-11 px-6 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 w-full md:w-auto"
                   >
                     <Send className="w-4 h-4" />שלח הזמנה
                   </button>
@@ -1395,7 +1395,7 @@ export default function MentorDashboard() {
                         </div>
                         <button
                           onClick={() => deleteInvite.mutate(inv.id)}
-                          className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                           title="בטל הזמנה"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1420,8 +1420,8 @@ export default function MentorDashboard() {
                       const displayName = m.display_name || m.profiles?.full_name || 'תלמיד';
                       const isEditing = editingNickname === m.student_id;
                       return (
-                      <div key={m.student_id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors group">
-                        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold">
+                      <div key={m.student_id} className="flex flex-wrap items-center gap-2 md:gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors group">
+                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold shrink-0">
                           {displayName[0]?.toUpperCase() ?? '?'}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1449,35 +1449,35 @@ export default function MentorDashboard() {
                             </form>
                           ) : (
                             <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium text-foreground">{displayName}</span>
+                              <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
                               {m.display_name && (
                                 <span className="text-[10px] text-muted-foreground">({m.profiles?.full_name})</span>
                               )}
                               <button
                                 onClick={() => { setEditingNickname(m.student_id); setNicknameValue(m.display_name || ''); }}
-                                className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-primary transition-all"
+                                className="md:opacity-0 md:group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-primary transition-all"
                                 title="ערוך כינוי"
                               >
                                 <Pencil className="w-3 h-3" />
                               </button>
                             </div>
                           )}
-                          <div className="text-xs text-muted-foreground">{m.profiles?.email}</div>
+                          <div className="text-xs text-muted-foreground truncate">{m.profiles?.email}</div>
                         </div>
-                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full shrink-0">
-                          הצטרף {new Date(m.joined_at).toLocaleDateString('he-IL')}
+                        <div className="text-[10px] md:text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full shrink-0">
+                          {new Date(m.joined_at).toLocaleDateString('he-IL')}
                         </div>
                         {/* Permissions button */}
                         <button
                           onClick={() => { setAccessStudentId(m.student_id); setAccessStudentName(displayName); }}
-                          className="w-8 h-8 flex items-center justify-center rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-all"
+                          className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-all"
                           title="נהל הרשאות קטגוריות"
                         >
                           <ShieldCheck className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setRemoveConfirm({ studentId: m.student_id, name: displayName })}
-                          className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                           title="הסר מהקהילה"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -1523,7 +1523,7 @@ export default function MentorDashboard() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 end-0 h-full w-[400px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
+              className="fixed top-0 end-0 h-full w-full md:w-[400px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-1">
@@ -1657,7 +1657,7 @@ export default function MentorDashboard() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 end-0 h-full w-[440px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
+              className="fixed top-0 end-0 h-full w-full md:w-[440px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -1844,7 +1844,7 @@ export default function MentorDashboard() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 end-0 h-full w-[440px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
+               className="fixed top-0 end-0 h-full w-full md:w-[440px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -1937,7 +1937,7 @@ export default function MentorDashboard() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 end-0 h-full w-[440px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
+               className="fixed top-0 end-0 h-full w-full md:w-[440px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -2122,16 +2122,16 @@ function LessonRow({
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
-      className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer select-none
+      className={`flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer select-none
         ${isDragOver ? 'border-t-2 border-primary bg-primary/5' : ''}
         ${isDragging ? 'opacity-40' : 'opacity-100'}
       `}
       onClick={onView}
     >
-      {/* Drag handle + number */}
+      {/* Drag handle + number — hide drag on mobile */}
       <div className="flex items-center gap-1.5 shrink-0">
         <div
-          className="opacity-0 group-hover:opacity-60 hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity text-muted-foreground"
+          className="hidden md:block opacity-0 group-hover:opacity-60 hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity text-muted-foreground"
           onMouseDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
         >
@@ -2150,12 +2150,12 @@ function LessonRow({
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-foreground truncate">{lesson.title}</span>
           {lesson.lesson_type === 'live' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
+            <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
               <Radio className="w-2.5 h-2.5" />הוקלט בלייב
             </span>
           )}
           {lesson.attachment_url && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
+            <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
               <Paperclip className="w-2.5 h-2.5" />צירוף
             </span>
           )}
@@ -2163,10 +2163,10 @@ function LessonRow({
         <span className="text-xs text-muted-foreground">{typeLabel(lesson.lesson_type)}</span>
       </div>
       {lesson.duration_minutes && (
-        <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
+        <span className="hidden md:inline text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
       )}
       <button onClick={e => { e.stopPropagation(); onEdit(); }}
-        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="ערוך שיעור">
+        className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="ערוך שיעור">
         <Pencil className="w-3.5 h-3.5" />
       </button>
       <button onClick={e => { e.stopPropagation(); onTogglePublish(); }}
@@ -2175,7 +2175,7 @@ function LessonRow({
         {lesson.is_published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
       </button>
       <button onClick={e => { e.stopPropagation(); onDelete(); }}
-        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+        className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
     </div>
@@ -2223,16 +2223,16 @@ function MentorPostCard({
           </div>
         )}
 
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${postTypeBg[pType] ?? 'bg-muted'} ${postTypeColor[pType] ?? 'text-foreground'}`}>
+            <span className={`inline-flex items-center gap-1 px-2 md:px-2.5 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium ${postTypeBg[pType] ?? 'bg-muted'} ${postTypeColor[pType] ?? 'text-foreground'}`}>
               {pType === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
               {postTypeIcon(pType)}
               {postTypeLabel[pType] ?? pType}
             </span>
-            <span className="text-xs text-muted-foreground">{formatDate(post.created_at)}</span>
+            <span className="text-[10px] md:text-xs text-muted-foreground">{formatDate(post.created_at)}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 md:gap-1">
             <button
               onClick={onTogglePin}
               className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${post.is_pinned ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}
