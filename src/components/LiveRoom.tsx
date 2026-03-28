@@ -1506,7 +1506,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               </span>
             )}
           </button>
-          <button onClick={handleLeave} className="h-8 w-8 flex items-center justify-center rounded-md text-white/40 hover:text-white/80 hover:bg-white/5 transition-all ml-1">
+          <button onClick={handleLeave} className="h-8 w-8 flex items-center justify-center rounded-md text-white/40 hover:text-white/80 hover:bg-white/5 transition-all ms-1">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -1951,7 +1951,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedMic === d.deviceId ? 'border-indigo-500/60 bg-indigo-500/10 text-white' : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'}`}>
                                   <Mic className={`w-4 h-4 shrink-0 ${selectedMic === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
                                   <span className="truncate">{d.label || `מיקרופון ${d.deviceId.slice(0, 8)}`}</span>
-                                  {selectedMic === d.deviceId && <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
+                                  {selectedMic === d.deviceId && <span className="ms-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                                 </button>
                               ))}
                             </div>
@@ -1994,7 +1994,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedOutput === d.deviceId ? 'border-indigo-500/60 bg-indigo-500/10 text-white' : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'}`}>
                                   <Headphones className={`w-4 h-4 shrink-0 ${selectedOutput === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
                                   <span className="truncate">{d.label || `התקן ${d.deviceId.slice(0, 8)}`}</span>
-                                  {selectedOutput === d.deviceId && <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
+                                  {selectedOutput === d.deviceId && <span className="ms-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                                 </button>
                               ))}
                             </div>
@@ -2053,7 +2053,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedCamera === d.deviceId ? 'border-indigo-500/60 bg-indigo-500/10 text-white' : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'}`}>
                                 <Video className={`w-4 h-4 shrink-0 ${selectedCamera === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
                                 <span className="truncate">{d.label || `מצלמה ${d.deviceId.slice(0, 8)}`}</span>
-                                {selectedCamera === d.deviceId && <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
+                                {selectedCamera === d.deviceId && <span className="ms-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                               </button>
                             ))}
                           </div>
@@ -2075,7 +2075,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         <AnimatePresence>
           {showMembers && (
             <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 240, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }} className="bg-[#2b2d31] border-r border-white/5 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
+              transition={{ duration: 0.2 }} className="bg-[#2b2d31] border-s border-white/5 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
               <div className="px-4 pt-5 pb-2 shrink-0">
                 <p className="text-xs font-bold text-white/40 uppercase tracking-widest">חברים בשיחה — {participants.length}</p>
               </div>
@@ -2106,13 +2106,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         >
                           {initials(p.name)}
                         </div>
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#2b2d31] ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
+                        <div className={`absolute -bottom-0.5 -start-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#2b2d31] ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white/80 truncate">
                           {p.name}
-                          {isMe && <span className="text-[10px] text-white/30 mr-1">(אתה)</span>}
-                          {isMentorEntry && !isMe && <span className="text-[10px] text-indigo-400 mr-1">מנטור</span>}
+                          {isMe && <span className="text-[10px] text-white/30 ms-1">(אתה)</span>}
+                          {isMentorEntry && !isMe && <span className="text-[10px] text-indigo-400 ms-1">מנטור</span>}
                         </p>
                         <p className={`text-[10px] transition-colors ${showSpeakingRing ? 'text-green-400' : 'text-white/30'}`}>
                           {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מושתק' : isSpeaking ? 'מדבר...' : 'פעיל'}
@@ -2142,7 +2142,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         <AnimatePresence>
           {showChat && (
             <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 300, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }} className="bg-[#313338] border-r border-white/5 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
+              transition={{ duration: 0.2 }} className="bg-[#313338] border-s border-white/5 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
               <div className="px-4 h-12 border-b border-white/5 flex items-center gap-2 shrink-0">
                 <MessageSquare className="w-4 h-4 text-white/40" />
                 <span className="text-sm font-bold text-white/80">צ'אט</span>
@@ -2157,7 +2157,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 {chatMessages.map(msg => (
                   <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.user_id === userId ? 'items-end' : 'items-start'}`}>
                     <span className="text-[10px] text-white/30 px-1">{msg.user_id === userId ? 'אתה' : msg.display_name}</span>
-                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${msg.user_id === userId ? 'bg-indigo-500 text-white rounded-tl-sm' : 'bg-[#2b2d31] text-white/80 rounded-tr-sm'}`}>
+                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${msg.user_id === userId ? 'bg-indigo-500 text-white rounded-ee-sm' : 'bg-[#2b2d31] text-white/80 rounded-es-sm'}`}>
                       {msg.message}
                     </div>
                   </div>

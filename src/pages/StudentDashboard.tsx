@@ -836,7 +836,7 @@ export default function StudentDashboard() {
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
       {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-l border-sidebar-border flex flex-col shrink-0 h-full">
+      <aside className="w-64 bg-sidebar border-s border-sidebar-border flex flex-col shrink-0 h-full">
         <AnimatePresence mode="wait">
           {lessonViewMode ? (
             /* ── Lesson View Mode Sidebar ── */
@@ -879,8 +879,8 @@ export default function StudentDashboard() {
                       <button
                         key={lesson.id}
                         onClick={() => setSelectedLesson(isSelected ? null : lesson.id)}
-                        className={`w-full text-right flex items-start gap-3 px-4 py-3 transition-all hover:bg-sidebar-accent/60 ${
-                          isSelected ? 'bg-sidebar-accent border-r-2 border-primary' : ''
+                        className={`w-full text-start flex items-start gap-3 px-4 py-3 transition-all hover:bg-sidebar-accent/60 ${
+                          isSelected ? 'bg-sidebar-accent border-e-2 border-primary' : ''
                         }`}
                       >
                         <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">
@@ -1150,7 +1150,7 @@ export default function StudentDashboard() {
                   <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
                   <p className="text-sm text-muted-foreground mt-1">
                     {filteredLessons.length} שיעורים זמינים · {progress.filter(p => p.completed).length} הושלמו
-                    {lessonDateRange?.from && <span className="mr-2 text-primary font-medium">· מסונן לפי תאריך</span>}
+                    {lessonDateRange?.from && <span className="ms-2 text-primary font-medium">· מסונן לפי תאריך</span>}
                   </p>
                 </div>
                 {/* Date range filter */}
@@ -1286,7 +1286,7 @@ export default function StudentDashboard() {
                   <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
                   <p className="text-sm text-muted-foreground mt-1">
                     {mentorName ? `עדכונים מ${mentorName}` : 'עדכונים מהמנטור שלך'}
-                    {communityDateRange?.from && <span className="mr-2 text-primary font-medium">· מסונן לפי תאריך</span>}
+                    {communityDateRange?.from && <span className="ms-2 text-primary font-medium">· מסונן לפי תאריך</span>}
                   </p>
                 </div>
                 <DateRangeFilter range={communityDateRange} onChange={setCommunityDateRange} />

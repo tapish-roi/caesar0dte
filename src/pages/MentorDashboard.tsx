@@ -109,19 +109,19 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
                 <p className="text-xs font-medium text-foreground leading-snug">{q.question_text}</p>
               </div>
               {q.question_type === 'multiple_choice' ? (
-                <div className="space-y-1 mr-7">
+                <div className="space-y-1 me-7">
                   {qOptions.map((opt, oIdx) => (
                     <div key={opt.id} className={`flex items-center gap-2 px-2 py-1 rounded-md text-[11px] ${opt.is_correct ? 'bg-accent/10 text-accent font-medium' : 'text-muted-foreground'}`}>
                       <span className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0 text-[9px] font-bold border-current">
                         {String.fromCharCode(65 + oIdx)}
                       </span>
                       {opt.option_text}
-                      {opt.is_correct && <Check className="w-3 h-3 mr-auto shrink-0" />}
+                      {opt.is_correct && <Check className="w-3 h-3 ms-auto shrink-0" />}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="mr-7 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="me-7 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <AlignLeft className="w-3 h-3 shrink-0" />שאלה פתוחה
                 </div>
               )}
@@ -816,7 +816,7 @@ export default function MentorDashboard() {
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
       {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-l border-sidebar-border flex flex-col shrink-0 h-full">
+      <aside className="w-64 bg-sidebar border-s border-sidebar-border flex flex-col shrink-0 h-full">
         <AnimatePresence mode="wait">
           {lessonViewMode ? (
             /* ── Lesson View Mode Sidebar ── */
@@ -846,7 +846,7 @@ export default function MentorDashboard() {
                       <button
                         key={lesson.id}
                         onClick={() => setSelectedLesson(isSelected ? null : lesson.id)}
-                        className={`w-full text-right flex items-start gap-3 px-4 py-3 transition-all hover:bg-sidebar-accent/60 ${isSelected ? 'bg-sidebar-accent border-r-2 border-primary' : ''}`}
+                        className={`w-full text-start flex items-start gap-3 px-4 py-3 transition-all hover:bg-sidebar-accent/60 ${isSelected ? 'bg-sidebar-accent border-e-2 border-primary' : ''}`}
                       >
                         <span className="w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-muted-foreground">{idx + 1}</span>
                         <div className="flex-1 min-w-0">
@@ -1451,7 +1451,7 @@ export default function MentorDashboard() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 h-full w-[400px] bg-card z-50 shadow-2xl border-l border-border overflow-y-auto"
+              className="fixed top-0 end-0 h-full w-[400px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-1">
@@ -1585,7 +1585,7 @@ export default function MentorDashboard() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 h-full w-[440px] bg-card z-50 shadow-2xl border-l border-border overflow-y-auto"
+              className="fixed top-0 end-0 h-full w-[440px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -1772,7 +1772,7 @@ export default function MentorDashboard() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 h-full w-[440px] bg-card z-50 shadow-2xl border-l border-border overflow-y-auto"
+              className="fixed top-0 end-0 h-full w-[440px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -1865,7 +1865,7 @@ export default function MentorDashboard() {
             <motion.div
               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 h-full w-[440px] bg-card z-50 shadow-2xl border-l border-border overflow-y-auto"
+              className="fixed top-0 end-0 h-full w-[440px] bg-card z-50 shadow-2xl border-s border-border overflow-y-auto"
             >
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
