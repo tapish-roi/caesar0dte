@@ -39,18 +39,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
           <span>{displayName}</span>
         </div>
         <div className="flex items-center gap-2">
-          {/* Reload iframe (for office files that sometimes fail to load) */}
-          {isOffice && (
-            <button
-              onClick={() => setIframeKey(k => k + 1)}
-              title="טען מחדש"
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              טען מחדש
-            </button>
-          )}
-          {/* Open in new tab — office files open in Google Viewer, others open directly */}
+          {/* Open in new tab */}
           <a
             href={openUrl}
             target="_blank"
