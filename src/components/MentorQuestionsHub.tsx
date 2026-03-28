@@ -99,7 +99,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
           ]);
           return {
             ...q,
-            studentName: (cm as any)?.display_name || sp?.full_name ?? 'תלמיד',
+            studentName: (cm as any)?.display_name || (sp?.full_name ?? 'תלמיד'),
             lessonTitle: lp?.title ?? 'שיעור',
             answers: answers ?? [],
           };
