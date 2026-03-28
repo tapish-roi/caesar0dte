@@ -1196,7 +1196,7 @@ export default function StudentDashboard() {
                                     className="flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
                                   >
                                     <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
-                                      {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : typeIcon(lesson.lesson_type)}
+                                      {typeIcon(lesson.lesson_type)}
                                     </div>
                                     <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
                                       {lesson.title}
