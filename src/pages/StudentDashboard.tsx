@@ -1539,6 +1539,7 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
     enabled: expanded,
   });
 
+  const { lightbox, openLightbox, closeLightbox } = useMediaLightbox();
   const pType = post.post_type;
 
   return (
