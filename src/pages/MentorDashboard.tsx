@@ -1224,7 +1224,7 @@ export default function MentorDashboard() {
 
           {/* ──────── COMMUNITY ──────── */}
           {activeTab === 'community' && (
-            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-2xl">
+            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 max-w-2xl">
               <div className="mb-6">
                 <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
                 <p className="text-sm text-muted-foreground mt-1">שתף עדכונים, ניתוחים ודיונים עם הקהילה שלך</p>
