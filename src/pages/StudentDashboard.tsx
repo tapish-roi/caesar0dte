@@ -354,6 +354,8 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
         .select('id, score, max_score')
         .eq('quiz_id', quiz!.id)
         .eq('student_id', studentId)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       return data;
     },
