@@ -2106,7 +2106,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         >
                           {initials(p.name)}
                         </div>
-                        <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#2b2d31] ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
+                        <div className={`absolute -bottom-0.5 -start-0.5 w-3.5 h-3.5 rounded-full border-2 border-[#2b2d31] ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white/80 truncate">
