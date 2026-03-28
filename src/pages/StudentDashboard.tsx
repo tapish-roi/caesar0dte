@@ -328,7 +328,7 @@ function LandingScreen({
 }
 
 // ─── Lesson Quiz Button ───────────────────────────────────────────────────────
-function LessonQuizButton({ lessonId, mentorId, onTakeQuiz }: { lessonId: string; mentorId: string; onTakeQuiz: (quizId: string) => void }) {
+function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lessonId: string; mentorId: string; onTakeQuiz: (quizId: string) => void; studentId: string }) {
   const { data: quiz, isLoading } = useQuery({
     queryKey: ['student-lesson-quiz-btn', lessonId],
     queryFn: async () => {
@@ -346,23 +346,52 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz }: { lessonId: string
     enabled: !!lessonId && !!mentorId,
   });
 
+  const { data: submission } = useQuery({
+    queryKey: ['student-lesson-quiz-submission', quiz?.id, studentId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('quiz_submissions')
+        .select('id, score, max_score')
+        .eq('quiz_id', quiz!.id)
+        .eq('student_id', studentId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!quiz?.id && !!studentId,
+  });
+
   if (isLoading || !quiz) return null;
+
+  const hasSubmitted = !!submission;
+  const pct = submission?.score != null && submission?.max_score != null && submission.max_score > 0
+    ? (submission.max_score === 100 ? submission.score : Math.round((submission.score / submission.max_score) * 100))
+    : null;
 
   return (
     <div className="px-6 pb-4">
-      <div className="flex items-center gap-4 p-4 bg-primary/5 border border-primary/20 rounded-xl">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-          <ClipboardList className="w-5 h-5 text-primary" />
+      <div className={`flex items-center gap-4 p-4 rounded-xl border ${hasSubmitted ? 'bg-accent/5 border-accent/20' : 'bg-primary/5 border-primary/20'}`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${hasSubmitted ? 'bg-accent/10' : 'bg-primary/10'}`}>
+          {hasSubmitted ? <CheckCircle2 className="w-5 h-5 text-accent" /> : <ClipboardList className="w-5 h-5 text-primary" />}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground">מבחן: {quiz.title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{quiz.description || 'בחן את עצמך על חומר השיעור'}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {hasSubmitted
+              ? pct != null ? `ציון: ${pct}/100` : 'המבחן הוגש בהצלחה'
+              : quiz.description || 'בחן את עצמך על חומר השיעור'}
+          </p>
         </div>
         <button
           onClick={() => onTakeQuiz(quiz.id)}
-          className="h-9 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all shrink-0"
+          className={`h-9 px-4 rounded-xl text-sm font-medium hover:opacity-90 transition-all shrink-0 flex items-center gap-1.5 ${
+            hasSubmitted ? 'bg-accent text-accent-foreground' : 'bg-primary text-primary-foreground'
+          }`}
         >
-          התחל מבחן
+          {hasSubmitted ? (
+            <><Eye className="w-4 h-4" />צפה בתוצאות</>
+          ) : (
+            'התחל מבחן'
+          )}
         </button>
       </div>
     </div>
