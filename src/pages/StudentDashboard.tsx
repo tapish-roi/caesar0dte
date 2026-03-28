@@ -1170,7 +1170,7 @@ export default function StudentDashboard() {
                   const catLessons = filteredLessons.filter(l => l.category_id === cat.id);
                   if (catLessons.length === 0) return null;
                   const isExpanded = expandedCats.has(cat.id);
-                  const completedCount = catLessons.filter(l => getProgress(l.id)?.completed).length;
+                  
                   return (
                     <div key={cat.id} className="bg-card rounded-xl card-shadow overflow-hidden">
                       <div
