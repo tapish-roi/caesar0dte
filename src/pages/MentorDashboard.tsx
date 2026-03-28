@@ -88,7 +88,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
   );
 
   return (
-    <div className="w-80 shrink-0 bg-card border border-border rounded-xl overflow-hidden" dir="rtl">
+    <div className="w-full md:w-80 shrink-0 bg-card border border-border rounded-xl overflow-hidden" dir="rtl">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${quiz.is_published ? 'bg-accent/10' : 'bg-muted'}`}>
