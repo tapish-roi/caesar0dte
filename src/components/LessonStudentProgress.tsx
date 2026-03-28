@@ -8,9 +8,10 @@ interface ProgressEntry {
   completed: boolean;
   last_watched_at: string | null;
   profile?: { full_name: string } | null;
+  displayName?: string;
 }
 
-export default function LessonStudentProgress({ lessonId }: { lessonId: string }) {
+export default function LessonStudentProgress({ lessonId, mentorId }: { lessonId: string; mentorId?: string }) {
   const { data: progress = [], isLoading } = useQuery<ProgressEntry[]>({
     queryKey: ['lesson-student-progress', lessonId],
     queryFn: async () => {
@@ -19,15 +20,16 @@ export default function LessonStudentProgress({ lessonId }: { lessonId: string }
         .select('student_id, progress_percent, completed, last_watched_at')
         .eq('lesson_id', lessonId);
       if (error) throw error;
-      // Enrich with profile names
       const enriched = await Promise.all(
         (data ?? []).map(async (p) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('user_id', p.student_id)
-            .single();
-          return { ...p, profile };
+          const [{ data: profile }, cmRes] = await Promise.all([
+            supabase.from('profiles').select('full_name').eq('user_id', p.student_id).single(),
+            mentorId
+              ? supabase.from('community_members').select('display_name').eq('mentor_id', mentorId).eq('student_id', p.student_id).maybeSingle()
+              : Promise.resolve({ data: null }),
+          ]);
+          const dn = (cmRes.data as any)?.display_name;
+          return { ...p, profile, displayName: dn || undefined };
         })
       );
       return enriched.sort((a, b) => b.progress_percent - a.progress_percent);
@@ -80,13 +82,13 @@ export default function LessonStudentProgress({ lessonId }: { lessonId: string }
           <div key={p.student_id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
             {/* Avatar */}
             <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
-              {(p.profile?.full_name || '?')[0]}
+              {(p.displayName || p.profile?.full_name || '?')[0]}
             </div>
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-foreground truncate">
-                  {p.profile?.full_name || 'תלמיד'}
+                  {p.displayName || p.profile?.full_name || 'תלמיד'}
                 </span>
                 <span className={`text-[10px] font-semibold shrink-0 ${p.completed ? 'text-accent' : 'text-muted-foreground'}`}>
                   {p.progress_percent}%

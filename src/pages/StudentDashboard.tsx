@@ -723,8 +723,14 @@ export default function StudentDashboard() {
     if (error) throw error;
     const enriched = await Promise.all(
       (data ?? []).map(async (c) => {
-        const { data: prof } = await supabase.from('profiles').select('full_name').eq('user_id', c.author_id).single();
-        return { ...c, profiles: prof };
+        const [{ data: prof }, cmRes] = await Promise.all([
+          supabase.from('profiles').select('full_name').eq('user_id', c.author_id).single(),
+          mentorId
+            ? supabase.from('community_members').select('display_name').eq('mentor_id', mentorId).eq('student_id', c.author_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+        ]);
+        const dn = (cmRes.data as any)?.display_name;
+        return { ...c, profiles: dn ? { full_name: dn } : prof };
       })
     );
     return enriched;

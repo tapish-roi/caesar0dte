@@ -65,13 +65,14 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
       if (error) throw error;
       const enriched = await Promise.all(
         (data ?? []).map(async (q) => {
-          const [{ data: sp }, { data: lp }] = await Promise.all([
+          const [{ data: sp }, { data: cm }, lessonRes] = await Promise.all([
             supabase.from('profiles').select('full_name').eq('user_id', q.student_id).single(),
+            supabase.from('community_members').select('display_name').eq('mentor_id', mentorId).eq('student_id', q.student_id).maybeSingle(),
             q.lesson_id
               ? supabase.from('lessons').select('title').eq('id', q.lesson_id).single()
               : Promise.resolve({ data: null }),
           ]);
-          return { ...q, studentName: sp?.full_name ?? 'תלמיד', lessonTitle: (lp as { title?: string } | null)?.title ?? null };
+          return { ...q, studentName: (cm as any)?.display_name || (sp?.full_name ?? 'תלמיד'), lessonTitle: (lessonRes.data as { title?: string } | null)?.title ?? null };
         })
       );
       return enriched as PrivateQuestion[];
@@ -90,14 +91,15 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
       if (error) throw error;
       const enriched = await Promise.all(
         (data ?? []).map(async (q) => {
-          const [{ data: sp }, { data: lp }, { data: answers }] = await Promise.all([
+          const [{ data: sp }, { data: cm }, { data: lp }, { data: answers }] = await Promise.all([
             supabase.from('profiles').select('full_name').eq('user_id', q.student_id).single(),
+            supabase.from('community_members').select('display_name').eq('mentor_id', mentorId).eq('student_id', q.student_id).maybeSingle(),
             supabase.from('lessons').select('title').eq('id', q.lesson_id).single(),
             supabase.from('lesson_question_answers').select('id, content, created_at, updated_at').eq('question_id', q.id).order('created_at'),
           ]);
           return {
             ...q,
-            studentName: sp?.full_name ?? 'תלמיד',
+            studentName: (cm as any)?.display_name || (sp?.full_name ?? 'תלמיד'),
             lessonTitle: lp?.title ?? 'שיעור',
             answers: answers ?? [],
           };

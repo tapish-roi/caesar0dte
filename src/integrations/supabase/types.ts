@@ -79,18 +79,21 @@ export type Database = {
       }
       community_members: {
         Row: {
+          display_name: string | null
           id: string
           joined_at: string
           mentor_id: string
           student_id: string
         }
         Insert: {
+          display_name?: string | null
           id?: string
           joined_at?: string
           mentor_id: string
           student_id: string
         }
         Update: {
+          display_name?: string | null
           id?: string
           joined_at?: string
           mentor_id?: string

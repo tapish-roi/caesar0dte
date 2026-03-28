@@ -1035,13 +1035,14 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
       const { data, error } = await supabase.from('quiz_submissions').select('*').eq('mentor_id', mentorId).order('submitted_at', { ascending: false });
       if (error) throw error;
       const enriched = await Promise.all((data ?? []).map(async (s) => {
-        const [profileRes, quizRes] = await Promise.all([
+        const [profileRes, cmRes, quizRes] = await Promise.all([
           supabase.from('profiles').select('full_name').eq('user_id', s.student_id).single(),
+          supabase.from('community_members').select('display_name').eq('mentor_id', mentorId).eq('student_id', s.student_id).maybeSingle(),
           supabase.from('quizzes').select('title').eq('id', s.quiz_id).single(),
         ]);
         return {
           ...s,
-          studentName: (profileRes.data as { full_name?: string } | null)?.full_name ?? 'תלמיד',
+          studentName: (cmRes.data as any)?.display_name || ((profileRes.data as { full_name?: string } | null)?.full_name ?? 'תלמיד'),
           quizTitle: (quizRes.data as { title?: string } | null)?.title ?? 'מבחן',
         };
       }));
@@ -1053,10 +1054,10 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   const { data: members = [] } = useQuery<{ student_id: string; full_name: string }[]>({
     queryKey: ['mentor-members-for-quiz', mentorId],
     queryFn: async () => {
-      const { data } = await supabase.from('community_members').select('student_id').eq('mentor_id', mentorId);
+      const { data } = await supabase.from('community_members').select('student_id, display_name').eq('mentor_id', mentorId);
       const enriched = await Promise.all((data ?? []).map(async (m) => {
         const { data: p } = await supabase.from('profiles').select('full_name').eq('user_id', m.student_id).single();
-        return { student_id: m.student_id, full_name: (p as { full_name?: string } | null)?.full_name ?? 'תלמיד' };
+        return { student_id: m.student_id, full_name: (m as any).display_name || ((p as { full_name?: string } | null)?.full_name ?? 'תלמיד') };
       }));
       return enriched;
     },

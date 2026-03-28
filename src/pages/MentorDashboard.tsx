@@ -234,6 +234,10 @@ export default function MentorDashboard() {
   const [accessStudentId, setAccessStudentId] = useState<string | null>(null);
   const [accessStudentName, setAccessStudentName] = useState('');
 
+  // Edit nickname
+  const [editingNickname, setEditingNickname] = useState<string | null>(null);
+  const [nicknameValue, setNicknameValue] = useState('');
+
   // Edit lesson
   const [editLesson, setEditLesson] = useState<Lesson | null>(null);
   const [editForm, setEditForm] = useState({ title: '', description: '', video_url: '', duration_minutes: '', attachment_url: '', attachment_name: '' });
@@ -298,10 +302,10 @@ export default function MentorDashboard() {
     refetchInterval: 30000,
   });
 
-  const { data: members = [] } = useQuery<{ student_id: string; joined_at: string; profiles: { full_name: string; email: string } | null }[]>({
+  const { data: members = [] } = useQuery<{ student_id: string; joined_at: string; display_name: string | null; profiles: { full_name: string; email: string } | null }[]>({
     queryKey: ['members', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.from('community_members').select('student_id, joined_at').eq('mentor_id', user!.id);
+      const { data, error } = await supabase.from('community_members').select('student_id, joined_at, display_name').eq('mentor_id', user!.id);
       if (error) throw error;
       const enriched = await Promise.all(
         (data ?? []).map(async (m) => {
@@ -596,6 +600,20 @@ export default function MentorDashboard() {
     onError: () => toast({ title: 'שגיאה בהסרת התלמיד', variant: 'destructive' }),
   });
 
+  const updateNickname = useMutation({
+    mutationFn: async ({ studentId, displayName }: { studentId: string; displayName: string }) => {
+      const val = displayName.trim() || null;
+      const { error } = await supabase.from('community_members').update({ display_name: val } as any).eq('mentor_id', user!.id).eq('student_id', studentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['members'] });
+      setEditingNickname(null);
+      toast({ title: 'הכינוי עודכן בהצלחה' });
+    },
+    onError: () => toast({ title: 'שגיאה בעדכון הכינוי', variant: 'destructive' }),
+  });
+
   const grantAccess = useMutation({
     mutationFn: async (categoryId: string) => {
       const { error } = await supabase.from('student_category_access').insert({
@@ -708,8 +726,12 @@ export default function MentorDashboard() {
     if (error) throw error;
     const enriched = await Promise.all(
       (data ?? []).map(async (c) => {
-        const { data: profile } = await supabase.from('profiles').select('full_name').eq('user_id', c.author_id).single();
-        return { ...c, profiles: profile };
+        const [{ data: profile }, cmRes] = await Promise.all([
+          supabase.from('profiles').select('full_name').eq('user_id', c.author_id).single(),
+          supabase.from('community_members').select('display_name').eq('mentor_id', user!.id).eq('student_id', c.author_id).maybeSingle(),
+        ]);
+        const dn = (cmRes.data as any)?.display_name;
+        return { ...c, profiles: dn ? { full_name: dn } : profile };
       })
     );
     return enriched;
@@ -985,7 +1007,7 @@ export default function MentorDashboard() {
                                 <Eye className="w-4 h-4 text-primary" />
                                 התקדמות צפייה של תלמידים
                               </h3>
-                              <LessonStudentProgress lessonId={lesson.id} />
+                              <LessonStudentProgress lessonId={lesson.id} mentorId={user?.id} />
                             </div>
                           </div>
                         </div>
@@ -1322,35 +1344,75 @@ export default function MentorDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {members.map((m) => (
+                    {members.map((m) => {
+                      const displayName = m.display_name || m.profiles?.full_name || 'תלמיד';
+                      const isEditing = editingNickname === m.student_id;
+                      return (
                       <div key={m.student_id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors group">
                         <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold">
-                          {m.profiles?.full_name?.[0]?.toUpperCase() ?? '?'}
+                          {displayName[0]?.toUpperCase() ?? '?'}
                         </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-foreground">{m.profiles?.full_name ?? 'תלמיד'}</div>
+                        <div className="flex-1 min-w-0">
+                          {isEditing ? (
+                            <form
+                              className="flex items-center gap-2"
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                updateNickname.mutate({ studentId: m.student_id, displayName: nicknameValue });
+                              }}
+                            >
+                              <input
+                                autoFocus
+                                className="h-7 px-2 text-sm border border-border rounded-md bg-background text-foreground w-full max-w-[180px]"
+                                value={nicknameValue}
+                                onChange={(e) => setNicknameValue(e.target.value)}
+                                placeholder={m.profiles?.full_name || 'כינוי'}
+                              />
+                              <button type="submit" className="w-6 h-6 flex items-center justify-center rounded text-accent hover:bg-accent/10">
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button type="button" onClick={() => setEditingNickname(null)} className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:bg-muted">
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </form>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium text-foreground">{displayName}</span>
+                              {m.display_name && (
+                                <span className="text-[10px] text-muted-foreground">({m.profiles?.full_name})</span>
+                              )}
+                              <button
+                                onClick={() => { setEditingNickname(m.student_id); setNicknameValue(m.display_name || ''); }}
+                                className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-primary transition-all"
+                                title="ערוך כינוי"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
                           <div className="text-xs text-muted-foreground">{m.profiles?.email}</div>
                         </div>
-                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full shrink-0">
                           הצטרף {new Date(m.joined_at).toLocaleDateString('he-IL')}
                         </div>
                         {/* Permissions button */}
                         <button
-                          onClick={() => { setAccessStudentId(m.student_id); setAccessStudentName(m.profiles?.full_name ?? 'תלמיד'); }}
+                          onClick={() => { setAccessStudentId(m.student_id); setAccessStudentName(displayName); }}
                           className="w-8 h-8 flex items-center justify-center rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-all"
                           title="נהל הרשאות קטגוריות"
                         >
                           <ShieldCheck className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => setRemoveConfirm({ studentId: m.student_id, name: m.profiles?.full_name ?? 'תלמיד' })}
+                          onClick={() => setRemoveConfirm({ studentId: m.student_id, name: displayName })}
                           className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                           title="הסר מהקהילה"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
