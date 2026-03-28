@@ -1121,7 +1121,7 @@ export default function StudentDashboard() {
                         <AttachmentViewer url={selectedLessonData.attachment_url} name={selectedLessonData.attachment_name ?? ''} />
                       )}
                       {/* Quiz button */}
-                      <LessonQuizButton lessonId={selectedLessonData.id} mentorId={mentorId!} onTakeQuiz={(quizId) => navigate(`/quiz/${quizId}`)} />
+                      <LessonQuizButton lessonId={selectedLessonData.id} mentorId={mentorId!} studentId={user!.id} onTakeQuiz={(quizId) => navigate(`/quiz/${quizId}`)} />
                       {/* Q&A section */}
                       {mentorId && (
                         <div className="px-6 pb-6">
