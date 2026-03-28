@@ -72,7 +72,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
               ? supabase.from('lessons').select('title').eq('id', q.lesson_id).single()
               : Promise.resolve({ data: null }),
           ]);
-          return { ...q, studentName: (cm as any)?.display_name || sp?.full_name ?? 'תלמיד', lessonTitle: (lessonRes.data as { title?: string } | null)?.title ?? null };
+          return { ...q, studentName: (cm as any)?.display_name || (sp?.full_name ?? 'תלמיד'), lessonTitle: (lessonRes.data as { title?: string } | null)?.title ?? null };
         })
       );
       return enriched as PrivateQuestion[];
