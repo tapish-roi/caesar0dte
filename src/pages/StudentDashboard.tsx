@@ -358,6 +358,8 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
       return data;
     },
     enabled: !!quiz?.id && !!studentId,
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   if (isLoading || !quiz) return null;
