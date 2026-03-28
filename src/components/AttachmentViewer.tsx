@@ -9,20 +9,19 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
   const cleanUrl = url.split('?')[0];
   const ext = (cleanUrl.split('.').pop() ?? '').toLowerCase();
   const displayName = name || 'קובץ מצורף';
-  
 
   const isPdf = ext === 'pdf';
   const isPpt = ext === 'ppt' || ext === 'pptx';
   const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext);
   const isDoc = ['doc', 'docx'].includes(ext);
-  const isOffice = isPpt || isDoc;
-  const isViewable = isPdf || isOffice || isImage;
+  const isDocument = isPdf || isPpt || isDoc;
+  const isViewable = isDocument || isImage;
 
-  // Microsoft Office Online Viewer — opens in a new tab for PPT/DOC
-  const officeOnlineUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
+  // Google Docs Viewer for inline preview of all document types
+  const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
 
-  // For "open in new tab": PPT/DOC → Office Online Viewer, PDF/image → direct URL
-  const openUrl = isOffice ? officeOnlineUrl : url;
+  // "Open in new tab" uses Google Docs Viewer for documents
+  const openUrl = isDocument ? googleViewerUrl : url;
 
   return (
     <div className="border-t border-border">
@@ -37,7 +36,6 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
           <span>{displayName}</span>
         </div>
         <div className="flex items-center gap-2">
-          {/* Open in new tab */}
           <a
             href={openUrl}
             target="_blank"
@@ -48,7 +46,6 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
             <ExternalLink className="w-3.5 h-3.5" />
             פתח בחלון
           </a>
-          {/* Download button — always visible */}
           <a
             href={url}
             download={displayName}
@@ -63,30 +60,19 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
         </div>
       </div>
 
-      {/* Inline viewer — PDF */}
-      {isPdf && (
+      {/* Inline viewer — PDF / PPT / DOC via Google Docs Viewer */}
+      {isDocument && (
         <div style={{ height: '540px' }} className="w-full">
           <iframe
-            src={`${url}#toolbar=1&navpanes=0`}
-            className="w-full h-full"
+            src={googleViewerUrl}
+            className="w-full h-full border-none"
             title={displayName}
+            sandbox="allow-scripts allow-same-origin"
           />
         </div>
       )}
 
-      {/* Office files — no inline iframe (blocked by Chrome), show open externally prompt */}
-      {isOffice && (
-        <div className="px-6 pb-5 pt-3 flex items-center gap-3 bg-muted/20">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <MonitorPlay className="w-5 h-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">{displayName}</p>
-            <p className="text-xs text-muted-foreground">לחץ "פתח בחלון" לצפייה במצגת, או הורד את הקובץ</p>
-          </div>
-        </div>
-      )}
-
+      {/* Inline viewer — Images */}
       {isImage && (
         <div className="px-6 pb-6 pt-2">
           <img
@@ -97,6 +83,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
         </div>
       )}
 
+      {/* Fallback for unsupported types */}
       {!isViewable && (
         <div className="px-6 pb-5 pt-2 flex items-center gap-3 bg-muted/20">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
