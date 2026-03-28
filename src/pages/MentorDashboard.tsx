@@ -2122,16 +2122,16 @@ function LessonRow({
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
-      className={`flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer select-none
+      className={`flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer select-none
         ${isDragOver ? 'border-t-2 border-primary bg-primary/5' : ''}
         ${isDragging ? 'opacity-40' : 'opacity-100'}
       `}
       onClick={onView}
     >
-      {/* Drag handle + number */}
+      {/* Drag handle + number — hide drag on mobile */}
       <div className="flex items-center gap-1.5 shrink-0">
         <div
-          className="opacity-0 group-hover:opacity-60 hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity text-muted-foreground"
+          className="hidden md:block opacity-0 group-hover:opacity-60 hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity text-muted-foreground"
           onMouseDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
         >
@@ -2150,12 +2150,12 @@ function LessonRow({
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-foreground truncate">{lesson.title}</span>
           {lesson.lesson_type === 'live' && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
+            <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
               <Radio className="w-2.5 h-2.5" />הוקלט בלייב
             </span>
           )}
           {lesson.attachment_url && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
+            <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
               <Paperclip className="w-2.5 h-2.5" />צירוף
             </span>
           )}
@@ -2163,10 +2163,10 @@ function LessonRow({
         <span className="text-xs text-muted-foreground">{typeLabel(lesson.lesson_type)}</span>
       </div>
       {lesson.duration_minutes && (
-        <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
+        <span className="hidden md:inline text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
       )}
       <button onClick={e => { e.stopPropagation(); onEdit(); }}
-        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="ערוך שיעור">
+        className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="ערוך שיעור">
         <Pencil className="w-3.5 h-3.5" />
       </button>
       <button onClick={e => { e.stopPropagation(); onTogglePublish(); }}
@@ -2175,7 +2175,7 @@ function LessonRow({
         {lesson.is_published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
       </button>
       <button onClick={e => { e.stopPropagation(); onDelete(); }}
-        className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
+        className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
     </div>
