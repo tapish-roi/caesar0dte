@@ -1900,5 +1900,3 @@ function InlineProfilePopover({
     </motion.div>
   );
 }
-  );
-}
