@@ -68,7 +68,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
   });
 
   if (isLoading) return (
-    <div className="w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex items-center justify-center min-h-[200px]">
+    <div className="w-full md:w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex items-center justify-center min-h-[200px]">
       <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
