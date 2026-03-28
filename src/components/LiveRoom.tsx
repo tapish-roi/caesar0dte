@@ -2053,7 +2053,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedCamera === d.deviceId ? 'border-indigo-500/60 bg-indigo-500/10 text-white' : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'}`}>
                                 <Video className={`w-4 h-4 shrink-0 ${selectedCamera === d.deviceId ? 'text-indigo-400' : 'text-white/30'}`} />
                                 <span className="truncate">{d.label || `מצלמה ${d.deviceId.slice(0, 8)}`}</span>
-                                {selectedCamera === d.deviceId && <span className="mr-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
+                                {selectedCamera === d.deviceId && <span className="ms-auto text-[10px] font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                               </button>
                             ))}
                           </div>
