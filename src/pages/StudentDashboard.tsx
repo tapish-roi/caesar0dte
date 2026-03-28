@@ -903,11 +903,6 @@ export default function StudentDashboard() {
                               </span>
                             )}
                           </div>
-                          {prog && !prog.completed && prog.progress_percent > 0 && (
-                            <div className="w-full h-1 bg-muted rounded-full overflow-hidden mt-1.5">
-                              <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
-                            </div>
-                          )}
                         </div>
                       </button>
                     );
@@ -1115,20 +1110,6 @@ export default function StudentDashboard() {
                         {selectedLessonData.description && (
                           <p className="text-sm text-muted-foreground mt-2">{selectedLessonData.description}</p>
                         )}
-                        {(() => {
-                          const prog = getProgress(selectedLessonData.id);
-                          if (!prog || prog.completed) return null;
-                          return (
-                            <div className="mt-4">
-                              <div className="flex items-center justify-between mb-1.5 text-xs text-muted-foreground">
-                                <span>התקדמות</span><span>{prog.progress_percent}%</span>
-                              </div>
-                              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                                <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${prog.progress_percent}%` }} />
-                              </div>
-                            </div>
-                          );
-                        })()}
                         {selectedLessonData.duration_minutes && (
                           <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
                             <Clock className="w-3.5 h-3.5" /><span>{selectedLessonData.duration_minutes} דקות</span>
@@ -1189,7 +1170,7 @@ export default function StudentDashboard() {
                   const catLessons = filteredLessons.filter(l => l.category_id === cat.id);
                   if (catLessons.length === 0) return null;
                   const isExpanded = expandedCats.has(cat.id);
-                  const completedCount = catLessons.filter(l => getProgress(l.id)?.completed).length;
+                  
                   return (
                     <div key={cat.id} className="bg-card rounded-xl card-shadow overflow-hidden">
                       <div
@@ -1198,19 +1179,13 @@ export default function StudentDashboard() {
                       >
                         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
                         <span className="font-semibold text-foreground flex-1">{cat.title}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">{completedCount}/{catLessons.length} הושלמו</span>
-                          {completedCount === catLessons.length && catLessons.length > 0 && (
-                            <CheckCircle2 className="w-4 h-4 text-accent" />
-                          )}
-                        </div>
+                        <span className="text-xs text-muted-foreground">{catLessons.length} שיעורים</span>
                       </div>
                       <AnimatePresence>
                         {isExpanded && (
                           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                             <div className="border-t border-border">
                               {catLessons.map((lesson) => {
-                                const prog = getProgress(lesson.id);
                                 return (
                                    <div
                                     key={lesson.id}
@@ -1221,7 +1196,7 @@ export default function StudentDashboard() {
                                     className="flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
                                   >
                                     <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
-                                      {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : typeIcon(lesson.lesson_type)}
+                                      {typeIcon(lesson.lesson_type)}
                                     </div>
                                     <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
                                       {lesson.title}
@@ -1243,11 +1218,6 @@ export default function StudentDashboard() {
                                     )}
                                     {lesson.duration_minutes && (
                                       <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
-                                    )}
-                                    {prog && !prog.completed && prog.progress_percent > 0 && (
-                                      <div className="w-16 h-1 bg-muted rounded-full overflow-hidden">
-                                        <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
-                                      </div>
                                     )}
                                   </div>
                                 );
@@ -1277,12 +1247,6 @@ export default function StudentDashboard() {
                       {lesson.duration_minutes && (
                         <span className="text-xs text-muted-foreground tabular">{lesson.duration_minutes} דק'</span>
                       )}
-                      {prog && !prog.completed && prog.progress_percent > 0 && (
-                        <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
-                        </div>
-                      )}
-                      {prog?.completed && <CheckCircle2 className="w-4 h-4 text-accent" />}
                     </motion.div>
                   );
                 })}
