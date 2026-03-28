@@ -109,7 +109,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
                 <p className="text-xs font-medium text-foreground leading-snug">{q.question_text}</p>
               </div>
               {q.question_type === 'multiple_choice' ? (
-                <div className="space-y-1 mr-7">
+                <div className="space-y-1 me-7">
                   {qOptions.map((opt, oIdx) => (
                     <div key={opt.id} className={`flex items-center gap-2 px-2 py-1 rounded-md text-[11px] ${opt.is_correct ? 'bg-accent/10 text-accent font-medium' : 'text-muted-foreground'}`}>
                       <span className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0 text-[9px] font-bold border-current">
