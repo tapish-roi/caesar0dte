@@ -838,9 +838,74 @@ export default function StudentDashboard() {
   }
 
   // ── Full Dashboard ──
+  const studentNavItems = [
+    { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
+    { key: 'community' as const, label: 'קהילה', icon: Users },
+    { key: 'live' as const, label: 'לייב', icon: Radio },
+    { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion },
+  ];
+
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
-      {/* Sidebar */}
+      {/* Mobile Header */}
+      {isMobile && !lessonViewMode && (
+        <div className="fixed top-0 left-0 right-0 z-30">
+          <MobileHeader
+            title={mentorName || 'TradeLearn'}
+            subtitle={memberships.length > 1 ? 'לחץ להחלפת קהילה' : 'תלמיד'}
+            showChevron={memberships.length > 1}
+            onTitleClick={memberships.length > 1 ? () => setCommunityDropdownOpen(v => !v) : undefined}
+            onSettingsClick={() => setProfileOpen(true)}
+          />
+        </div>
+      )}
+
+      {/* Mobile Bottom Nav */}
+      {!lessonViewMode && (
+        <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
+      )}
+
+      {/* Mobile Profile Sheet */}
+      {isMobile && (
+        <Sheet open={profileOpen} onOpenChange={setProfileOpen}>
+          <SheetContent side="bottom" className="h-[85vh] overflow-y-auto" dir="rtl">
+            <SheetHeader>
+              <SheetTitle>הגדרות פרופיל</SheetTitle>
+            </SheetHeader>
+            <div className="py-4">
+              <InlineProfilePopover profile={profile} user={user} profileForm={profileForm} setProfileForm={setProfileForm} newPassword={newPassword} setNewPassword={setNewPassword} showPassword={showPassword} setShowPassword={setShowPassword} isAvatarUploading={isAvatarUploading} avatarInputRef={avatarInputRef} notifyState={notifyState} saveProfile={saveProfile} savePassword={savePassword} saveNotifications={saveNotifications} uploadAvatar={uploadAvatar} signOut={signOut} onClose={() => setProfileOpen(false)} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* Mobile Community Switcher Sheet */}
+      {isMobile && memberships.length > 1 && (
+        <Sheet open={communityDropdownOpen} onOpenChange={setCommunityDropdownOpen}>
+          <SheetContent side="bottom" className="max-h-[60vh]" dir="rtl">
+            <SheetHeader>
+              <SheetTitle>החלפת קהילה</SheetTitle>
+            </SheetHeader>
+            <div className="py-4 space-y-2">
+              {memberships.map((m) => (
+                <button
+                  key={m.mentor_id}
+                  onClick={() => { setSelectedMentorId(m.mentor_id); setCommunityDropdownOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${m.mentor_id === selectedMentorId ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted border border-border'}`}
+                >
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-bold text-primary">{m.mentorName.charAt(0)}</span>
+                  </div>
+                  <span className="text-sm font-medium text-foreground flex-1 text-right">{m.mentorName}</span>
+                  {m.mentor_id === selectedMentorId && <div className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                </button>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* Sidebar - hidden on mobile */}
       <aside className="w-64 bg-sidebar border-s border-sidebar-border flex flex-col shrink-0 h-full">
         <AnimatePresence mode="wait">
           {lessonViewMode ? (
