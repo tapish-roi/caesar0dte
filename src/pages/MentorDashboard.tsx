@@ -19,6 +19,10 @@ import MentorQuestionsHub from '@/components/MentorQuestionsHub';
 import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
 import LessonStudentProgress from '@/components/LessonStudentProgress';
+import MobileBottomNav from '@/components/MobileBottomNav';
+import MobileHeader from '@/components/MobileHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { ChevronLeft } from 'lucide-react';
 
 // ── LessonQuizPanel: shows the published quiz for a lesson ──────────────────
 function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: string; mentorId: string; onCreateQuiz: () => void }) {
