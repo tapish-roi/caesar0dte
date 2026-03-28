@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -47,13 +47,15 @@ type Answers = Record<string, { type: 'multiple_choice'; optionId: string } | { 
 export default function StudentQuizPage() {
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const reviewFromUrl = searchParams.get('review') === 'true';
   const { user } = useAuth();
   const { toast } = useToast();
   const [answers, setAnswers] = useState<Answers>({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState<{ got: number; max: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showReview, setShowReview] = useState(false);
+  const [showReview, setShowReview] = useState(reviewFromUrl);
 
   const { data: quiz, isLoading: quizLoading } = useQuery<Quiz | null>({
     queryKey: ['student-quiz', quizId],
@@ -104,6 +106,8 @@ export default function StudentQuizPage() {
         .select('id, score, max_score')
         .eq('quiz_id', quizId!)
         .eq('student_id', user!.id)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       return data;
     },
@@ -120,7 +124,7 @@ export default function StudentQuizPage() {
         .eq('submission_id', existingSubmission!.id);
       return (data ?? []) as ReviewAnswer[];
     },
-    enabled: !!existingSubmission?.id && showReview,
+    enabled: !!existingSubmission?.id && (showReview || reviewFromUrl),
   });
 
   const isLoading = quizLoading || questionsLoading;
@@ -229,8 +233,8 @@ export default function StudentQuizPage() {
       <div className="min-h-screen bg-background" dir="rtl">
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-            <button onClick={() => setShowReview(false)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <ChevronRight className="w-4 h-4" />חזרה לתוצאה
+            <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronRight className="w-4 h-4" />חזרה
             </button>
             <span className="text-sm font-semibold text-foreground flex-1 text-center">סקירת תשובות</span>
           </div>

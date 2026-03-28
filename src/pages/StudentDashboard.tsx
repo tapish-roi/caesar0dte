@@ -329,6 +329,7 @@ function LandingScreen({
 
 // ─── Lesson Quiz Button ───────────────────────────────────────────────────────
 function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lessonId: string; mentorId: string; onTakeQuiz: (quizId: string) => void; studentId: string }) {
+  const navigate = useNavigate();
   const { data: quiz, isLoading } = useQuery({
     queryKey: ['student-lesson-quiz-btn', lessonId],
     queryFn: async () => {
@@ -386,7 +387,13 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
           </p>
         </div>
         <button
-          onClick={() => onTakeQuiz(quiz.id)}
+          onClick={() => {
+            if (hasSubmitted) {
+              navigate(`/quiz/${quiz.id}?review=true`);
+            } else {
+              onTakeQuiz(quiz.id);
+            }
+          }}
           className={`h-9 px-4 rounded-xl text-sm font-medium hover:opacity-90 transition-all shrink-0 flex items-center gap-1.5 ${
             hasSubmitted ? 'bg-accent text-accent-foreground' : 'bg-primary text-primary-foreground'
           }`}
