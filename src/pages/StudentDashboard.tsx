@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import MediaLightbox, { useMediaLightbox } from '@/components/MediaLightbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -1539,6 +1540,7 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
     enabled: expanded,
   });
 
+  const { lightbox, openLightbox, closeLightbox } = useMediaLightbox();
   const pType = post.post_type;
 
   return (
@@ -1585,13 +1587,14 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
 
         {/* Non-live media */}
         {pType !== 'live' && post.media_url && (
-          <div className="mt-3 rounded-xl overflow-hidden">
+          <div className="mt-3 rounded-xl overflow-hidden cursor-pointer" onClick={() => openLightbox(post.media_url!, (post.media_type as 'video' | 'image') || 'image')}>
             {post.media_type === 'video'
-              ? <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" controls />
+              ? <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" />
               : <img src={post.media_url} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
             }
           </div>
         )}
+        {lightbox && <MediaLightbox open={!!lightbox} onOpenChange={closeLightbox} url={lightbox.url} type={lightbox.type} />}
 
         {/* Join live — only if active (no recording yet) */}
         {pType === 'live' && !post.media_url && !post.content.includes('(הסתיים)') && (

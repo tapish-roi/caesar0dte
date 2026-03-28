@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import MediaLightbox, { useMediaLightbox } from '@/components/MediaLightbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -2076,6 +2077,7 @@ function MentorPostCard({
     enabled: expanded,
   });
 
+  const { lightbox, openLightbox, closeLightbox } = useMediaLightbox();
   const pType = post.post_type;
 
   return (
@@ -2116,13 +2118,14 @@ function MentorPostCard({
         <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
         {post.media_url && (
-          <div className="mt-3 rounded-xl overflow-hidden">
+          <div className="mt-3 rounded-xl overflow-hidden cursor-pointer" onClick={() => openLightbox(post.media_url!, (post.media_type as 'video' | 'image') || 'image')}>
             {post.media_type === 'video'
-              ? <video src={post.media_url} className="w-full max-h-80 object-cover" controls />
+              ? <video src={post.media_url} className="w-full max-h-80 object-cover" />
               : <img src={post.media_url} alt="" className="w-full max-h-80 object-cover" />
             }
           </div>
         )}
+        {lightbox && <MediaLightbox open={!!lightbox} onOpenChange={closeLightbox} url={lightbox.url} type={lightbox.type} />}
       </div>
 
       <div className="px-5 pb-3 border-t border-border pt-3">
