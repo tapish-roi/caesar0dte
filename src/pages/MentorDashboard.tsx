@@ -1420,8 +1420,8 @@ export default function MentorDashboard() {
                       const displayName = m.display_name || m.profiles?.full_name || 'תלמיד';
                       const isEditing = editingNickname === m.student_id;
                       return (
-                      <div key={m.student_id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors group">
-                        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold">
+                      <div key={m.student_id} className="flex flex-wrap items-center gap-2 md:gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors group">
+                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold shrink-0">
                           {displayName[0]?.toUpperCase() ?? '?'}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1449,35 +1449,35 @@ export default function MentorDashboard() {
                             </form>
                           ) : (
                             <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium text-foreground">{displayName}</span>
+                              <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
                               {m.display_name && (
                                 <span className="text-[10px] text-muted-foreground">({m.profiles?.full_name})</span>
                               )}
                               <button
                                 onClick={() => { setEditingNickname(m.student_id); setNicknameValue(m.display_name || ''); }}
-                                className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-primary transition-all"
+                                className="md:opacity-0 md:group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-primary transition-all"
                                 title="ערוך כינוי"
                               >
                                 <Pencil className="w-3 h-3" />
                               </button>
                             </div>
                           )}
-                          <div className="text-xs text-muted-foreground">{m.profiles?.email}</div>
+                          <div className="text-xs text-muted-foreground truncate">{m.profiles?.email}</div>
                         </div>
-                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full shrink-0">
-                          הצטרף {new Date(m.joined_at).toLocaleDateString('he-IL')}
+                        <div className="text-[10px] md:text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full shrink-0">
+                          {new Date(m.joined_at).toLocaleDateString('he-IL')}
                         </div>
                         {/* Permissions button */}
                         <button
                           onClick={() => { setAccessStudentId(m.student_id); setAccessStudentName(displayName); }}
-                          className="w-8 h-8 flex items-center justify-center rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-all"
+                          className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-all"
                           title="נהל הרשאות קטגוריות"
                         >
                           <ShieldCheck className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setRemoveConfirm({ studentId: m.student_id, name: displayName })}
-                          className="opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                          className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                           title="הסר מהקהילה"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
