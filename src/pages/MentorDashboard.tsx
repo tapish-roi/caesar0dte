@@ -121,7 +121,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
                   ))}
                 </div>
               ) : (
-                <div className="mr-7 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="me-7 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <AlignLeft className="w-3 h-3 shrink-0" />שאלה פתוחה
                 </div>
               )}
