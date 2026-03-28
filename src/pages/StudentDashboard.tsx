@@ -25,6 +25,10 @@ import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubStudent from '@/components/LiveHubStudent';
 import LessonQA from '@/components/LessonQA';
 import StudentMyQuestions from '@/components/StudentMyQuestions';
+import MobileBottomNav from '@/components/MobileBottomNav';
+import MobileHeader from '@/components/MobileHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 type SidebarTab = 'lessons' | 'community' | 'live' | 'questions';
 type PostType = 'discussion' | 'media' | 'live';
