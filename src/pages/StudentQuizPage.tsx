@@ -124,7 +124,7 @@ export default function StudentQuizPage() {
         .eq('submission_id', existingSubmission!.id);
       return (data ?? []) as ReviewAnswer[];
     },
-    enabled: !!existingSubmission?.id && showReview,
+    enabled: !!existingSubmission?.id && (showReview || reviewFromUrl),
   });
 
   const isLoading = quizLoading || questionsLoading;
