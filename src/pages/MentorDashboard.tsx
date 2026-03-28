@@ -234,6 +234,10 @@ export default function MentorDashboard() {
   const [accessStudentId, setAccessStudentId] = useState<string | null>(null);
   const [accessStudentName, setAccessStudentName] = useState('');
 
+  // Edit nickname
+  const [editingNickname, setEditingNickname] = useState<string | null>(null);
+  const [nicknameValue, setNicknameValue] = useState('');
+
   // Edit lesson
   const [editLesson, setEditLesson] = useState<Lesson | null>(null);
   const [editForm, setEditForm] = useState({ title: '', description: '', video_url: '', duration_minutes: '', attachment_url: '', attachment_name: '' });
