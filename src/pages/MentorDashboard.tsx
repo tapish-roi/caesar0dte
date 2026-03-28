@@ -74,7 +74,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
   );
 
   if (!quiz) return (
-    <div className="w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex flex-col items-center justify-center gap-3 min-h-[200px] text-center" dir="rtl">
+    <div className="w-full md:w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex flex-col items-center justify-center gap-3 min-h-[200px] text-center" dir="rtl">
       <ClipboardList className="w-8 h-8 text-muted-foreground opacity-30" />
       <p className="text-sm font-medium text-foreground">אין מבחן לשיעור זה</p>
       <p className="text-xs text-muted-foreground">צור מבחן כדי לבחון את התלמידים</p>
