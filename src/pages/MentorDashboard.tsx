@@ -1065,6 +1065,27 @@ export default function MentorDashboard() {
                       </motion.div>
                     );
                   })() : (
+                    isMobile ? (
+                    /* On mobile, show lesson list inline */
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-bold text-foreground mb-3">{lessonViewMode.categoryTitle}</h3>
+                      {(() => {
+                        const catLessons = lessons.filter(l => l.category_id === lessonViewMode.categoryId);
+                        if (catLessons.length === 0) return <p className="text-sm text-muted-foreground text-center py-8">אין שיעורים בקטגוריה זו</p>;
+                        return catLessons.map((lesson, idx) => (
+                          <button
+                            key={lesson.id}
+                            onClick={() => setSelectedLesson(lesson.id)}
+                            className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-right"
+                          >
+                            <span className="w-5 h-5 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">{idx + 1}</span>
+                            <span className="text-sm font-medium text-foreground flex-1 truncate">{lesson.title}</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${lesson.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>{lesson.is_published ? 'פורסם' : 'טיוטה'}</span>
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  ) : (
                     <div className="text-center py-24 text-muted-foreground">
                       <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
                       <p className="font-medium">בחר שיעור מהרשימה</p>
