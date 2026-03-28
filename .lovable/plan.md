@@ -1,33 +1,35 @@
 
 
-## Problem
+# הגדרת תבניות מייל מותאמות אישית עם דומיין שליחה
 
-The "התחל מבחן" button doesn't change to "צפה בתוצאות" after a student completes a quiz. The code logic is correct, but when the student finishes a quiz on the `/quiz/:quizId` page and navigates back to the dashboard, the React Query cache still holds the old result (no submission found), so the button stays unchanged.
+## מצב נוכחי
+לא מוגדר דומיין שליחת מיילים בפרויקט. צריך להגדיר דומיין לפני שניתן ליצור תבניות מותאמות.
 
-## Root Cause
+## תוכנית
 
-The `LessonQuizButton` component uses `useQuery` with key `['student-lesson-quiz-submission', quiz?.id, studentId]` to check if a submission exists. After completing a quiz on the separate quiz page and navigating back, this cached query is never invalidated — so it returns stale `null` data.
+### שלב 1 — הגדרת דומיין שליחה
+פתיחת דיאלוג הגדרת דומיין מייל. תצטרך להזין את הדומיין שלך (למשל yourdomain.com) ולהגדיר רשומות DNS אצל ספק הדומיין שלך. אחרי שהדומיין יאומת, המיילים יישלחו מהדומיין שלך במקום מדומיין ברירת המחדל.
 
-## Solution
+### שלב 2 — יצירת תבניות מייל מותאמות
+לאחר הגדרת הדומיין, ייווצרו 6 תבניות מייל בעברית (RTL) המותאמות לעיצוב האפליקציה:
+- **אימות הרשמה** — מייל אישור לאחר הרשמה
+- **איפוס סיסמה** — קישור לשחזור סיסמה
+- **קישור קסם (Magic Link)** — כניסה ללא סיסמה
+- **הזמנה** — הזמנת משתמש חדש למערכת
+- **שינוי מייל** — אישור שינוי כתובת מייל
+- **אימות מחדש** — קוד OTP לאימות חוזר
 
-Two fixes in `src/pages/StudentDashboard.tsx`:
+כל התבניות יעוצבו בצבעים ובסגנון של האפליקציה שלך.
 
-1. **Add `refetchOnMount: 'always'`** to the submission query inside `LessonQuizButton`, so every time the student returns to the dashboard and the component mounts, it re-fetches the submission status from the database.
+### שלב 3 — פריסה והפעלה
+פריסת הפונקציה שמטפלת במיילים. המיילים יתחילו להישלח אוטומטית ברגע שאימות ה-DNS יושלם.
 
-2. **Add `staleTime: 0`** to ensure the data is always considered stale and re-fetched on mount.
+## פרטים טכניים
+- ייווצרו קבצי תבנית React Email תחת `supabase/functions/_shared/email-templates/`
+- תיווצר Edge Function בשם `auth-email-hook` שמנתבת את המיילים לתבניות המותאמות
+- העיצוב יחולץ מ-`src/index.css` (צבעים, פונטים, רדיוס) ויותאם לתבניות
+- כל התבניות יהיו ב-RTL עם טקסט בעברית
 
-This is a one-line change in the `useQuery` options for the submission query inside `LessonQuizButton`.
-
-## Technical Detail
-
-```typescript
-// In LessonQuizButton, update the submission query:
-const { data: submission } = useQuery({
-  queryKey: ['student-lesson-quiz-submission', quiz?.id, studentId],
-  queryFn: async () => { ... },
-  enabled: !!quiz?.id && !!studentId,
-  refetchOnMount: 'always',  // <-- ADD THIS
-  staleTime: 0,              // <-- ADD THIS
-});
-```
+## הצעד הראשון
+נתחיל בהגדרת הדומיין — לחץ על הכפתור למטה:
 
