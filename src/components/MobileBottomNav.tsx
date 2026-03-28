@@ -36,7 +36,7 @@ export default function MobileBottomNav({ items, activeTab, onTabChange }: Mobil
                 </span>
               )}
             </div>
-            <span className="text-[10px] font-medium leading-tight">{label}</span>
+            <span className="text-[9px] font-medium leading-tight truncate max-w-full px-0.5">{label}</span>
           </button>
         );
       })}
