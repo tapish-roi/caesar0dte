@@ -972,12 +972,23 @@ export default function MentorDashboard() {
       </aside>
 
       {/* Main */}
-      <main className={`flex-1 ${activeTab === 'questions' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
+      <main className={`flex-1 ${isMobile ? 'pt-14 pb-20' : ''} ${activeTab === 'questions' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
         <AnimatePresence mode="wait">
 
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
-            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={lessonViewMode && selectedLesson ? "p-8 w-full" : "p-8 max-w-4xl"}>
+            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={lessonViewMode && selectedLesson ? "p-4 md:p-8 w-full" : "p-4 md:p-8 max-w-4xl"}>
+
+              {/* Mobile back button for lesson view */}
+              {lessonViewMode && isMobile && (
+                <button
+                  onClick={() => { setLessonViewMode(null); setSelectedLesson(null); }}
+                  className="flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity mb-4"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  חזור לרשימת השיעורים
+                </button>
+              )}
 
               {/* ── Lesson View Mode (player in main area, list in sidebar) ── */}
               {lessonViewMode ? (
