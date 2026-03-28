@@ -906,7 +906,7 @@ export default function StudentDashboard() {
       )}
 
       {/* Sidebar - hidden on mobile */}
-      <aside className="w-64 bg-sidebar border-s border-sidebar-border flex flex-col shrink-0 h-full">
+      <aside className="hidden md:flex w-64 bg-sidebar border-s border-sidebar-border flex-col shrink-0 h-full">
         <AnimatePresence mode="wait">
           {lessonViewMode ? (
             /* ── Lesson View Mode Sidebar ── */
