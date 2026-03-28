@@ -2075,7 +2075,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         <AnimatePresence>
           {showMembers && (
             <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 240, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }} className="bg-[#2b2d31] border-r border-white/5 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
+              transition={{ duration: 0.2 }} className="bg-[#2b2d31] border-s border-white/5 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
               <div className="px-4 pt-5 pb-2 shrink-0">
                 <p className="text-xs font-bold text-white/40 uppercase tracking-widest">חברים בשיחה — {participants.length}</p>
               </div>
