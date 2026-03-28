@@ -1091,6 +1091,7 @@ export default function MentorDashboard() {
                       <p className="font-medium">בחר שיעור מהרשימה</p>
                       <p className="text-sm mt-1">לחץ על שיעור בסרגל הצד כדי לצפות בו</p>
                     </div>
+                  )
                   )}
                 </AnimatePresence>
               ) : (
