@@ -25,6 +25,10 @@ import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubStudent from '@/components/LiveHubStudent';
 import LessonQA from '@/components/LessonQA';
 import StudentMyQuestions from '@/components/StudentMyQuestions';
+import MobileBottomNav from '@/components/MobileBottomNav';
+import MobileHeader from '@/components/MobileHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 type SidebarTab = 'lessons' | 'community' | 'live' | 'questions';
 type PostType = 'discussion' | 'media' | 'live';
@@ -414,6 +418,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
 
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
 
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -833,10 +838,77 @@ export default function StudentDashboard() {
   }
 
   // ── Full Dashboard ──
+  const studentNavItems = [
+    { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
+    { key: 'community' as const, label: 'קהילה', icon: Users },
+    { key: 'live' as const, label: 'לייב', icon: Radio },
+    { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion },
+  ];
+
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
-      {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-s border-sidebar-border flex flex-col shrink-0 h-full">
+      {/* Mobile Header */}
+      {isMobile && !lessonViewMode && (
+        <div className="fixed top-0 left-0 right-0 z-30">
+          <MobileHeader
+            title={mentorName || 'TradeLearn'}
+            subtitle={memberships.length > 1 ? 'לחץ להחלפת קהילה' : 'תלמיד'}
+            showChevron={memberships.length > 1}
+            onTitleClick={memberships.length > 1 ? () => setCommunityDropdownOpen(v => !v) : undefined}
+            onSettingsClick={() => setProfileOpen(true)}
+          />
+        </div>
+      )}
+
+      {/* Mobile Bottom Nav */}
+      {!lessonViewMode && (
+        <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
+      )}
+
+      {/* Mobile Profile - full screen overlay */}
+      {isMobile && profileOpen && (
+        <div className="fixed inset-0 z-50 bg-background overflow-y-auto" dir="rtl">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={() => setProfileOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+              <span className="text-base font-bold text-foreground">הפרופיל שלי</span>
+              <div className="w-5" />
+            </div>
+            <ProfileContent profile={profile} user={user} profileForm={profileForm} setProfileForm={setProfileForm} newPassword={newPassword} setNewPassword={setNewPassword} showPassword={showPassword} setShowPassword={setShowPassword} isAvatarUploading={isAvatarUploading} avatarInputRef={avatarInputRef} notifyState={notifyState} saveProfile={saveProfile} savePassword={savePassword} saveNotifications={saveNotifications} uploadAvatar={uploadAvatar} signOut={signOut} />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Community Switcher Sheet */}
+      {isMobile && memberships.length > 1 && (
+        <Sheet open={communityDropdownOpen} onOpenChange={setCommunityDropdownOpen}>
+          <SheetContent side="bottom" className="max-h-[60vh]" dir="rtl">
+            <SheetHeader>
+              <SheetTitle>החלפת קהילה</SheetTitle>
+            </SheetHeader>
+            <div className="py-4 space-y-2">
+              {memberships.map((m) => (
+                <button
+                  key={m.mentor_id}
+                  onClick={() => { setSelectedMentorId(m.mentor_id); setCommunityDropdownOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${m.mentor_id === selectedMentorId ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted border border-border'}`}
+                >
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-bold text-primary">{m.mentorName.charAt(0)}</span>
+                  </div>
+                  <span className="text-sm font-medium text-foreground flex-1 text-right">{m.mentorName}</span>
+                  {m.mentor_id === selectedMentorId && <div className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                </button>
+              ))}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* Sidebar - hidden on mobile */}
+      <aside className="hidden md:flex w-64 bg-sidebar border-s border-sidebar-border flex-col shrink-0 h-full">
         <AnimatePresence mode="wait">
           {lessonViewMode ? (
             /* ── Lesson View Mode Sidebar ── */
@@ -1054,12 +1126,23 @@ export default function StudentDashboard() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-y-auto">
+      <main className={`flex-1 overflow-y-auto ${isMobile ? 'pt-14 pb-20' : ''}`}>
         <AnimatePresence mode="wait">
 
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
-            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8">
+            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8">
+
+              {/* Mobile back button for lesson view */}
+              {lessonViewMode && isMobile && (
+                <button
+                  onClick={() => { setLessonViewMode(null); setSelectedLesson(null); }}
+                  className="flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity mb-4"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  חזור לרשימת השיעורים
+                </button>
+              )}
 
               {/* ── Lesson View Mode (player only, category list in sidebar) ── */}
               {lessonViewMode ? (
@@ -1135,6 +1218,31 @@ export default function StudentDashboard() {
                         </div>
                       )}
                     </motion.div>
+                  ) : isMobile ? (
+                    /* On mobile, show lesson list inline since there's no sidebar */
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-bold text-foreground mb-3">{lessonViewMode.categoryTitle}</h3>
+                      {(() => {
+                        const catLessons = lessons.filter(l => l.category_id === lessonViewMode.categoryId);
+                        if (catLessons.length === 0) return <p className="text-sm text-muted-foreground text-center py-8">אין שיעורים בקטגוריה זו</p>;
+                        return catLessons.map((lesson, idx) => {
+                          const prog = getProgress(lesson.id);
+                          return (
+                            <button
+                              key={lesson.id}
+                              onClick={() => setSelectedLesson(lesson.id)}
+                              className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-right"
+                            >
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0">
+                                {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : <span className="text-xs font-bold text-muted-foreground">{idx + 1}</span>}
+                              </div>
+                              <span className="text-sm font-medium text-foreground flex-1 truncate">{lesson.title}</span>
+                              {lesson.duration_minutes && <span className="text-[10px] text-muted-foreground">{lesson.duration_minutes} דק'</span>}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
                   ) : (
                     <div className="text-center py-24 text-muted-foreground">
                       <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -1280,7 +1388,7 @@ export default function StudentDashboard() {
 
           {/* ──────── COMMUNITY ──────── */}
           {activeTab === 'community' && (
-            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-2xl">
+            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 max-w-2xl">
               <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
@@ -1638,6 +1746,114 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
 });
 StudentPostCard.displayName = 'StudentPostCard';
 
+// ─── ProfileContent (reusable inner content) ─────────────────────────────────
+function ProfileContent({
+  profile, user, profileForm, setProfileForm, newPassword, setNewPassword,
+  showPassword, setShowPassword, isAvatarUploading, avatarInputRef,
+  notifyState, saveProfile, savePassword, saveNotifications,
+  uploadAvatar, signOut,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  profile: any; user: any; profileForm: { full_name: string; phone: string };
+  setProfileForm: React.Dispatch<React.SetStateAction<{ full_name: string; phone: string }>>;
+  newPassword: string; setNewPassword: (v: string) => void;
+  showPassword: boolean; setShowPassword: (v: (p: boolean) => boolean) => void;
+  isAvatarUploading: boolean; avatarInputRef: React.RefObject<HTMLInputElement | null>;
+  notifyState: { notify_sms: boolean; notify_email: boolean };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  saveProfile: any; savePassword: any; saveNotifications: any;
+  uploadAvatar: (f: File) => void; signOut: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="relative shrink-0">
+          <div className="w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center overflow-hidden">
+            {profile?.avatar_url
+              ? <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+              : <User className="w-6 h-6 text-accent/40" />
+            }
+          </div>
+          <button
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={isAvatarUploading}
+            className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-50 shadow-md"
+          >
+            {isAvatarUploading
+              ? <div className="w-2.5 h-2.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+              : <Camera className="w-3 h-3" />
+            }
+          </button>
+          <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground truncate">{profile?.full_name || 'תלמיד'}</p>
+          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+        </div>
+      </div>
+      <div className="space-y-2.5">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">פרטים אישיים</p>
+        <div><label className="block text-xs text-muted-foreground mb-1">שם מלא</label>
+          <div className="relative">
+            <User className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input value={profileForm.full_name} onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))} placeholder="השם שלך"
+              className="w-full h-9 pr-9 pl-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
+          </div>
+        </div>
+        <div><label className="block text-xs text-muted-foreground mb-1">מספר טלפון</label>
+          <div className="relative">
+            <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input value={profileForm.phone} onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} placeholder="050-0000000" type="tel"
+              className="w-full h-9 pr-9 pl-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
+          </div>
+        </div>
+        <div><label className="block text-xs text-muted-foreground mb-1">אימייל</label>
+          <div className="relative">
+            <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <input value={user?.email ?? ''} disabled className="w-full h-9 pr-9 pl-3 bg-muted ring-1 ring-border rounded-lg text-xs text-muted-foreground cursor-not-allowed text-right" />
+          </div>
+        </div>
+        <button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending || !profileForm.full_name.trim()}
+          className="w-full h-9 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-50">
+          {saveProfile.isPending ? 'שומר...' : 'שמור פרטים'}
+        </button>
+      </div>
+      <div className="space-y-2.5 pt-1 border-t border-border">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-1">שינוי סיסמה</p>
+        <div className="relative">
+          <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input type={showPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="סיסמה חדשה (6+ תווים)"
+            className="w-full h-9 pr-9 pl-9 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
+          <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+            {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+        <button onClick={() => savePassword.mutate()} disabled={savePassword.isPending || newPassword.length < 6}
+          className="w-full h-9 bg-secondary text-secondary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-50">
+          {savePassword.isPending ? 'מעדכן...' : 'עדכן סיסמה'}
+        </button>
+      </div>
+      <div className="space-y-2.5 pt-1 border-t border-border">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-1">התראות ועדכונים</p>
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-xs text-foreground">SMS / נייד</span></div>
+          <Switch checked={notifyState.notify_sms} onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: val, notify_email: notifyState.notify_email })} disabled={saveNotifications.isPending} />
+        </div>
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-xs text-foreground">אימייל</span></div>
+          <Switch checked={notifyState.notify_email} onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: notifyState.notify_sms, notify_email: val })} disabled={saveNotifications.isPending} />
+        </div>
+      </div>
+      <div className="pt-1 border-t border-border">
+        <button onClick={signOut} className="w-full flex items-center justify-center gap-2 h-9 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-all">
+          <LogOut className="w-3.5 h-3.5" />התנתק
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── InlineProfilePopover ─────────────────────────────────────────────────────
 function InlineProfilePopover({
   profile, user, profileForm, setProfileForm, newPassword, setNewPassword,
@@ -1672,91 +1888,14 @@ function InlineProfilePopover({
         <span className="text-sm font-semibold text-foreground">הפרופיל שלי</span>
         <div className="w-4" />
       </div>
-      <div className="p-4 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="relative shrink-0">
-            <div className="w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center overflow-hidden">
-              {profile?.avatar_url
-                ? <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                : <User className="w-6 h-6 text-accent/40" />
-              }
-            </div>
-            <button
-              onClick={() => avatarInputRef.current?.click()}
-              disabled={isAvatarUploading}
-              className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-50 shadow-md"
-            >
-              {isAvatarUploading
-                ? <div className="w-2.5 h-2.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                : <Camera className="w-3 h-3" />
-              }
-            </button>
-            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
-              onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{profile?.full_name || 'תלמיד'}</p>
-            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-          </div>
-        </div>
-        <div className="space-y-2.5">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">פרטים אישיים</p>
-          <div><label className="block text-xs text-muted-foreground mb-1">שם מלא</label>
-            <div className="relative">
-              <User className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <input value={profileForm.full_name} onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))} placeholder="השם שלך"
-                className="w-full h-9 pr-9 pl-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
-            </div>
-          </div>
-          <div><label className="block text-xs text-muted-foreground mb-1">מספר טלפון</label>
-            <div className="relative">
-              <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <input value={profileForm.phone} onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} placeholder="050-0000000" type="tel"
-                className="w-full h-9 pr-9 pl-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
-            </div>
-          </div>
-          <div><label className="block text-xs text-muted-foreground mb-1">אימייל</label>
-            <div className="relative">
-              <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <input value={user?.email ?? ''} disabled className="w-full h-9 pr-9 pl-3 bg-muted ring-1 ring-border rounded-lg text-xs text-muted-foreground cursor-not-allowed text-right" />
-            </div>
-          </div>
-          <button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending || !profileForm.full_name.trim()}
-            className="w-full h-9 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-50">
-            {saveProfile.isPending ? 'שומר...' : 'שמור פרטים'}
-          </button>
-        </div>
-        <div className="space-y-2.5 pt-1 border-t border-border">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-1">שינוי סיסמה</p>
-          <div className="relative">
-            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input type={showPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="סיסמה חדשה (6+ תווים)"
-              className="w-full h-9 pr-9 pl-9 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
-            <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-              {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-          <button onClick={() => savePassword.mutate()} disabled={savePassword.isPending || newPassword.length < 6}
-            className="w-full h-9 bg-secondary text-secondary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-50">
-            {savePassword.isPending ? 'מעדכן...' : 'עדכן סיסמה'}
-          </button>
-        </div>
-        <div className="space-y-2.5 pt-1 border-t border-border">
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-1">התראות ועדכונים</p>
-          <div className="flex items-center justify-between py-1">
-            <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-xs text-foreground">SMS / נייד</span></div>
-            <Switch checked={notifyState.notify_sms} onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: val, notify_email: notifyState.notify_email })} disabled={saveNotifications.isPending} />
-          </div>
-          <div className="flex items-center justify-between py-1">
-            <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-xs text-foreground">אימייל</span></div>
-            <Switch checked={notifyState.notify_email} onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: notifyState.notify_sms, notify_email: val })} disabled={saveNotifications.isPending} />
-          </div>
-        </div>
-        <div className="pt-1 border-t border-border">
-          <button onClick={signOut} className="w-full flex items-center justify-center gap-2 h-9 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-all">
-            <LogOut className="w-3.5 h-3.5" />התנתק
-          </button>
-        </div>
+      <div className="p-4">
+        <ProfileContent
+          profile={profile} user={user} profileForm={profileForm} setProfileForm={setProfileForm}
+          newPassword={newPassword} setNewPassword={setNewPassword} showPassword={showPassword} setShowPassword={setShowPassword}
+          isAvatarUploading={isAvatarUploading} avatarInputRef={avatarInputRef} notifyState={notifyState}
+          saveProfile={saveProfile} savePassword={savePassword} saveNotifications={saveNotifications}
+          uploadAvatar={uploadAvatar} signOut={signOut}
+        />
       </div>
     </motion.div>
   );

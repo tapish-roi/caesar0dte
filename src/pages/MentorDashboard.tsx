@@ -19,6 +19,10 @@ import MentorQuestionsHub from '@/components/MentorQuestionsHub';
 import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
 import LessonStudentProgress from '@/components/LessonStudentProgress';
+import MobileBottomNav from '@/components/MobileBottomNav';
+import MobileHeader from '@/components/MobileHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { ChevronLeft } from 'lucide-react';
 
 // ── LessonQuizPanel: shows the published quiz for a lesson ──────────────────
 function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: string; mentorId: string; onCreateQuiz: () => void }) {
@@ -64,13 +68,13 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
   });
 
   if (isLoading) return (
-    <div className="w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex items-center justify-center min-h-[200px]">
+    <div className="w-full md:w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex items-center justify-center min-h-[200px]">
       <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   if (!quiz) return (
-    <div className="w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex flex-col items-center justify-center gap-3 min-h-[200px] text-center" dir="rtl">
+    <div className="w-full md:w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex flex-col items-center justify-center gap-3 min-h-[200px] text-center" dir="rtl">
       <ClipboardList className="w-8 h-8 text-muted-foreground opacity-30" />
       <p className="text-sm font-medium text-foreground">אין מבחן לשיעור זה</p>
       <p className="text-xs text-muted-foreground">צור מבחן כדי לבחון את התלמידים</p>
@@ -84,7 +88,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
   );
 
   return (
-    <div className="w-80 shrink-0 bg-card border border-border rounded-xl overflow-hidden" dir="rtl">
+    <div className="w-full md:w-80 shrink-0 bg-card border border-border rounded-xl overflow-hidden" dir="rtl">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${quiz.is_published ? 'bg-accent/10' : 'bg-muted'}`}>
@@ -191,6 +195,7 @@ interface PostComment {
 
 export default function MentorDashboard() {
   const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
@@ -813,10 +818,41 @@ export default function MentorDashboard() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
+  const mentorNavItems = [
+    { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
+    { key: 'community' as const, label: 'קהילה', icon: Users },
+    { key: 'students' as const, label: 'תלמידים', icon: GraduationCap },
+    { key: 'live' as const, label: 'לייב', icon: Radio },
+    { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
+  ];
+
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
-      {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-s border-sidebar-border flex flex-col shrink-0 h-full">
+      {/* Mobile Header */}
+      {isMobile && !lessonViewMode && (
+        <div className="fixed top-0 left-0 right-0 z-30">
+          <MobileHeader
+            title="TradeLearn"
+            subtitle="מנטור"
+            onSettingsClick={signOut}
+          />
+        </div>
+      )}
+
+      {/* Mobile Bottom Nav */}
+      {!lessonViewMode && (
+        <MobileBottomNav
+          items={mentorNavItems}
+          activeTab={activeTab}
+          onTabChange={(key) => {
+            setActiveTab(key as SidebarTab);
+            if (key !== 'quizzes') setQuizNavLessonId(null);
+          }}
+        />
+      )}
+
+      {/* Sidebar - hidden on mobile */}
+      <aside className="hidden md:flex w-64 bg-sidebar border-s border-sidebar-border flex-col shrink-0 h-full">
         <AnimatePresence mode="wait">
           {lessonViewMode ? (
             /* ── Lesson View Mode Sidebar ── */
@@ -936,12 +972,23 @@ export default function MentorDashboard() {
       </aside>
 
       {/* Main */}
-      <main className={`flex-1 ${activeTab === 'questions' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
+      <main className={`flex-1 ${isMobile ? 'pt-14 pb-20' : ''} ${activeTab === 'questions' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
         <AnimatePresence mode="wait">
 
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
-            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={lessonViewMode && selectedLesson ? "p-8 w-full" : "p-8 max-w-4xl"}>
+            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={lessonViewMode && selectedLesson ? "p-4 md:p-8 w-full" : "p-4 md:p-8 max-w-4xl"}>
+
+              {/* Mobile back button for lesson view */}
+              {lessonViewMode && isMobile && (
+                <button
+                  onClick={() => { setLessonViewMode(null); setSelectedLesson(null); }}
+                  className="flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity mb-4"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  חזור לרשימת השיעורים
+                </button>
+              )}
 
               {/* ── Lesson View Mode (player in main area, list in sidebar) ── */}
               {lessonViewMode ? (
@@ -950,7 +997,7 @@ export default function MentorDashboard() {
                     const lesson = lessons.find(l => l.id === selectedLesson);
                     if (!lesson) return null;
                     return (
-                      <motion.div key={lesson.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex gap-6 items-start">
+                      <motion.div key={lesson.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col md:flex-row gap-6 items-start">
                         {/* Left column: lesson content */}
                         <div className="flex-1 min-w-0 bg-card rounded-xl card-shadow overflow-hidden">
                           {/* Video area */}
@@ -1012,15 +1059,39 @@ export default function MentorDashboard() {
                           </div>
                         </div>
                         {/* Right column: quiz panel */}
-                        <LessonQuizPanel lessonId={lesson.id} mentorId={user!.id} onCreateQuiz={() => { setQuizNavLessonId(lesson.id); setActiveTab('quizzes'); }} />
+                        <div className="w-full md:w-80 shrink-0">
+                          <LessonQuizPanel lessonId={lesson.id} mentorId={user!.id} onCreateQuiz={() => { setQuizNavLessonId(lesson.id); setActiveTab('quizzes'); }} />
+                        </div>
                       </motion.div>
                     );
                   })() : (
+                    isMobile ? (
+                    /* On mobile, show lesson list inline */
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-bold text-foreground mb-3">{lessonViewMode.categoryTitle}</h3>
+                      {(() => {
+                        const catLessons = lessons.filter(l => l.category_id === lessonViewMode.categoryId);
+                        if (catLessons.length === 0) return <p className="text-sm text-muted-foreground text-center py-8">אין שיעורים בקטגוריה זו</p>;
+                        return catLessons.map((lesson, idx) => (
+                          <button
+                            key={lesson.id}
+                            onClick={() => setSelectedLesson(lesson.id)}
+                            className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-right"
+                          >
+                            <span className="w-5 h-5 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">{idx + 1}</span>
+                            <span className="text-sm font-medium text-foreground flex-1 truncate">{lesson.title}</span>
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${lesson.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>{lesson.is_published ? 'פורסם' : 'טיוטה'}</span>
+                          </button>
+                        ));
+                      })()}
+                    </div>
+                  ) : (
                     <div className="text-center py-24 text-muted-foreground">
                       <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
                       <p className="font-medium">בחר שיעור מהרשימה</p>
                       <p className="text-sm mt-1">לחץ על שיעור בסרגל הצד כדי לצפות בו</p>
                     </div>
+                  )
                   )}
                 </AnimatePresence>
               ) : (
@@ -1153,7 +1224,7 @@ export default function MentorDashboard() {
 
           {/* ──────── COMMUNITY ──────── */}
           {activeTab === 'community' && (
-            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-2xl">
+            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 max-w-2xl">
               <div className="mb-6">
                 <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
                 <p className="text-sm text-muted-foreground mt-1">שתף עדכונים, ניתוחים ודיונים עם הקהילה שלך</p>
@@ -1280,7 +1351,7 @@ export default function MentorDashboard() {
 
           {/* ──────── STUDENTS ──────── */}
           {activeTab === 'students' && (
-            <motion.div key="students" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-3xl">
+            <motion.div key="students" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 max-w-3xl">
               <div className="mb-8">
                 <h1 className="text-2xl font-bold text-foreground">תלמידים</h1>
                 <p className="text-sm text-muted-foreground mt-1">{members.length} תלמידים רשומים</p>
