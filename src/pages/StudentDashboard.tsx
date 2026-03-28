@@ -374,7 +374,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
     : null;
 
   return (
-    <div className="px-6 pb-4">
+    <div className="px-6 pb-4 mt-4">
       <div className={`flex items-center gap-4 p-4 rounded-xl border ${hasSubmitted ? 'bg-accent/5 border-accent/20' : 'bg-primary/5 border-primary/20'}`}>
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${hasSubmitted ? 'bg-accent/10' : 'bg-primary/10'}`}>
           {hasSubmitted ? <CheckCircle2 className="w-5 h-5 text-accent" /> : <ClipboardList className="w-5 h-5 text-primary" />}
