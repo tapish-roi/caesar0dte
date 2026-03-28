@@ -1506,7 +1506,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               </span>
             )}
           </button>
-          <button onClick={handleLeave} className="h-8 w-8 flex items-center justify-center rounded-md text-white/40 hover:text-white/80 hover:bg-white/5 transition-all ml-1">
+          <button onClick={handleLeave} className="h-8 w-8 flex items-center justify-center rounded-md text-white/40 hover:text-white/80 hover:bg-white/5 transition-all ms-1">
             <X className="w-4 h-4" />
           </button>
         </div>
