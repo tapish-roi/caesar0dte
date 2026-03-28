@@ -411,6 +411,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
 }
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
+
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
 
