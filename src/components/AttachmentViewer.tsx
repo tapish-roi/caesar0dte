@@ -89,20 +89,15 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
         </div>
       )}
 
-      {/* Inline viewer — Office files via Google Docs Viewer */}
+      {/* Office files — no inline iframe (blocked by Chrome), show open externally prompt */}
       {isOffice && (
-        <div style={{ height: '560px' }} className="w-full bg-muted/20 relative">
-          <iframe
-            key={iframeKey}
-            src={googleViewerUrl}
-            className="w-full h-full"
-            title={displayName}
-            allow="autoplay"
-            sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-          />
-          {/* Overlay hint shown when iframe looks blank */}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-background/80 backdrop-blur-sm border border-border rounded-lg px-4 py-2 text-xs text-muted-foreground pointer-events-none">
-            אם התצוגה לא נטענת — לחץ "טען מחדש" או "פתח בחלון"
+        <div className="px-6 pb-5 pt-3 flex items-center gap-3 bg-muted/20">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <MonitorPlay className="w-5 h-5 text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">{displayName}</p>
+            <p className="text-xs text-muted-foreground">לחץ "פתח בחלון" לצפייה במצגת, או הורד את הקובץ</p>
           </div>
         </div>
       )}
