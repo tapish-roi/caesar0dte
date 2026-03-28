@@ -1351,7 +1351,7 @@ export default function MentorDashboard() {
 
           {/* ──────── STUDENTS ──────── */}
           {activeTab === 'students' && (
-            <motion.div key="students" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 max-w-3xl">
+            <motion.div key="students" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 max-w-3xl">
               <div className="mb-8">
                 <h1 className="text-2xl font-bold text-foreground">תלמידים</h1>
                 <p className="text-sm text-muted-foreground mt-1">{members.length} תלמידים רשומים</p>
