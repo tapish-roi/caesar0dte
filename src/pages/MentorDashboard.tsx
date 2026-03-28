@@ -824,6 +824,7 @@ export default function MentorDashboard() {
     { key: 'students' as const, label: 'תלמידים', icon: GraduationCap },
     { key: 'live' as const, label: 'לייב', icon: Radio },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
+    { key: 'quizzes' as const, label: 'מבחנים', icon: ClipboardList },
   ];
 
   return (
