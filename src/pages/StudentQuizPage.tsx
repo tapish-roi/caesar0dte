@@ -233,8 +233,8 @@ export default function StudentQuizPage() {
       <div className="min-h-screen bg-background" dir="rtl">
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-            <button onClick={() => setShowReview(false)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <ChevronRight className="w-4 h-4" />חזרה לתוצאה
+            <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ChevronRight className="w-4 h-4" />חזרה
             </button>
             <span className="text-sm font-semibold text-foreground flex-1 text-center">סקירת תשובות</span>
           </div>
