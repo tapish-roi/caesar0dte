@@ -329,6 +329,7 @@ function LandingScreen({
 
 // ─── Lesson Quiz Button ───────────────────────────────────────────────────────
 function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lessonId: string; mentorId: string; onTakeQuiz: (quizId: string) => void; studentId: string }) {
+  const navigate = useNavigate();
   const { data: quiz, isLoading } = useQuery({
     queryKey: ['student-lesson-quiz-btn', lessonId],
     queryFn: async () => {
