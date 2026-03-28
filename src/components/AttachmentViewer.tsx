@@ -9,7 +9,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
   const cleanUrl = url.split('?')[0];
   const ext = (cleanUrl.split('.').pop() ?? '').toLowerCase();
   const displayName = name || 'קובץ מצורף';
-  const [iframeKey, setIframeKey] = useState(0);
+  
 
   const isPdf = ext === 'pdf';
   const isPpt = ext === 'ppt' || ext === 'pptx';
