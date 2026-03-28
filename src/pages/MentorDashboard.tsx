@@ -1097,23 +1097,23 @@ export default function MentorDashboard() {
                 </AnimatePresence>
               ) : (
                 <>
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">שיעורים וקורסים</h1>
-                  <p className="text-sm text-muted-foreground mt-1">{lessons.length} שיעורים · {categories.length} קטגוריות</p>
+                  <h1 className="text-xl md:text-2xl font-bold text-foreground">שיעורים וקורסים</h1>
+                  <p className="text-xs md:text-sm text-muted-foreground mt-1">{lessons.length} שיעורים · {categories.length} קטגוריות</p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowCategoryForm(true)}
-                    className="flex items-center gap-2 h-9 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+                    className="flex items-center gap-1.5 md:gap-2 h-8 md:h-9 px-2.5 md:px-4 rounded-lg border border-border text-xs md:text-sm font-medium text-foreground hover:bg-muted transition-all"
                   >
-                    <LayoutGrid className="w-4 h-4" />קטגוריה חדשה
+                    <LayoutGrid className="w-3.5 h-3.5 md:w-4 md:h-4" />קטגוריה חדשה
                   </button>
                   <button
                     onClick={() => { setSelectedCategoryId(null); setShowLessonPanel(true); }}
-                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
+                    className="flex items-center gap-1.5 md:gap-2 h-8 md:h-9 px-2.5 md:px-4 rounded-lg bg-primary text-primary-foreground text-xs md:text-sm font-medium hover:opacity-90 transition-all"
                   >
-                    <Plus className="w-4 h-4" />צור שיעור חדש
+                    <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />צור שיעור חדש
                   </button>
                 </div>
               </div>
