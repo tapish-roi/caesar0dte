@@ -1226,7 +1226,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
           {view === 'list' && (
             <motion.div key="list" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               {/* Filter bar */}
-              <div className="flex items-center gap-3 mb-4 flex-wrap">
+              <div className="flex items-center gap-3 mb-4 mt-4 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Filter className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">סנן:</span>
