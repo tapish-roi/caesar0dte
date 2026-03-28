@@ -726,8 +726,12 @@ export default function MentorDashboard() {
     if (error) throw error;
     const enriched = await Promise.all(
       (data ?? []).map(async (c) => {
-        const { data: profile } = await supabase.from('profiles').select('full_name').eq('user_id', c.author_id).single();
-        return { ...c, profiles: profile };
+        const [{ data: profile }, cmRes] = await Promise.all([
+          supabase.from('profiles').select('full_name').eq('user_id', c.author_id).single(),
+          supabase.from('community_members').select('display_name').eq('mentor_id', user!.id).eq('student_id', c.author_id).maybeSingle(),
+        ]);
+        const dn = (cmRes.data as any)?.display_name;
+        return { ...c, profiles: dn ? { full_name: dn } : profile };
       })
     );
     return enriched;
