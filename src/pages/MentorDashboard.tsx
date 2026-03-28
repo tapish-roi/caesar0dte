@@ -2223,16 +2223,16 @@ function MentorPostCard({
           </div>
         )}
 
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${postTypeBg[pType] ?? 'bg-muted'} ${postTypeColor[pType] ?? 'text-foreground'}`}>
+            <span className={`inline-flex items-center gap-1 px-2 md:px-2.5 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium ${postTypeBg[pType] ?? 'bg-muted'} ${postTypeColor[pType] ?? 'text-foreground'}`}>
               {pType === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />}
               {postTypeIcon(pType)}
               {postTypeLabel[pType] ?? pType}
             </span>
-            <span className="text-xs text-muted-foreground">{formatDate(post.created_at)}</span>
+            <span className="text-[10px] md:text-xs text-muted-foreground">{formatDate(post.created_at)}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 md:gap-1">
             <button
               onClick={onTogglePin}
               className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${post.is_pinned ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}

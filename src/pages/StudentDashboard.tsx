@@ -1301,25 +1301,25 @@ export default function StudentDashboard() {
                                       setLessonViewMode({ categoryId: cat.id, categoryTitle: cat.title });
                                       setSelectedLesson(lesson.id);
                                     }}
-                                    className="flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
+                                    className="flex flex-wrap items-center gap-2 md:gap-3 px-4 md:px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
                                   >
                                     <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
                                       {typeIcon(lesson.lesson_type)}
                                     </div>
-                                    <span className={`text-sm flex-1 ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
+                                    <span className={`text-sm flex-1 min-w-0 truncate ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
                                       {lesson.title}
                                     </span>
                                     <span className="text-[10px] text-muted-foreground/70 shrink-0">
                                       {format(parseISO(lesson.created_at), 'dd.MM.yy', { locale: he })}
                                     </span>
                                     {lesson.lesson_type === 'live' && (
-                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
+                                       <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
                                          <Radio className="w-2.5 h-2.5" />
                                          הוקלט בלייב
                                        </span>
                                      )}
                                     {lesson.attachment_url && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
+                                      <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
                                         <Paperclip className="w-2.5 h-2.5" />
                                         צירוף
                                       </span>
