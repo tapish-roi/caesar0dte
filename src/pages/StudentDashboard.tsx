@@ -865,18 +865,20 @@ export default function StudentDashboard() {
         <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
       )}
 
-      {/* Mobile Profile Sheet */}
-      {isMobile && (
-        <Sheet open={profileOpen} onOpenChange={setProfileOpen}>
-          <SheetContent side="bottom" className="h-[85vh] overflow-y-auto" dir="rtl">
-            <SheetHeader>
-              <SheetTitle>הגדרות פרופיל</SheetTitle>
-            </SheetHeader>
-            <div className="py-4">
-              <InlineProfilePopover profile={profile} user={user} profileForm={profileForm} setProfileForm={setProfileForm} newPassword={newPassword} setNewPassword={setNewPassword} showPassword={showPassword} setShowPassword={setShowPassword} isAvatarUploading={isAvatarUploading} avatarInputRef={avatarInputRef} notifyState={notifyState} saveProfile={saveProfile} savePassword={savePassword} saveNotifications={saveNotifications} uploadAvatar={uploadAvatar} signOut={signOut} onClose={() => setProfileOpen(false)} />
+      {/* Mobile Profile - full screen overlay */}
+      {isMobile && profileOpen && (
+        <div className="fixed inset-0 z-50 bg-background overflow-y-auto" dir="rtl">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={() => setProfileOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+              <span className="text-base font-bold text-foreground">הפרופיל שלי</span>
+              <div className="w-5" />
             </div>
-          </SheetContent>
-        </Sheet>
+            <InlineProfilePopoverContent profile={profile} user={user} profileForm={profileForm} setProfileForm={setProfileForm} newPassword={newPassword} setNewPassword={setNewPassword} showPassword={showPassword} setShowPassword={setShowPassword} isAvatarUploading={isAvatarUploading} avatarInputRef={avatarInputRef} notifyState={notifyState} saveProfile={saveProfile} savePassword={savePassword} saveNotifications={saveNotifications} uploadAvatar={uploadAvatar} signOut={signOut} />
+          </div>
+        </div>
       )}
 
       {/* Mobile Community Switcher Sheet */}
