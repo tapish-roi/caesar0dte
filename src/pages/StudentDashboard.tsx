@@ -1179,12 +1179,7 @@ export default function StudentDashboard() {
                       >
                         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
                         <span className="font-semibold text-foreground flex-1">{cat.title}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">{completedCount}/{catLessons.length} הושלמו</span>
-                          {completedCount === catLessons.length && catLessons.length > 0 && (
-                            <CheckCircle2 className="w-4 h-4 text-accent" />
-                          )}
-                        </div>
+                        <span className="text-xs text-muted-foreground">{catLessons.length} שיעורים</span>
                       </div>
                       <AnimatePresence>
                         {isExpanded && (
