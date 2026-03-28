@@ -903,11 +903,6 @@ export default function StudentDashboard() {
                               </span>
                             )}
                           </div>
-                          {prog && !prog.completed && prog.progress_percent > 0 && (
-                            <div className="w-full h-1 bg-muted rounded-full overflow-hidden mt-1.5">
-                              <div className="h-full bg-accent rounded-full" style={{ width: `${prog.progress_percent}%` }} />
-                            </div>
-                          )}
                         </div>
                       </button>
                     );
