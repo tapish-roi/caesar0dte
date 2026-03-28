@@ -19,7 +19,6 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
   const isViewable = isPdf || isOffice || isImage;
 
   // Microsoft Office Online Viewer — opens in a new tab for PPT/DOC
-  // Microsoft Office Online Viewer — opens reliably in a new tab for PPT/DOC
   const officeOnlineUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
 
   // For "open in new tab": PPT/DOC → Office Online Viewer, PDF/image → direct URL
