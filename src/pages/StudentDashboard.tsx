@@ -836,7 +836,7 @@ export default function StudentDashboard() {
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
       {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-l border-sidebar-border flex flex-col shrink-0 h-full">
+      <aside className="w-64 bg-sidebar border-s border-sidebar-border flex flex-col shrink-0 h-full">
         <AnimatePresence mode="wait">
           {lessonViewMode ? (
             /* ── Lesson View Mode Sidebar ── */
