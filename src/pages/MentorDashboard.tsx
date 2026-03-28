@@ -1361,7 +1361,7 @@ export default function MentorDashboard() {
               <div className="bg-card rounded-xl card-shadow p-6 mb-6">
                 <h2 className="font-semibold text-foreground mb-1">הזמן תלמיד לקהילה</h2>
                 <p className="text-sm text-muted-foreground mb-4">הכנס אימייל או טלפון של התלמיד</p>
-                <div className="flex gap-2">
+              <div className="flex flex-col md:flex-row gap-2">
                   <input
                     value={inviteContact} onChange={e => setInviteContact(e.target.value)}
                     placeholder="אימייל@example.com או 050-0000000"
@@ -1371,7 +1371,7 @@ export default function MentorDashboard() {
                   <button
                     onClick={() => inviteContact.trim() && sendInvite.mutate(inviteContact)}
                     disabled={!inviteContact.trim() || sendInvite.isPending}
-                    className="h-11 px-6 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2"
+                    className="h-11 px-6 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 w-full md:w-auto"
                   >
                     <Send className="w-4 h-4" />שלח הזמנה
                   </button>
