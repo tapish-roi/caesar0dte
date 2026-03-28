@@ -106,6 +106,8 @@ export default function StudentQuizPage() {
         .select('id, score, max_score')
         .eq('quiz_id', quizId!)
         .eq('student_id', user!.id)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
       return data;
     },
