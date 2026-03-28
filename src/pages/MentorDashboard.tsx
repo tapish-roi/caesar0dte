@@ -818,10 +818,41 @@ export default function MentorDashboard() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
+  const mentorNavItems = [
+    { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
+    { key: 'community' as const, label: 'קהילה', icon: Users },
+    { key: 'students' as const, label: 'תלמידים', icon: GraduationCap },
+    { key: 'live' as const, label: 'לייב', icon: Radio },
+    { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
+  ];
+
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
-      {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-s border-sidebar-border flex flex-col shrink-0 h-full">
+      {/* Mobile Header */}
+      {isMobile && !lessonViewMode && (
+        <div className="fixed top-0 left-0 right-0 z-30">
+          <MobileHeader
+            title="TradeLearn"
+            subtitle="מנטור"
+            onSettingsClick={signOut}
+          />
+        </div>
+      )}
+
+      {/* Mobile Bottom Nav */}
+      {!lessonViewMode && (
+        <MobileBottomNav
+          items={mentorNavItems}
+          activeTab={activeTab}
+          onTabChange={(key) => {
+            setActiveTab(key as SidebarTab);
+            if (key !== 'quizzes') setQuizNavLessonId(null);
+          }}
+        />
+      )}
+
+      {/* Sidebar - hidden on mobile */}
+      <aside className="hidden md:flex w-64 bg-sidebar border-s border-sidebar-border flex-col shrink-0 h-full">
         <AnimatePresence mode="wait">
           {lessonViewMode ? (
             /* ── Lesson View Mode Sidebar ── */
