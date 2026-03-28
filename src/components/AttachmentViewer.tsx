@@ -19,8 +19,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
   const isOffice = isPpt || isDoc;
   const isViewable = isPdf || isOffice || isImage;
 
-  // Google Docs Viewer (embedded iframe)
-  const googleViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  // Microsoft Office Online Viewer — opens in a new tab for PPT/DOC
   // Microsoft Office Online Viewer — opens reliably in a new tab for PPT/DOC
   const officeOnlineUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
 
