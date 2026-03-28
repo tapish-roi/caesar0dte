@@ -1124,12 +1124,23 @@ export default function StudentDashboard() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 overflow-y-auto">
+      <main className={`flex-1 overflow-y-auto ${isMobile ? 'pt-14 pb-20' : ''}`}>
         <AnimatePresence mode="wait">
 
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
-            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8">
+            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8">
+
+              {/* Mobile back button for lesson view */}
+              {lessonViewMode && isMobile && (
+                <button
+                  onClick={() => { setLessonViewMode(null); setSelectedLesson(null); }}
+                  className="flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity mb-4"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  חזור לרשימת השיעורים
+                </button>
+              )}
 
               {/* ── Lesson View Mode (player only, category list in sidebar) ── */}
               {lessonViewMode ? (
