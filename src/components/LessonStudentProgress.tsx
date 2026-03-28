@@ -8,9 +8,10 @@ interface ProgressEntry {
   completed: boolean;
   last_watched_at: string | null;
   profile?: { full_name: string } | null;
+  displayName?: string;
 }
 
-export default function LessonStudentProgress({ lessonId }: { lessonId: string }) {
+export default function LessonStudentProgress({ lessonId, mentorId }: { lessonId: string; mentorId?: string }) {
   const { data: progress = [], isLoading } = useQuery<ProgressEntry[]>({
     queryKey: ['lesson-student-progress', lessonId],
     queryFn: async () => {
@@ -19,15 +20,16 @@ export default function LessonStudentProgress({ lessonId }: { lessonId: string }
         .select('student_id, progress_percent, completed, last_watched_at')
         .eq('lesson_id', lessonId);
       if (error) throw error;
-      // Enrich with profile names
       const enriched = await Promise.all(
         (data ?? []).map(async (p) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('user_id', p.student_id)
-            .single();
-          return { ...p, profile };
+          const [{ data: profile }, cmRes] = await Promise.all([
+            supabase.from('profiles').select('full_name').eq('user_id', p.student_id).single(),
+            mentorId
+              ? supabase.from('community_members').select('display_name').eq('mentor_id', mentorId).eq('student_id', p.student_id).maybeSingle()
+              : Promise.resolve({ data: null }),
+          ]);
+          const dn = (cmRes.data as any)?.display_name;
+          return { ...p, profile, displayName: dn || undefined };
         })
       );
       return enriched.sort((a, b) => b.progress_percent - a.progress_percent);
