@@ -82,13 +82,13 @@ export default function LessonStudentProgress({ lessonId, mentorId }: { lessonId
           <div key={p.student_id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
             {/* Avatar */}
             <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
-              {(p.profile?.full_name || '?')[0]}
+              {(p.displayName || p.profile?.full_name || '?')[0]}
             </div>
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-foreground truncate">
-                  {p.profile?.full_name || 'תלמיד'}
+                  {p.displayName || p.profile?.full_name || 'תלמיד'}
                 </span>
                 <span className={`text-[10px] font-semibold shrink-0 ${p.completed ? 'text-accent' : 'text-muted-foreground'}`}>
                   {p.progress_percent}%
