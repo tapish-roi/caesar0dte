@@ -1054,10 +1054,10 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   const { data: members = [] } = useQuery<{ student_id: string; full_name: string }[]>({
     queryKey: ['mentor-members-for-quiz', mentorId],
     queryFn: async () => {
-      const { data } = await supabase.from('community_members').select('student_id').eq('mentor_id', mentorId);
+      const { data } = await supabase.from('community_members').select('student_id, display_name').eq('mentor_id', mentorId);
       const enriched = await Promise.all((data ?? []).map(async (m) => {
         const { data: p } = await supabase.from('profiles').select('full_name').eq('user_id', m.student_id).single();
-        return { student_id: m.student_id, full_name: (p as { full_name?: string } | null)?.full_name ?? 'תלמיד' };
+        return { student_id: m.student_id, full_name: (m as any).display_name || (p as { full_name?: string } | null)?.full_name ?? 'תלמיד' };
       }));
       return enriched;
     },
