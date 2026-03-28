@@ -1049,7 +1049,7 @@ export default function MentorDashboard() {
               <AnimatePresence>
                 {showCategoryForm && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4 overflow-hidden">
-                    <div className="bg-card rounded-xl card-shadow p-4 flex gap-2">
+                    <div className="bg-card rounded-xl p-4 flex gap-2 shadow-lg shadow-primary/10 ring-1 ring-border">
                       <input
                         autoFocus value={newCatTitle} onChange={e => setNewCatTitle(e.target.value)}
                         placeholder="שם הקטגוריה..."
