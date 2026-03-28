@@ -116,7 +116,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
                         {String.fromCharCode(65 + oIdx)}
                       </span>
                       {opt.option_text}
-                      {opt.is_correct && <Check className="w-3 h-3 mr-auto shrink-0" />}
+                      {opt.is_correct && <Check className="w-3 h-3 ms-auto shrink-0" />}
                     </div>
                   ))}
                 </div>
