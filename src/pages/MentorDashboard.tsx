@@ -195,6 +195,7 @@ interface PostComment {
 
 export default function MentorDashboard() {
   const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
