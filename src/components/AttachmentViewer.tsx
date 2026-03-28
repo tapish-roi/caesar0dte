@@ -68,7 +68,6 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
       {isPdf && (
         <div style={{ height: '540px' }} className="w-full">
           <iframe
-            key={iframeKey}
             src={`${url}#toolbar=1&navpanes=0`}
             className="w-full h-full"
             title={displayName}
