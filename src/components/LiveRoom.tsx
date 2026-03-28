@@ -2142,7 +2142,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         <AnimatePresence>
           {showChat && (
             <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 300, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }} className="bg-[#313338] border-r border-white/5 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
+              transition={{ duration: 0.2 }} className="bg-[#313338] border-s border-white/5 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
               <div className="px-4 h-12 border-b border-white/5 flex items-center gap-2 shrink-0">
                 <MessageSquare className="w-4 h-4 text-white/40" />
                 <span className="text-sm font-bold text-white/80">צ'אט</span>
