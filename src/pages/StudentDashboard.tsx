@@ -1186,7 +1186,6 @@ export default function StudentDashboard() {
                           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                             <div className="border-t border-border">
                               {catLessons.map((lesson) => {
-                                const prog = getProgress(lesson.id);
                                 return (
                                    <div
                                     key={lesson.id}
