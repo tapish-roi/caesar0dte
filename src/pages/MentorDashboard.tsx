@@ -614,7 +614,7 @@ export default function MentorDashboard() {
     onError: () => toast({ title: 'שגיאה בעדכון הכינוי', variant: 'destructive' }),
   });
 
-
+  const grantAccess = useMutation({
     mutationFn: async (categoryId: string) => {
       const { error } = await supabase.from('student_category_access').insert({
         mentor_id: user!.id,
