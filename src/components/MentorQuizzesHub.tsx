@@ -1042,7 +1042,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
         ]);
         return {
           ...s,
-          studentName: (cmRes.data as any)?.display_name || (profileRes.data as { full_name?: string } | null)?.full_name ?? 'תלמיד',
+          studentName: (cmRes.data as any)?.display_name || ((profileRes.data as { full_name?: string } | null)?.full_name ?? 'תלמיד'),
           quizTitle: (quizRes.data as { title?: string } | null)?.title ?? 'מבחן',
         };
       }));
