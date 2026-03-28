@@ -2,34 +2,32 @@
 
 ## Problem
 
-Chrome blocks the inline PDF iframe because the Supabase storage URL sets `X-Frame-Options` headers that prevent embedding. The current code uses a direct iframe to the storage URL for PDFs, which Chrome blocks. Office files already have no inline preview but the "open in window" link using Microsoft Office Online may also fail.
+The "התחל מבחן" button doesn't change to "צפה בתוצאות" after a student completes a quiz. The code logic is correct, but when the student finishes a quiz on the `/quiz/:quizId` page and navigates back to the dashboard, the React Query cache still holds the old result (no submission found), so the button stays unchanged.
+
+## Root Cause
+
+The `LessonQuizButton` component uses `useQuery` with key `['student-lesson-quiz-submission', quiz?.id, studentId]` to check if a submission exists. After completing a quiz on the separate quiz page and navigating back, this cached query is never invalidated — so it returns stale `null` data.
 
 ## Solution
 
-Use **Google Docs Viewer** (`https://docs.google.com/gview?url=...&embedded=true`) as the inline iframe for all document types (PDF, PPT, DOC). Google Docs Viewer is designed to be embedded and does not set restrictive frame headers. This provides a single, reliable inline preview for all document formats.
+Two fixes in `src/pages/StudentDashboard.tsx`:
 
-## Changes
+1. **Add `refetchOnMount: 'always'`** to the submission query inside `LessonQuizButton`, so every time the student returns to the dashboard and the component mounts, it re-fetches the submission status from the database.
 
-**File: `src/components/AttachmentViewer.tsx`**
+2. **Add `staleTime: 0`** to ensure the data is always considered stale and re-fetched on mount.
 
-1. Add a Google Docs Viewer URL: `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`
-2. For PDF, PPT, PPTX, DOC, DOCX: show an inline iframe using the Google Docs Viewer URL instead of the direct Supabase URL
-3. Remove the separate Office-only "open externally" prompt section -- all documents now get the same inline viewer
-4. Keep the "open in window" button (using Google Docs Viewer URL for all docs) and "download" button in the header bar
-5. Keep image preview as-is (direct `<img>` tag, no iframe needed)
+This is a one-line change in the `useQuery` options for the submission query inside `LessonQuizButton`.
 
-The iframe will use `sandbox="allow-scripts allow-same-origin"` to ensure it loads properly while maintaining security.
+## Technical Detail
 
-## Technical Details
-
-```text
-Before:
-  PDF  → direct iframe to storage URL (BLOCKED by Chrome)
-  PPT  → no inline preview, only "open externally" link
-  DOC  → no inline preview, only "open externally" link
-
-After:
-  PDF/PPT/DOC → Google Docs Viewer iframe (embedded=true, works in Chrome)
-  Images      → direct <img> tag (unchanged)
+```typescript
+// In LessonQuizButton, update the submission query:
+const { data: submission } = useQuery({
+  queryKey: ['student-lesson-quiz-submission', quiz?.id, studentId],
+  queryFn: async () => { ... },
+  enabled: !!quiz?.id && !!studentId,
+  refetchOnMount: 'always',  // <-- ADD THIS
+  staleTime: 0,              // <-- ADD THIS
+});
 ```
 
