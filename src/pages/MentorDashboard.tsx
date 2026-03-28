@@ -1067,7 +1067,7 @@ export default function MentorDashboard() {
                 )}
               </AnimatePresence>
 
-              <div className="space-y-3">
+              <div className="space-y-3 mt-2">
                 {categories.map(cat => {
                   const catLessons = lessons.filter(l => l.category_id === cat.id);
                   const isExpanded = expandedCats.has(cat.id);
