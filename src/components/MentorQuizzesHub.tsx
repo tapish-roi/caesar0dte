@@ -979,6 +979,7 @@ function SubmissionDetail({ submission, onBack }: { submission: Submission & { a
 // MAIN HUB
 // ═══════════════════════════════════════════════════════
 export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: Props) {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [view, setView] = useState<'list' | 'create' | 'submissions' | 'submission-detail' | 'quiz-detail'>('list');
