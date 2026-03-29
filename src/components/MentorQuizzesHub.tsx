@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -467,6 +468,7 @@ function QuizDetail({
   onDeleted: () => void;
   onTogglePublish: (id: string, is_published: boolean) => void;
 }) {
+  const detailNavigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM yyyy, HH:mm", { locale: he });
@@ -839,7 +841,7 @@ function QuizDetail({
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={enterEdit}
+                onClick={() => detailNavigate(`/mentor/quiz/edit/${quizId}`)}
                 className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-all"
               >
                 <Send className="w-3.5 h-3.5" />ערוך
@@ -978,6 +980,7 @@ function SubmissionDetail({ submission, onBack }: { submission: Submission & { a
 // MAIN HUB
 // ═══════════════════════════════════════════════════════
 export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: Props) {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [view, setView] = useState<'list' | 'create' | 'submissions' | 'submission-detail' | 'quiz-detail'>('list');
@@ -1211,7 +1214,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
               )}
             </button>
             <button
-              onClick={() => setView('create')}
+              onClick={() => navigate(initialLessonId ? `/mentor/quiz/new?lessonId=${initialLessonId}` : '/mentor/quiz/new')}
               className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
             >
               <Plus className="w-4 h-4" />צור מבחן חדש

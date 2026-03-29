@@ -1,0 +1,1 @@
+ALTER TABLE public.quiz_questions ADD COLUMN hint text DEFAULT NULL;

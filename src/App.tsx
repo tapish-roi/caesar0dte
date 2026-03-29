@@ -9,6 +9,7 @@ import AcceptInvitePage from "./pages/AcceptInvitePage";
 import MentorDashboard from "./pages/MentorDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentQuizPage from "./pages/StudentQuizPage";
+import MentorQuizEditor from "./pages/MentorQuizEditor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -84,6 +85,8 @@ function AppRoutes() {
         }
       />
       <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
+      <Route path="/mentor/quiz/new" element={<MentorQuizEditor />} />
+      <Route path="/mentor/quiz/edit/:quizId" element={<MentorQuizEditor />} />
       <Route path="/accept-invite" element={<AcceptInvitePage />} />
       <Route path="/auth" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />

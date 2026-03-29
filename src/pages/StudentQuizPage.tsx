@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import {
   ClipboardList, ChevronRight, Check, AlignLeft, List,
-  Send, TrendingUp, CheckCircle2, X, Eye,
+  Send, TrendingUp, CheckCircle2, X, Eye, Lightbulb,
 } from 'lucide-react';
 
 interface QuizQuestion {
@@ -16,6 +16,7 @@ interface QuizQuestion {
   question_type: 'multiple_choice' | 'free_text';
   position: number;
   expected_answer?: string | null;
+  hint?: string | null;
 }
 
 interface QuizOption {
@@ -58,6 +59,7 @@ export default function StudentQuizPage() {
   const [showReview, setShowReview] = useState(reviewFromUrl);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, { selected: string; isCorrect: boolean }>>({});
+  const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
 
   const { data: quiz, isLoading: quizLoading } = useQuery<Quiz | null>({
     queryKey: ['student-quiz', quizId],
@@ -77,7 +79,7 @@ export default function StudentQuizPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from('quiz_questions')
-        .select('id, question_text, question_type, position, expected_answer')
+        .select('id, question_text, question_type, position, expected_answer, hint')
         .eq('quiz_id', quizId!)
         .order('position');
       return (data ?? []) as QuizQuestion[];
@@ -602,6 +604,33 @@ export default function StudentQuizPage() {
                     })()}
                   </p>
                 </motion.div>
+              )}
+
+              {/* Hint button */}
+              {currentQuestion.hint && (
+                <div className="mt-4">
+                  {!revealedHints[currentQuestion.id] ? (
+                    <button
+                      onClick={() => setRevealedHints(prev => ({ ...prev, [currentQuestion.id]: true }))}
+                      className="flex items-center gap-2 text-sm text-primary hover:opacity-80 transition-opacity"
+                    >
+                      <Lightbulb className="w-4 h-4" />
+                      הצג רמז
+                    </button>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 rounded-xl bg-primary/5 border border-primary/20"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Lightbulb className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-medium text-primary">רמז</span>
+                      </div>
+                      <p className="text-sm text-secondary-foreground/80">{currentQuestion.hint}</p>
+                    </motion.div>
+                  )}
+                </div>
               )}
             </motion.div>
           </AnimatePresence>
