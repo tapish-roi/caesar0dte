@@ -184,7 +184,7 @@ function LandingScreen({
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <TrendingUp className="w-5 h-5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-bold text-foreground">TradeLearn</span>
+        <span className="text-lg font-bold text-foreground">Caesar 0 DTE</span>
       </motion.div>
 
       <motion.div
