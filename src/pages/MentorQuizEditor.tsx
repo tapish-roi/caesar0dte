@@ -242,7 +242,7 @@ export default function MentorQuizEditor() {
         if (dq.type === 'multiple_choice' && dq.options.length > 0) {
           const opts = dq.options
             .filter(o => o.text.trim())
-            .map((o, idx) => ({ question_id: dbQ.id, option_text: o.text.trim(), is_correct: o.isCorrect, position: idx }));
+            .map((o, idx) => ({ question_id: dbQ.id, option_text: o.text.trim(), is_correct: o.isCorrect, position: idx, explanation: o.explanation?.trim() || null }));
           if (opts.length > 0) {
             const { error: oErr } = await supabase.from('quiz_question_options').insert(opts);
             if (oErr) throw oErr;
