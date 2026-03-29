@@ -433,153 +433,220 @@ export default function StudentQuizPage() {
     );
   }
 
-  // ── QUIZ FORM ──
+  // ── QUIZ FORM — One question at a time ──
+  const currentQuestion = questions[currentIndex];
+  const currentOptions = currentQuestion ? options.filter(o => o.question_id === currentQuestion.id) : [];
+  const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
+  const currentFeedback = currentQuestion ? feedbackMap[currentQuestion.id] : undefined;
+  const isLastQuestion = currentIndex === questions.length - 1;
+  const progressPct = questions.length > 0 ? ((currentIndex + 1) / questions.length) * 100 : 0;
+
+  const handleSelectOption = (questionId: string, optionId: string) => {
+    // If already answered this question, ignore
+    if (feedbackMap[questionId]) return;
+    const opt = options.find(o => o.id === optionId);
+    const isCorrect = opt?.is_correct ?? false;
+    setAnswers(prev => ({ ...prev, [questionId]: { type: 'multiple_choice', optionId } }));
+    setFeedbackMap(prev => ({ ...prev, [questionId]: { selected: optionId, isCorrect } }));
+  };
+
+  const handleNext = () => {
+    if (isLastQuestion) return;
+    setCurrentIndex(prev => prev + 1);
+  };
+
+  const handlePrev = () => {
+    if (currentIndex === 0) return;
+    setCurrentIndex(prev => prev - 1);
+  };
+
+  const letterLabels = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח'];
+
   return (
-    <div className="min-h-screen bg-card text-card-foreground" dir="rtl">
+    <div className="min-h-screen bg-background text-secondary-foreground" dir="rtl">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-sm border-b border-border">
+      <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-sidebar-border">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-secondary-foreground/70 hover:text-secondary-foreground transition-colors">
             <ChevronRight className="w-4 h-4" />חזרה
           </button>
-          <div className="flex-1" />
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-              <ClipboardList className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <span className="text-sm font-bold text-foreground">Caesar 0 DTE</span>
-            </div>
+          <div className="flex-1 text-center">
+            <span className="text-sm font-semibold text-secondary-foreground">{quiz.title}</span>
+          </div>
+          <span className="text-xs font-medium text-secondary-foreground/60 tabular">
+            {currentIndex + 1}/{questions.length}
+          </span>
+        </div>
+        {/* Progress bar */}
+        <div className="max-w-2xl mx-auto px-4 pb-2">
+          <div className="w-full h-1.5 bg-sidebar-accent rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              initial={false}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+            />
           </div>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Quiz header */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-card border border-border rounded-2xl p-6 mb-6"
-        >
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <ClipboardList className="w-6 h-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-foreground">{quiz.title}</h1>
-              {quiz.description && <p className="text-sm text-muted-foreground mt-1">{quiz.description}</p>}
-              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                <span>{questions.length} שאלות</span>
-                {mcQuestions.length > 0 && <span>{mcQuestions.length} שאלות אמריקאיות</span>}
+      {currentQuestion && (
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuestion.id}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              transition={{ duration: 0.25 }}
+            >
+              {/* Question text */}
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-medium text-primary px-2 py-0.5 rounded-full bg-primary/10">
+                    שאלה {currentIndex + 1}
+                  </span>
+                  <span className="text-xs text-secondary-foreground/50">
+                    {currentQuestion.question_type === 'multiple_choice' ? 'אמריקאית' : 'פתוחה'}
+                  </span>
+                </div>
+                <h2 className="text-xl font-bold text-secondary-foreground leading-relaxed">
+                  {currentQuestion.question_text}
+                </h2>
               </div>
-            </div>
-          </div>
-          {/* Progress bar */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-1.5 text-xs text-muted-foreground">
-              <span>{answeredCount}/{questions.length} נענו</span>
-              <span>{Math.round((answeredCount / Math.max(questions.length, 1)) * 100)}%</span>
-            </div>
-            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-300"
-                style={{ width: `${(answeredCount / Math.max(questions.length, 1)) * 100}%` }}
-              />
-            </div>
-          </div>
-        </motion.div>
 
-        {/* Questions */}
-        <div className="space-y-4 mb-6">
-          <AnimatePresence>
-            {questions.map((q, idx) => {
-              const qOptions = options.filter(o => o.question_id === q.id);
-              const answer = answers[q.id];
-              return (
+              {/* Options / Free text */}
+              {currentQuestion.question_type === 'multiple_choice' ? (
+                <div className="space-y-3">
+                  {currentOptions.map((opt, oIdx) => {
+                    const isSelected = currentFeedback?.selected === opt.id;
+                    const isCorrectOption = opt.is_correct;
+                    const hasFeedback = !!currentFeedback;
+
+                    let borderClass = 'border-sidebar-border';
+                    let bgClass = 'bg-secondary/50';
+                    let letterBg = 'bg-sidebar-accent text-secondary-foreground/70';
+                    let badgeEl: React.ReactNode = null;
+
+                    if (hasFeedback) {
+                      if (isCorrectOption) {
+                        // Always highlight the correct answer green
+                        borderClass = 'border-green-500';
+                        bgClass = 'bg-green-500/10';
+                        letterBg = 'bg-green-500 text-white';
+                        badgeEl = (
+                          <span className="flex items-center gap-1 text-xs font-medium text-green-400">
+                            <CheckCircle2 className="w-3.5 h-3.5" />התשובה הנכונה
+                          </span>
+                        );
+                      } else if (isSelected && !isCorrectOption) {
+                        // Wrong selection — red
+                        borderClass = 'border-red-500';
+                        bgClass = 'bg-red-500/10';
+                        letterBg = 'bg-red-500 text-white';
+                        badgeEl = (
+                          <span className="flex items-center gap-1 text-xs font-medium text-red-400">
+                            <X className="w-3.5 h-3.5" />לא בדיוק
+                          </span>
+                        );
+                      } else {
+                        // Other options — muted
+                        bgClass = 'bg-secondary/30';
+                        borderClass = 'border-sidebar-border/50';
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => handleSelectOption(currentQuestion.id, opt.id)}
+                        disabled={hasFeedback}
+                        className={`w-full flex items-center gap-4 px-5 py-4 rounded-xl border-2 text-right transition-all ${borderClass} ${bgClass} ${
+                          !hasFeedback ? 'hover:border-primary/50 hover:bg-secondary/70 cursor-pointer' : 'cursor-default'
+                        }`}
+                      >
+                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-all ${letterBg}`}>
+                          {hasFeedback && isCorrectOption ? <Check className="w-4 h-4" /> :
+                           hasFeedback && isSelected && !isCorrectOption ? <X className="w-4 h-4" /> :
+                           letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}
+                        </span>
+                        <span className={`text-sm flex-1 ${hasFeedback && !isCorrectOption && !isSelected ? 'text-secondary-foreground/40' : 'text-secondary-foreground'}`}>
+                          {opt.option_text}
+                        </span>
+                        {badgeEl}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <textarea
+                  value={currentAnswer?.type === 'free_text' ? currentAnswer.text : ''}
+                  onChange={e => setAnswers(prev => ({ ...prev, [currentQuestion.id]: { type: 'free_text', text: e.target.value } }))}
+                  placeholder="כתוב את תשובתך כאן..."
+                  rows={5}
+                  className="w-full px-5 py-4 bg-secondary/50 ring-1 ring-sidebar-border rounded-xl text-sm text-secondary-foreground placeholder-secondary-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                />
+              )}
+
+              {/* Feedback explanation for wrong answer */}
+              {currentFeedback && !currentFeedback.isCorrect && currentQuestion.question_type === 'multiple_choice' && (
                 <motion.div
-                  key={q.id}
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.04 }}
-                  className="bg-card border border-border rounded-xl overflow-hidden"
+                  className="mt-4 p-4 rounded-xl bg-red-500/5 border border-red-500/20"
                 >
-                  {/* Question header */}
-                  <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-muted/20">
-                    <span className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center shrink-0 transition-all ${
-                      answer ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                    }`}>
-                      {answer ? <Check className="w-3 h-3" /> : idx + 1}
-                    </span>
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                      q.question_type === 'multiple_choice' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'
-                    }`}>
-                      {q.question_type === 'multiple_choice' ? <><List className="w-2.5 h-2.5" />אמריקאית</> : <><AlignLeft className="w-2.5 h-2.5" />פתוחה</>}
-                    </span>
-                    <p className="text-sm font-semibold text-foreground flex-1 text-right">{q.question_text}</p>
-                  </div>
-                  <div className="p-5">
-                    {q.question_type === 'multiple_choice' ? (
-                      <div className="space-y-2">
-                        {qOptions.map((opt, oIdx) => {
-                          const isSelected = answer?.type === 'multiple_choice' && answer.optionId === opt.id;
-                          return (
-                            <button
-                              key={opt.id}
-                              onClick={() => setAnswers(prev => ({ ...prev, [q.id]: { type: 'multiple_choice', optionId: opt.id } }))}
-                              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-right transition-all ${
-                                isSelected
-                                  ? 'border-primary bg-primary/5'
-                                  : 'border-border hover:border-primary/40 hover:bg-muted/30'
-                              }`}
-                            >
-                              <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold transition-all ${
-                                isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-border text-muted-foreground'
-                              }`}>
-                                {isSelected ? <Check className="w-3.5 h-3.5" /> : String.fromCharCode(65 + oIdx)}
-                              </span>
-                              <span className={`text-sm flex-1 ${isSelected ? 'font-medium text-foreground' : 'text-foreground'}`}>
-                                {opt.option_text}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <textarea
-                        value={answer?.type === 'free_text' ? answer.text : ''}
-                        onChange={e => setAnswers(prev => ({ ...prev, [q.id]: { type: 'free_text', text: e.target.value } }))}
-                        placeholder="כתוב את תשובתך כאן..."
-                        rows={4}
-                        className="w-full px-4 py-3 bg-surface ring-1 ring-border rounded-xl text-sm text-card-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
-                      />
-                    )}
-                  </div>
+                  <p className="text-sm text-secondary-foreground/80">
+                    {(() => {
+                      const correctOpt = currentOptions.find(o => o.is_correct);
+                      return correctOpt ? `התשובה הנכונה היא: ${correctOpt.option_text}` : '';
+                    })()}
+                  </p>
                 </motion.div>
-              );
-            })}
+              )}
+            </motion.div>
           </AnimatePresence>
-        </div>
 
-        {/* Submit */}
-        <div className="sticky bottom-4">
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting || !allAnswered}
-            className={`w-full h-12 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all shadow-lg ${
-              allAnswered
-                ? 'bg-primary text-primary-foreground hover:opacity-90'
-                : 'bg-muted text-muted-foreground cursor-not-allowed'
-            }`}
-          >
-            {isSubmitting ? (
-              <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />מגיש...</>
+          {/* Navigation buttons */}
+          <div className="flex items-center gap-3 mt-10">
+            <button
+              onClick={handlePrev}
+              disabled={currentIndex === 0}
+              className={`h-11 px-6 rounded-xl text-sm font-medium transition-all ${
+                currentIndex === 0
+                  ? 'text-secondary-foreground/30 cursor-not-allowed'
+                  : 'text-secondary-foreground border border-sidebar-border hover:bg-secondary/50'
+              }`}
+            >
+              הקודם
+            </button>
+            <div className="flex-1" />
+            {isLastQuestion ? (
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || !allAnswered}
+                className={`h-11 px-8 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${
+                  allAnswered
+                    ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-lg'
+                    : 'bg-secondary text-secondary-foreground/40 cursor-not-allowed'
+                }`}
+              >
+                {isSubmitting ? (
+                  <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />מגיש...</>
+                ) : (
+                  <><Send className="w-4 h-4" />הגש מבחן</>
+                )}
+              </button>
             ) : (
-              <><Send className="w-4 h-4" />הגש מבחן {!allAnswered && `(${answeredCount}/${questions.length} נענו)`}</>
+              <button
+                onClick={handleNext}
+                className="h-11 px-8 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-all shadow-lg"
+              >
+                הבא
+              </button>
             )}
-          </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
