@@ -591,19 +591,25 @@ export default function StudentQuizPage() {
                 />
               )}
 
-              {/* Feedback explanation for wrong answer */}
-              {currentFeedback && !currentFeedback.isCorrect && currentQuestion.question_type === 'multiple_choice' && (
+              {/* Per-option explanations after feedback */}
+              {currentFeedback && currentQuestion.question_type === 'multiple_choice' && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-4 p-4 rounded-xl bg-red-500/5 border border-red-500/20"
+                  className="mt-4 space-y-2"
                 >
-                  <p className="text-sm text-secondary-foreground/80">
-                    {(() => {
-                      const correctOpt = currentOptions.find(o => o.is_correct);
-                      return correctOpt ? `התשובה הנכונה היא: ${correctOpt.option_text}` : '';
-                    })()}
-                  </p>
+                  {currentOptions
+                    .filter(o => o.explanation && (o.is_correct || o.id === currentFeedback.selected))
+                    .map(o => (
+                      <div key={o.id} className={`p-3 rounded-xl border ${
+                        o.is_correct ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'
+                      }`}>
+                        <p className={`text-xs font-medium mb-0.5 ${o.is_correct ? 'text-green-400' : 'text-red-400'}`}>
+                          {o.option_text}
+                        </p>
+                        <p className="text-sm text-secondary-foreground/80">{o.explanation}</p>
+                      </div>
+                    ))}
                 </motion.div>
               )}
 

@@ -424,28 +424,38 @@ export default function MentorQuizEditor() {
                   <p className="text-xs text-secondary-foreground/60 font-medium">אפשרויות תשובה (לחץ על העיגול לסימון נכונה):</p>
                   {currentQuestion.options.map((opt, oIdx) => {
                     return (
-                      <div key={opt.id} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all ${
-                        opt.isCorrect ? 'border-green-500 bg-green-500/10' : 'border-sidebar-border bg-secondary/50'
-                      }`}>
-                        <button
-                          onClick={() => setCorrect(currentQuestion.id, opt.id)}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-all ${
-                            opt.isCorrect ? 'bg-green-500 text-white' : 'bg-sidebar-accent text-secondary-foreground/70'
-                          }`}
-                        >
-                          {opt.isCorrect ? <Check className="w-4 h-4" /> : letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}
-                        </button>
-                        <input
-                          value={opt.text}
-                          onChange={e => updateOption(currentQuestion.id, opt.id, { text: e.target.value })}
-                          placeholder={`אפשרות ${letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}...`}
-                          className="flex-1 bg-transparent text-sm text-secondary-foreground placeholder-secondary-foreground/30 focus:outline-none text-right"
-                        />
-                        {currentQuestion.options.length > 2 && (
-                          <button onClick={() => removeOption(currentQuestion.id, opt.id)} className="text-secondary-foreground/30 hover:text-red-400 transition-colors">
-                            <X className="w-3.5 h-3.5" />
+                      <div key={opt.id} className="space-y-0">
+                        <div className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all ${
+                          opt.isCorrect ? 'border-green-500 bg-green-500/10' : 'border-sidebar-border bg-secondary/50'
+                        }`}>
+                          <button
+                            onClick={() => setCorrect(currentQuestion.id, opt.id)}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-all ${
+                              opt.isCorrect ? 'bg-green-500 text-white' : 'bg-sidebar-accent text-secondary-foreground/70'
+                            }`}
+                          >
+                            {opt.isCorrect ? <Check className="w-4 h-4" /> : letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}
                           </button>
-                        )}
+                          <input
+                            value={opt.text}
+                            onChange={e => updateOption(currentQuestion.id, opt.id, { text: e.target.value })}
+                            placeholder={`אפשרות ${letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}...`}
+                            className="flex-1 bg-transparent text-sm text-secondary-foreground placeholder-secondary-foreground/30 focus:outline-none text-right"
+                          />
+                          {currentQuestion.options.length > 2 && (
+                            <button onClick={() => removeOption(currentQuestion.id, opt.id)} className="text-secondary-foreground/30 hover:text-red-400 transition-colors">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="mr-11 mt-1.5 mb-2">
+                          <input
+                            value={opt.explanation}
+                            onChange={e => updateOption(currentQuestion.id, opt.id, { explanation: e.target.value })}
+                            placeholder="הערה / הסבר לתשובה (אופציונלי)..."
+                            className="w-full px-3 py-2 bg-secondary/30 ring-1 ring-sidebar-border/50 rounded-lg text-xs text-secondary-foreground/70 placeholder-secondary-foreground/25 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all text-right"
+                          />
+                        </div>
                       </div>
                     );
                   })}
