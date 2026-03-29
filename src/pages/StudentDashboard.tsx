@@ -234,7 +234,7 @@ function LandingScreen({
                   </p>
                   <div className="space-y-2">
                     {invites.map((inv) => (
-                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-muted/60 border border-border rounded-xl">
+                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl">
                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                            <span className="text-xs font-bold text-primary">{inv.mentorName[0]?.toUpperCase()}</span>
                          </div>
