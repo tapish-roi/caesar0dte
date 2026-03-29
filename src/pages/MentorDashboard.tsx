@@ -1435,7 +1435,7 @@ export default function MentorDashboard() {
                             >
                               <input
                                 autoFocus
-                                className="h-7 px-2 text-sm border border-border rounded-md bg-background text-foreground w-full max-w-[180px]"
+                                className="h-7 px-2 text-sm border border-border rounded-md bg-surface text-card-foreground w-full max-w-[180px]"
                                 value={nicknameValue}
                                 onChange={(e) => setNicknameValue(e.target.value)}
                                 placeholder={m.profiles?.full_name || 'כינוי'}
