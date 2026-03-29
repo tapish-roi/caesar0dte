@@ -960,7 +960,7 @@ export default function MentorDashboard() {
                     {user?.email?.[0]?.toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-foreground truncate">{user?.email}</div>
+                    <div className="text-xs font-medium text-sidebar-foreground truncate">{user?.email}</div>
                   </div>
                   <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors">
                     <LogOut className="w-4 h-4" />
