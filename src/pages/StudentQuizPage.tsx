@@ -280,9 +280,9 @@ export default function StudentQuizPage() {
                       {qOptions.map((opt, oIdx) => {
                         const isStudentAnswer = rv?.selected_option_id === opt.id;
                         const isCorrectAnswer = opt.is_correct;
-                        let style = 'border-border bg-muted/10 text-muted-foreground';
-                        if (isCorrectAnswer) style = 'border-accent bg-accent/10 text-foreground';
-                        if (isStudentAnswer && !isCorrectAnswer) style = 'border-destructive bg-destructive/10 text-foreground';
+                        let style = 'border-sidebar-border bg-secondary/30 text-secondary-foreground/60';
+                        if (isCorrectAnswer) style = 'border-green-500 bg-green-500/10 text-secondary-foreground';
+                        if (isStudentAnswer && !isCorrectAnswer) style = 'border-red-500 bg-red-500/10 text-secondary-foreground';
                         return (
                           <div key={opt.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${style}`}>
                             <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold transition-all ${
