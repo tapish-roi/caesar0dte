@@ -450,7 +450,7 @@ function QuizBuilder({
 // QUIZ DETAIL VIEW
 // ═══════════════════════════════════════════════════════
 function QuizDetail({
-  quizId, quiz, mentorId, lessons, categories, onBack, onDeleted, onTogglePublish,
+  quizId,
   quiz,
   mentorId,
   lessons,
@@ -468,6 +468,7 @@ function QuizDetail({
   onDeleted: () => void;
   onTogglePublish: (id: string, is_published: boolean) => void;
 }) {
+  const detailNavigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM yyyy, HH:mm", { locale: he });
