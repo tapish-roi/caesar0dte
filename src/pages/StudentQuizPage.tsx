@@ -605,6 +605,33 @@ export default function StudentQuizPage() {
                   </p>
                 </motion.div>
               )}
+
+              {/* Hint button */}
+              {currentQuestion.hint && (
+                <div className="mt-4">
+                  {!revealedHints[currentQuestion.id] ? (
+                    <button
+                      onClick={() => setRevealedHints(prev => ({ ...prev, [currentQuestion.id]: true }))}
+                      className="flex items-center gap-2 text-sm text-primary hover:opacity-80 transition-opacity"
+                    >
+                      <Lightbulb className="w-4 h-4" />
+                      הצג רמז
+                    </button>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 rounded-xl bg-primary/5 border border-primary/20"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Lightbulb className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-medium text-primary">רמז</span>
+                      </div>
+                      <p className="text-sm text-secondary-foreground/80">{currentQuestion.hint}</p>
+                    </motion.div>
+                  )}
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
 
