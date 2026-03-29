@@ -25,6 +25,7 @@ interface QuizOption {
   option_text: string;
   is_correct: boolean;
   position: number;
+  explanation: string | null;
 }
 
 interface Quiz {
