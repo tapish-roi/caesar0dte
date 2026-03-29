@@ -450,7 +450,7 @@ function QuizBuilder({
 // QUIZ DETAIL VIEW
 // ═══════════════════════════════════════════════════════
 function QuizDetail({
-  quizId,
+  quizId, quiz, mentorId, lessons, categories, onBack, onDeleted, onTogglePublish,
   quiz,
   mentorId,
   lessons,
