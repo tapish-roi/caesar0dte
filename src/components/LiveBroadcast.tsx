@@ -780,7 +780,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                 {isUploadingRecording
                   ? <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                   : recordingUrl
-                  ? <Check className="w-6 h-6 text-emerald-600" />
+                  ? <Check className="w-6 h-6 text-gold-600" />
                   : <Radio className="w-6 h-6 text-muted-foreground" />
                 }
               </div>
