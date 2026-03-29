@@ -338,34 +338,34 @@ export default function StudentQuizPage() {
   if (existingSubmission && !submitted) {
     const pct = normalizeScore(existingSubmission.score, existingSubmission.max_score);
     return (
-      <div className="min-h-screen bg-card text-card-foreground" dir="rtl">
+      <div className="min-h-screen bg-background text-secondary-foreground" dir="rtl">
         <div className="max-w-2xl mx-auto px-4 py-8">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-secondary-foreground/60 hover:text-secondary-foreground transition-colors mb-6">
             <ChevronRight className="w-4 h-4" />חזרה לשיעור
           </button>
-          <div className="bg-card border border-border rounded-2xl p-8 text-center">
+          <div className="bg-secondary/50 border border-sidebar-border rounded-2xl p-8 text-center">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-              pct == null ? 'bg-accent/10' : pct >= 70 ? 'bg-accent/10' : 'bg-destructive/10'
+              pct == null ? 'bg-primary/10' : pct >= 70 ? 'bg-green-500/10' : 'bg-red-500/10'
             }`}>
               {pct == null || pct >= 70
-                ? <CheckCircle2 className="w-8 h-8 text-accent" />
-                : <X className="w-8 h-8 text-destructive" />}
+                ? <CheckCircle2 className={`w-8 h-8 ${pct == null ? 'text-primary' : 'text-green-400'}`} />
+                : <X className="w-8 h-8 text-red-400" />}
             </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">כבר הגשת מבחן זה</h2>
+            <h2 className="text-xl font-bold text-secondary-foreground mb-2">כבר הגשת מבחן זה</h2>
             {pct != null ? (
               <>
-                <p className={`text-5xl font-bold mt-3 ${pct >= 70 ? 'text-accent' : 'text-destructive'}`}>
+                <p className={`text-5xl font-bold mt-3 ${pct >= 70 ? 'text-green-400' : 'text-red-400'}`}>
                   {pct}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">נקודות מתוך 100</p>
+                <p className="text-sm text-secondary-foreground/60 mt-1">נקודות מתוך 100</p>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground mt-2">המבחן הוגש — ציון טרם נקבע</p>
+              <p className="text-sm text-secondary-foreground/60 mt-2">המבחן הוגש — ציון טרם נקבע</p>
             )}
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => navigate(-1)}
-                className="flex-1 h-10 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+                className="flex-1 h-10 rounded-xl border border-sidebar-border text-sm font-medium text-secondary-foreground hover:bg-secondary/50 transition-all"
               >
                 חזרה לשיעור
               </button>
