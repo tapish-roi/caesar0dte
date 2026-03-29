@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
               צפה בלייב עכשיו
             </a>
             <hr style="border:none; border-top:1px solid #eee; margin:24px 0;" />
-            <p style="font-size:12px; color:#aaa;">קיבלת אימייל זה כי הפעלת התראות אימייל בפרופיל שלך ב-TradeLearn.</p>
+            <p style="font-size:12px; color:#aaa;">קיבלת אימייל זה כי הפעלת התראות אימייל בפרופיל שלך ב-<p style="font-size:12px; color:#aaa;">קיבלת אימייל זה כי הפעלת התראות אימייל בפרופיל שלך ב-Caesar 0 DTE.</p>.</p>
           </div>
         `;
 

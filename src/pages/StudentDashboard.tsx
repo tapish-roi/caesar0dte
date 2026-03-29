@@ -184,7 +184,7 @@ function LandingScreen({
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <TrendingUp className="w-5 h-5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-bold text-foreground">TradeLearn</span>
+        <span className="text-lg font-bold text-foreground">Caesar 0 DTE</span>
       </motion.div>
 
       <motion.div
@@ -851,7 +851,7 @@ export default function StudentDashboard() {
       {isMobile && !lessonViewMode && (
         <div className="fixed top-0 left-0 right-0 z-30">
           <MobileHeader
-            title={mentorName || 'TradeLearn'}
+            title={mentorName || 'Caesar 0 DTE'}
             subtitle={memberships.length > 1 ? 'לחץ להחלפת קהילה' : 'תלמיד'}
             showChevron={memberships.length > 1}
             onTitleClick={memberships.length > 1 ? () => setCommunityDropdownOpen(v => !v) : undefined}
@@ -1025,7 +1025,7 @@ export default function StudentDashboard() {
                     <TrendingUp className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <div>
-                    <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
+                    <div className="font-bold text-sm text-sidebar-foreground">Caesar 0 DTE</div>
                     <div className="text-xs text-muted-foreground">תלמיד</div>
                   </div>
                 </button>

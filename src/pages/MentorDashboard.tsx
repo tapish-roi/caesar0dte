@@ -833,7 +833,7 @@ export default function MentorDashboard() {
       {isMobile && !lessonViewMode && (
         <div className="fixed top-0 left-0 right-0 z-30">
           <MobileHeader
-            title="TradeLearn"
+            title="Caesar 0 DTE"
             subtitle="מנטור"
             onSettingsClick={signOut}
           />
@@ -919,7 +919,7 @@ export default function MentorDashboard() {
                     <TrendingUp className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <div>
-                    <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
+                    <div className="font-bold text-sm text-sidebar-foreground">Caesar 0 DTE</div>
                     <div className="text-xs text-muted-foreground">מנטור</div>
                   </div>
                 </button>

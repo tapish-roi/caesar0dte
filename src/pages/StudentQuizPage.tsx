@@ -447,7 +447,7 @@ export default function StudentQuizPage() {
             </div>
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary" />
-              <span className="text-sm font-bold text-foreground">TradeLearn</span>
+              <span className="text-sm font-bold text-foreground">Caesar 0 DTE</span>
             </div>
           </div>
         </div>
