@@ -323,7 +323,7 @@ function LandingScreen({
 
       <button
         onClick={onSignOut}
-        className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+        className="mt-6 flex items-center gap-1.5 text-xs text-secondary-foreground/60 hover:text-destructive transition-colors"
       >
         <LogOut className="w-3.5 h-3.5" />
         התנתק ({userEmail})
