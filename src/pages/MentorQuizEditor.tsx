@@ -111,7 +111,7 @@ export default function MentorQuizEditor() {
     queryFn: async () => {
       if (existingQuestions.length === 0) return [];
       const { data } = await supabase.from('quiz_question_options')
-        .select('id, question_id, option_text, is_correct, position')
+        .select('id, question_id, option_text, is_correct, position, explanation')
         .in('question_id', existingQuestions.map((q: any) => q.id)).order('position');
       return data ?? [];
     },
