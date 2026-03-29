@@ -841,7 +841,7 @@ function QuizDetail({
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() => navigate(`/mentor/quiz/edit/${quizId}`)}
+                onClick={() => detailNavigate(`/mentor/quiz/edit/${quizId}`)}
                 className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-all"
               >
                 <Send className="w-3.5 h-3.5" />ערוך
