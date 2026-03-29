@@ -219,9 +219,9 @@ export default function StudentQuizPage() {
 
   if (!quiz || !quiz.is_published) {
     return (
-      <div className="min-h-screen bg-card text-card-foreground flex flex-col items-center justify-center gap-4" dir="rtl">
-        <ClipboardList className="w-12 h-12 text-muted-foreground opacity-30" />
-        <p className="text-lg font-semibold text-foreground">המבחן אינו זמין</p>
+      <div className="min-h-screen bg-background text-secondary-foreground flex flex-col items-center justify-center gap-4" dir="rtl">
+        <ClipboardList className="w-12 h-12 text-secondary-foreground/30" />
+        <p className="text-lg font-semibold text-secondary-foreground">המבחן אינו זמין</p>
         <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity">
           <ChevronRight className="w-4 h-4" />חזרה
         </button>
