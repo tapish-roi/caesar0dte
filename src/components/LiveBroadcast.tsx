@@ -500,7 +500,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                   </span>
                 )}
                 {recordingUrl && !isUploadingRecording && (
-                  <span className="text-xs text-emerald-600 flex items-center gap-1">
+                  <span className="text-xs text-gold-600 flex items-center gap-1">
                     <Check className="w-3 h-3" />
                     הקלטה נשמרה
                   </span>
