@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import {
   ClipboardList, ChevronRight, Check, AlignLeft, List,
-  Send, TrendingUp, CheckCircle2, X, Eye,
+  Send, TrendingUp, CheckCircle2, X, Eye, Lightbulb,
 } from 'lucide-react';
 
 interface QuizQuestion {
