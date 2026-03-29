@@ -9,6 +9,7 @@ import AcceptInvitePage from "./pages/AcceptInvitePage";
 import MentorDashboard from "./pages/MentorDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentQuizPage from "./pages/StudentQuizPage";
+import MentorQuizEditor from "./pages/MentorQuizEditor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
