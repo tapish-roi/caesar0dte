@@ -695,6 +695,7 @@ export type Database = {
       quiz_question_options: {
         Row: {
           created_at: string
+          explanation: string | null
           id: string
           is_correct: boolean
           option_text: string
@@ -703,6 +704,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          explanation?: string | null
           id?: string
           is_correct?: boolean
           option_text: string
@@ -711,6 +713,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          explanation?: string | null
           id?: string
           is_correct?: boolean
           option_text?: string

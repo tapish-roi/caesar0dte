@@ -16,6 +16,7 @@ interface DraftOption {
   id: string;
   text: string;
   isCorrect: boolean;
+  explanation: string;
 }
 
 interface DraftQuestion {
@@ -34,10 +35,10 @@ const emptyQuestion = (): DraftQuestion => ({
   text: '',
   type: 'multiple_choice',
   options: [
-    { id: genId(), text: '', isCorrect: false },
-    { id: genId(), text: '', isCorrect: false },
-    { id: genId(), text: '', isCorrect: false },
-    { id: genId(), text: '', isCorrect: false },
+    { id: genId(), text: '', isCorrect: false, explanation: '' },
+    { id: genId(), text: '', isCorrect: false, explanation: '' },
+    { id: genId(), text: '', isCorrect: false, explanation: '' },
+    { id: genId(), text: '', isCorrect: false, explanation: '' },
   ],
   expectedAnswer: '',
   hint: '',
@@ -110,7 +111,7 @@ export default function MentorQuizEditor() {
     queryFn: async () => {
       if (existingQuestions.length === 0) return [];
       const { data } = await supabase.from('quiz_question_options')
-        .select('id, question_id, option_text, is_correct, position')
+        .select('id, question_id, option_text, is_correct, position, explanation')
         .in('question_id', existingQuestions.map((q: any) => q.id)).order('position');
       return data ?? [];
     },
@@ -136,7 +137,7 @@ export default function MentorQuizEditor() {
         options: existingOptions
           .filter((o: any) => o.question_id === q.id)
           .sort((a: any, b: any) => a.position - b.position)
-          .map((o: any) => ({ id: o.id, text: o.option_text, isCorrect: o.is_correct })),
+          .map((o: any) => ({ id: o.id, text: o.option_text, isCorrect: o.is_correct, explanation: o.explanation ?? '' })),
       }));
       setQuestions(drafts.length > 0 ? drafts : [emptyQuestion()]);
     }
@@ -167,7 +168,7 @@ export default function MentorQuizEditor() {
 
   const addOption = (qId: string) =>
     setQuestions(prev => prev.map(q => q.id === qId ? {
-      ...q, options: [...q.options, { id: genId(), text: '', isCorrect: false }],
+      ...q, options: [...q.options, { id: genId(), text: '', isCorrect: false, explanation: '' }],
     } : q));
 
   const removeOption = (qId: string, optId: string) =>
@@ -241,7 +242,7 @@ export default function MentorQuizEditor() {
         if (dq.type === 'multiple_choice' && dq.options.length > 0) {
           const opts = dq.options
             .filter(o => o.text.trim())
-            .map((o, idx) => ({ question_id: dbQ.id, option_text: o.text.trim(), is_correct: o.isCorrect, position: idx }));
+            .map((o, idx) => ({ question_id: dbQ.id, option_text: o.text.trim(), is_correct: o.isCorrect, position: idx, explanation: o.explanation?.trim() || null }));
           if (opts.length > 0) {
             const { error: oErr } = await supabase.from('quiz_question_options').insert(opts);
             if (oErr) throw oErr;
@@ -377,10 +378,10 @@ export default function MentorQuizEditor() {
                   onClick={() => updateQuestion(currentQuestion.id, {
                     type: 'multiple_choice',
                     options: currentQuestion.type === 'multiple_choice' ? currentQuestion.options : [
-                      { id: genId(), text: '', isCorrect: false },
-                      { id: genId(), text: '', isCorrect: false },
-                      { id: genId(), text: '', isCorrect: false },
-                      { id: genId(), text: '', isCorrect: false },
+                      { id: genId(), text: '', isCorrect: false, explanation: '' },
+                      { id: genId(), text: '', isCorrect: false, explanation: '' },
+                      { id: genId(), text: '', isCorrect: false, explanation: '' },
+                      { id: genId(), text: '', isCorrect: false, explanation: '' },
                     ]
                   })}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
@@ -423,28 +424,38 @@ export default function MentorQuizEditor() {
                   <p className="text-xs text-secondary-foreground/60 font-medium">אפשרויות תשובה (לחץ על העיגול לסימון נכונה):</p>
                   {currentQuestion.options.map((opt, oIdx) => {
                     return (
-                      <div key={opt.id} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all ${
-                        opt.isCorrect ? 'border-green-500 bg-green-500/10' : 'border-sidebar-border bg-secondary/50'
-                      }`}>
-                        <button
-                          onClick={() => setCorrect(currentQuestion.id, opt.id)}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-all ${
-                            opt.isCorrect ? 'bg-green-500 text-white' : 'bg-sidebar-accent text-secondary-foreground/70'
-                          }`}
-                        >
-                          {opt.isCorrect ? <Check className="w-4 h-4" /> : letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}
-                        </button>
-                        <input
-                          value={opt.text}
-                          onChange={e => updateOption(currentQuestion.id, opt.id, { text: e.target.value })}
-                          placeholder={`אפשרות ${letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}...`}
-                          className="flex-1 bg-transparent text-sm text-secondary-foreground placeholder-secondary-foreground/30 focus:outline-none text-right"
-                        />
-                        {currentQuestion.options.length > 2 && (
-                          <button onClick={() => removeOption(currentQuestion.id, opt.id)} className="text-secondary-foreground/30 hover:text-red-400 transition-colors">
-                            <X className="w-3.5 h-3.5" />
+                      <div key={opt.id} className="space-y-0">
+                        <div className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all ${
+                          opt.isCorrect ? 'border-green-500 bg-green-500/10' : 'border-sidebar-border bg-secondary/50'
+                        }`}>
+                          <button
+                            onClick={() => setCorrect(currentQuestion.id, opt.id)}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-all ${
+                              opt.isCorrect ? 'bg-green-500 text-white' : 'bg-sidebar-accent text-secondary-foreground/70'
+                            }`}
+                          >
+                            {opt.isCorrect ? <Check className="w-4 h-4" /> : letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}
                           </button>
-                        )}
+                          <input
+                            value={opt.text}
+                            onChange={e => updateOption(currentQuestion.id, opt.id, { text: e.target.value })}
+                            placeholder={`אפשרות ${letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}...`}
+                            className="flex-1 bg-transparent text-sm text-secondary-foreground placeholder-secondary-foreground/30 focus:outline-none text-right"
+                          />
+                          {currentQuestion.options.length > 2 && (
+                            <button onClick={() => removeOption(currentQuestion.id, opt.id)} className="text-secondary-foreground/30 hover:text-red-400 transition-colors">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="mr-11 mt-1.5 mb-2">
+                          <input
+                            value={opt.explanation}
+                            onChange={e => updateOption(currentQuestion.id, opt.id, { explanation: e.target.value })}
+                            placeholder="הערה / הסבר לתשובה (אופציונלי)..."
+                            className="w-full px-3 py-2 bg-secondary/30 ring-1 ring-sidebar-border/50 rounded-lg text-xs text-secondary-foreground/70 placeholder-secondary-foreground/25 focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all text-right"
+                          />
+                        </div>
                       </div>
                     );
                   })}

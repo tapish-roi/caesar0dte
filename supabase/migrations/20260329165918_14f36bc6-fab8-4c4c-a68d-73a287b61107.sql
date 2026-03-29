@@ -1,0 +1,1 @@
+ALTER TABLE public.quiz_question_options ADD COLUMN explanation text DEFAULT NULL;

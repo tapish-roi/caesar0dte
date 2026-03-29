@@ -25,6 +25,7 @@ interface QuizOption {
   option_text: string;
   is_correct: boolean;
   position: number;
+  explanation: string | null;
 }
 
 interface Quiz {
@@ -93,7 +94,7 @@ export default function StudentQuizPage() {
       if (questions.length === 0) return [];
       const { data } = await supabase
         .from('quiz_question_options')
-        .select('id, question_id, option_text, is_correct, position')
+        .select('id, question_id, option_text, is_correct, position, explanation')
         .in('question_id', questions.map(q => q.id))
         .order('position');
       return (data ?? []) as QuizOption[];
@@ -286,22 +287,31 @@ export default function StudentQuizPage() {
                         if (isCorrectAnswer) style = 'border-green-500 bg-green-500/10 text-secondary-foreground';
                         if (isStudentAnswer && !isCorrectAnswer) style = 'border-red-500 bg-red-500/10 text-secondary-foreground';
                         return (
-                          <div key={opt.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${style}`}>
-                            <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold transition-all ${
-                              isCorrectAnswer ? 'border-green-500 bg-green-500 text-white' :
-                              isStudentAnswer ? 'border-red-500 bg-red-500 text-white' :
-                              'border-sidebar-border text-secondary-foreground/50'
-                            }`}>
-                              {isCorrectAnswer ? <Check className="w-3.5 h-3.5" /> :
-                               isStudentAnswer ? <X className="w-3.5 h-3.5" /> :
-                               String.fromCharCode(65 + oIdx)}
-                            </span>
-                            <span className="text-sm flex-1">{opt.option_text}</span>
-                            {isCorrectAnswer && (
-                              <span className="text-xs font-medium text-green-400">תשובה נכונה</span>
-                            )}
-                            {isStudentAnswer && !isCorrectAnswer && (
-                              <span className="text-xs font-medium text-red-400">הבחירה שלך</span>
+                          <div key={opt.id} className="space-y-1">
+                            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${style}`}>
+                              <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold transition-all ${
+                                isCorrectAnswer ? 'border-green-500 bg-green-500 text-white' :
+                                isStudentAnswer ? 'border-red-500 bg-red-500 text-white' :
+                                'border-sidebar-border text-secondary-foreground/50'
+                              }`}>
+                                {isCorrectAnswer ? <Check className="w-3.5 h-3.5" /> :
+                                 isStudentAnswer ? <X className="w-3.5 h-3.5" /> :
+                                 String.fromCharCode(65 + oIdx)}
+                              </span>
+                              <span className="text-sm flex-1">{opt.option_text}</span>
+                              {isCorrectAnswer && (
+                                <span className="text-xs font-medium text-green-400">תשובה נכונה</span>
+                              )}
+                              {isStudentAnswer && !isCorrectAnswer && (
+                                <span className="text-xs font-medium text-red-400">הבחירה שלך</span>
+                              )}
+                            </div>
+                            {(opt as any).explanation && (isCorrectAnswer || isStudentAnswer) && (
+                              <p className={`text-xs mr-10 px-3 py-1.5 rounded-lg ${
+                                isCorrectAnswer ? 'text-green-400/80' : 'text-red-400/80'
+                              }`}>
+                                {(opt as any).explanation}
+                              </p>
                             )}
                           </div>
                         );
@@ -590,19 +600,25 @@ export default function StudentQuizPage() {
                 />
               )}
 
-              {/* Feedback explanation for wrong answer */}
-              {currentFeedback && !currentFeedback.isCorrect && currentQuestion.question_type === 'multiple_choice' && (
+              {/* Per-option explanations after feedback */}
+              {currentFeedback && currentQuestion.question_type === 'multiple_choice' && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-4 p-4 rounded-xl bg-red-500/5 border border-red-500/20"
+                  className="mt-4 space-y-2"
                 >
-                  <p className="text-sm text-secondary-foreground/80">
-                    {(() => {
-                      const correctOpt = currentOptions.find(o => o.is_correct);
-                      return correctOpt ? `התשובה הנכונה היא: ${correctOpt.option_text}` : '';
-                    })()}
-                  </p>
+                  {currentOptions
+                    .filter(o => o.explanation && (o.is_correct || o.id === currentFeedback.selected))
+                    .map(o => (
+                      <div key={o.id} className={`p-3 rounded-xl border ${
+                        o.is_correct ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'
+                      }`}>
+                        <p className={`text-xs font-medium mb-0.5 ${o.is_correct ? 'text-green-400' : 'text-red-400'}`}>
+                          {o.option_text}
+                        </p>
+                        <p className="text-sm text-secondary-foreground/80">{o.explanation}</p>
+                      </div>
+                    ))}
                 </motion.div>
               )}
 
