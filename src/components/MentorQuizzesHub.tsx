@@ -1213,7 +1213,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
               )}
             </button>
             <button
-              onClick={() => setView('create')}
+              onClick={() => navigate(initialLessonId ? `/mentor/quiz/new?lessonId=${initialLessonId}` : '/mentor/quiz/new')}
               className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
             >
               <Plus className="w-4 h-4" />צור מבחן חדש
