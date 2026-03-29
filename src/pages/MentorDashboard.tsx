@@ -902,7 +902,7 @@ export default function MentorDashboard() {
               <div className="p-3 border-t border-sidebar-border">
                 <div className="flex items-center gap-3 px-2 py-2">
                   <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">{user?.email?.[0]?.toUpperCase()}</div>
-                  <div className="flex-1 min-w-0"><div className="text-xs font-medium text-foreground truncate">{mentorProfile?.full_name || user?.email}</div></div>
+                  <div className="flex-1 min-w-0"><div className="text-xs font-medium text-sidebar-foreground truncate">{mentorProfile?.full_name || user?.email}</div></div>
                   <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors"><LogOut className="w-4 h-4" /></button>
                 </div>
               </div>
