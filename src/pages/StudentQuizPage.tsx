@@ -209,7 +209,7 @@ export default function StudentQuizPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
+      <div className="min-h-screen bg-card text-card-foreground flex items-center justify-center" dir="rtl">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -217,7 +217,7 @@ export default function StudentQuizPage() {
 
   if (!quiz || !quiz.is_published) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4" dir="rtl">
+      <div className="min-h-screen bg-card text-card-foreground flex flex-col items-center justify-center gap-4" dir="rtl">
         <ClipboardList className="w-12 h-12 text-muted-foreground opacity-30" />
         <p className="text-lg font-semibold text-foreground">המבחן אינו זמין</p>
         <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity">
@@ -230,8 +230,8 @@ export default function StudentQuizPage() {
   // ── REVIEW SCREEN (already submitted + clicked "view answers") ──
   if (existingSubmission && showReview) {
     return (
-      <div className="min-h-screen bg-background" dir="rtl">
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
+      <div className="min-h-screen bg-card text-card-foreground" dir="rtl">
+        <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-sm border-b border-border">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
               <ChevronRight className="w-4 h-4" />חזרה
@@ -336,7 +336,7 @@ export default function StudentQuizPage() {
   if (existingSubmission && !submitted) {
     const pct = normalizeScore(existingSubmission.score, existingSubmission.max_score);
     return (
-      <div className="min-h-screen bg-background" dir="rtl">
+      <div className="min-h-screen bg-card text-card-foreground" dir="rtl">
         <div className="max-w-2xl mx-auto px-4 py-8">
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
             <ChevronRight className="w-4 h-4" />חזרה לשיעור
@@ -384,7 +384,7 @@ export default function StudentQuizPage() {
   if (submitted && score) {
     const pct = toPercent(score.got, score.max);
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4" dir="rtl">
+      <div className="min-h-screen bg-card text-card-foreground flex flex-col items-center justify-center px-4" dir="rtl">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -433,9 +433,9 @@ export default function StudentQuizPage() {
 
   // ── QUIZ FORM ──
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
+    <div className="min-h-screen bg-card text-card-foreground" dir="rtl">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
+      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-sm border-b border-border">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ChevronRight className="w-4 h-4" />חזרה
@@ -549,7 +549,7 @@ export default function StudentQuizPage() {
                         onChange={e => setAnswers(prev => ({ ...prev, [q.id]: { type: 'free_text', text: e.target.value } }))}
                         placeholder="כתוב את תשובתך כאן..."
                         rows={4}
-                        className="w-full px-4 py-3 bg-background ring-1 ring-border rounded-xl text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                        className="w-full px-4 py-3 bg-surface ring-1 ring-border rounded-xl text-sm text-card-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
                       />
                     )}
                   </div>

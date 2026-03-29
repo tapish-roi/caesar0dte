@@ -902,7 +902,7 @@ export default function MentorDashboard() {
               <div className="p-3 border-t border-sidebar-border">
                 <div className="flex items-center gap-3 px-2 py-2">
                   <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">{user?.email?.[0]?.toUpperCase()}</div>
-                  <div className="flex-1 min-w-0"><div className="text-xs font-medium text-foreground truncate">{mentorProfile?.full_name || user?.email}</div></div>
+                  <div className="flex-1 min-w-0"><div className="text-xs font-medium text-sidebar-foreground truncate">{mentorProfile?.full_name || user?.email}</div></div>
                   <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors"><LogOut className="w-4 h-4" /></button>
                 </div>
               </div>
@@ -960,7 +960,7 @@ export default function MentorDashboard() {
                     {user?.email?.[0]?.toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-foreground truncate">{user?.email}</div>
+                    <div className="text-xs font-medium text-sidebar-foreground truncate">{user?.email}</div>
                   </div>
                   <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors">
                     <LogOut className="w-4 h-4" />
@@ -973,7 +973,7 @@ export default function MentorDashboard() {
       </aside>
 
       {/* Main */}
-      <main className={`flex-1 ${isMobile ? 'pt-14 pb-20' : ''} ${activeTab === 'questions' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
+      <main className={`flex-1 bg-card text-card-foreground ${isMobile ? 'pt-14 pb-20' : ''} ${activeTab === 'questions' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
         <AnimatePresence mode="wait">
 
           {/* ──────── LESSONS ──────── */}
@@ -1435,7 +1435,7 @@ export default function MentorDashboard() {
                             >
                               <input
                                 autoFocus
-                                className="h-7 px-2 text-sm border border-border rounded-md bg-background text-foreground w-full max-w-[180px]"
+                                className="h-7 px-2 text-sm border border-border rounded-md bg-surface text-card-foreground w-full max-w-[180px]"
                                 value={nicknameValue}
                                 onChange={(e) => setNicknameValue(e.target.value)}
                                 placeholder={m.profiles?.full_name || 'כינוי'}
@@ -1561,7 +1561,7 @@ export default function MentorDashboard() {
                           className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all ${
                             hasAccess
                               ? 'border-primary/30 bg-primary/5'
-                              : 'border-border bg-background hover:border-border/80'
+                              : 'border-border bg-surface hover:border-border/80'
                           }`}
                         >
                           <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${

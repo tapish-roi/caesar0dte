@@ -184,7 +184,7 @@ function LandingScreen({
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
           <TrendingUp className="w-5 h-5 text-primary-foreground" />
         </div>
-        <span className="text-lg font-bold text-foreground">Caesar 0 DTE</span>
+        <span className="text-lg font-bold text-secondary-foreground">Caesar 0 DTE</span>
       </motion.div>
 
       <motion.div
@@ -213,7 +213,7 @@ function LandingScreen({
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.06 }}
                   onClick={() => onSelect(m.mentor_id)}
-                  className="w-full flex items-center gap-4 p-4 bg-background rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-right group"
+                  className="w-full flex items-center gap-4 p-4 bg-surface rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-right group"
                 >
                   <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-base shrink-0">
                     {m.avatarLetter}
@@ -234,7 +234,7 @@ function LandingScreen({
                   </p>
                   <div className="space-y-2">
                     {invites.map((inv) => (
-                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-muted/60 border border-border rounded-xl">
+                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl">
                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                            <span className="text-xs font-bold text-primary">{inv.mentorName[0]?.toUpperCase()}</span>
                          </div>
@@ -277,7 +277,7 @@ function LandingScreen({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.07 }}
-                  className="flex items-center gap-3 p-4 bg-background border border-border rounded-xl"
+                  className="flex items-center gap-3 p-4 bg-surface border border-border rounded-xl"
                 >
                   <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <span className="text-base font-bold text-primary">{inv.mentorName[0]?.toUpperCase()}</span>
@@ -323,7 +323,7 @@ function LandingScreen({
 
       <button
         onClick={onSignOut}
-        className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+        className="mt-6 flex items-center gap-1.5 text-xs text-secondary-foreground/60 hover:text-destructive transition-colors"
       >
         <LogOut className="w-3.5 h-3.5" />
         התנתק ({userEmail})
@@ -816,7 +816,7 @@ export default function StudentDashboard() {
   // ── Loading ──
   if (membershipsLoading || invitesLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
+      <div className="min-h-screen bg-background flex items-center justify-center text-secondary-foreground" dir="rtl">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -867,13 +867,13 @@ export default function StudentDashboard() {
 
       {/* Mobile Profile - full screen overlay */}
       {isMobile && profileOpen && (
-        <div className="fixed inset-0 z-50 bg-background overflow-y-auto" dir="rtl">
+        <div className="fixed inset-0 z-50 bg-card text-card-foreground overflow-y-auto" dir="rtl">
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <button onClick={() => setProfileOpen(false)} className="text-muted-foreground hover:text-foreground">
+              <button onClick={() => setProfileOpen(false)} className="text-muted-foreground hover:text-card-foreground">
                 <X className="w-5 h-5" />
               </button>
-              <span className="text-base font-bold text-foreground">הפרופיל שלי</span>
+              <span className="text-base font-bold text-card-foreground">הפרופיל שלי</span>
               <div className="w-5" />
             </div>
             <ProfileContent profile={profile} user={user} profileForm={profileForm} setProfileForm={setProfileForm} newPassword={newPassword} setNewPassword={setNewPassword} showPassword={showPassword} setShowPassword={setShowPassword} isAvatarUploading={isAvatarUploading} avatarInputRef={avatarInputRef} notifyState={notifyState} saveProfile={saveProfile} savePassword={savePassword} saveNotifications={saveNotifications} uploadAvatar={uploadAvatar} signOut={signOut} />
@@ -1110,10 +1110,10 @@ export default function StudentDashboard() {
                     }
                   </div>
                   <div className="flex-1 min-w-0 text-right">
-                    <div className="text-xs font-medium text-foreground truncate">{profile?.full_name || user?.email}</div>
+                    <div className="text-xs font-medium text-sidebar-foreground truncate">{profile?.full_name || user?.email}</div>
                     <div className="text-[10px] text-muted-foreground">הגדרות פרופיל</div>
                   </div>
-                  <Settings className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                  <Settings className="w-3.5 h-3.5 text-muted-foreground group-hover:text-sidebar-foreground transition-colors shrink-0" />
                 </button>
                 {profileOpen && <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />}
                 <AnimatePresence>
@@ -1126,7 +1126,7 @@ export default function StudentDashboard() {
       </aside>
 
       {/* Main */}
-      <main className={`flex-1 overflow-y-auto ${isMobile ? 'pt-14 pb-20' : ''}`}>
+      <main className={`flex-1 overflow-y-auto bg-card text-card-foreground ${isMobile ? 'pt-14 pb-20' : ''}`}>
         <AnimatePresence mode="wait">
 
           {/* ──────── LESSONS ──────── */}
@@ -1798,14 +1798,14 @@ function ProfileContent({
           <div className="relative">
             <User className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input value={profileForm.full_name} onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))} placeholder="השם שלך"
-              className="w-full h-9 pr-9 pl-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
+              className="w-full h-9 pr-9 pl-3 bg-surface ring-1 ring-border rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
           </div>
         </div>
         <div><label className="block text-xs text-muted-foreground mb-1">מספר טלפון</label>
           <div className="relative">
             <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input value={profileForm.phone} onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} placeholder="050-0000000" type="tel"
-              className="w-full h-9 pr-9 pl-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
+              className="w-full h-9 pr-9 pl-3 bg-surface ring-1 ring-border rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
           </div>
         </div>
         <div><label className="block text-xs text-muted-foreground mb-1">אימייל</label>
@@ -1824,7 +1824,7 @@ function ProfileContent({
         <div className="relative">
           <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <input type={showPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="סיסמה חדשה (6+ תווים)"
-            className="w-full h-9 pr-9 pl-9 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
+            className="w-full h-9 pr-9 pl-9 bg-surface ring-1 ring-border rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
           <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
             {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
           </button>

@@ -88,8 +88,8 @@ export default function AuthPage() {
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
             <TrendingUp className="w-6 h-6 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Caesar 0 DTE</h1>
-          <p className="text-sm text-muted-foreground">פלטפורמת מנטורינג למסחר מקצועי</p>
+          <h1 className="text-2xl font-bold text-secondary-foreground">Caesar 0 DTE</h1>
+          <p className="text-sm text-secondary-foreground/60">פלטפורמת מנטורינג למסחר מקצועי</p>
         </div>
 
         {/* Card */}

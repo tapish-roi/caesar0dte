@@ -285,7 +285,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                     value={editingQuestionText}
                     onChange={e => setEditingQuestionText(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 bg-background ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                    className="w-full px-3 py-2 bg-surface ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
                   />
                   <div className="flex gap-2 justify-end">
                     <button
@@ -373,7 +373,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                                   value={editingAnswerText}
                                   onChange={e => setEditingAnswerText(e.target.value)}
                                   rows={2}
-                                  className="w-full px-3 py-2 bg-background ring-1 ring-accent rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all resize-none text-right"
+                                  className="w-full px-3 py-2 bg-surface ring-1 ring-accent rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all resize-none text-right"
                                 />
                                 <div className="flex gap-2 justify-end">
                                   <button
@@ -432,7 +432,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                             value={answerTexts[q.id] ?? ''}
                             onChange={e => setAnswerTexts(prev => ({ ...prev, [q.id]: e.target.value }))}
                             placeholder="כתוב תשובה לכל התלמידים..."
-                            className="flex-1 h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                            className="flex-1 h-8 px-3 bg-surface ring-1 ring-border rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
                             onKeyDown={e => {
                               if (e.key === 'Enter' && answerTexts[q.id]?.trim()) {
                                 postAnswer.mutate({ questionId: q.id, content: answerTexts[q.id].trim() });

@@ -552,7 +552,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                 value={liveTitle}
                 onChange={e => setLiveTitle(e.target.value)}
                 placeholder="לדוגמה: מסחר חי על S&P500 — גישת הבוקר"
-                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
               />
             </div>
 
@@ -598,7 +598,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                 <div className="relative flex-1">
                   <button
                     onClick={() => setShowMicMenu(v => !v)}
-                    className="w-full flex items-center gap-2 h-10 px-3 bg-background ring-1 ring-border rounded-xl text-sm text-foreground hover:ring-accent transition-all"
+                    className="w-full flex items-center gap-2 h-10 px-3 bg-surface ring-1 ring-border rounded-xl text-sm text-foreground hover:ring-accent transition-all"
                   >
                     <Mic className="w-4 h-4 text-muted-foreground shrink-0" />
                     <span className="flex-1 text-right truncate text-sm">
@@ -754,7 +754,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                         onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                         placeholder="כתוב הודעה..."
                         maxLength={300}
-                        className="flex-1 h-9 px-3 bg-background ring-1 ring-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
+                        className="flex-1 h-9 px-3 bg-surface ring-1 ring-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
                       />
                       <button
                         onClick={sendMessage}
@@ -817,7 +817,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                     value={saveLessonForm.title}
                     onChange={e => setSaveLessonForm(f => ({ ...f, title: e.target.value }))}
                     placeholder="כותרת השיעור"
-                    className="w-full h-9 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
+                    className="w-full h-9 px-3 bg-surface ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
                   />
                 </div>
 
@@ -827,7 +827,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                     <select
                       value={saveLessonForm.categoryId}
                       onChange={e => setSaveLessonForm(f => ({ ...f, categoryId: e.target.value }))}
-                      className="w-full h-9 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
+                      className="w-full h-9 px-3 bg-surface ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
                     >
                       <option value="">ללא קטגוריה</option>
                       {categories.map(c => (
@@ -844,7 +844,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                     onChange={e => setSaveLessonForm(f => ({ ...f, description: e.target.value }))}
                     placeholder="תיאור קצר של הסשן..."
                     rows={2}
-                    className="w-full px-3 py-2 bg-background ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right resize-none"
+                    className="w-full px-3 py-2 bg-surface ring-1 ring-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right resize-none"
                   />
                 </div>
 

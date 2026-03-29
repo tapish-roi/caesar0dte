@@ -223,7 +223,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                               value={editingText}
                               onChange={e => setEditingText(e.target.value)}
                               rows={3}
-                              className="w-full px-3 py-2 bg-background ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                              className="w-full px-3 py-2 bg-surface ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
                             />
                             <div className="flex gap-2 justify-end">
                               <button

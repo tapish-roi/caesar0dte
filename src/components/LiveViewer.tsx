@@ -453,7 +453,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
                       onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                       placeholder="כתוב הודעה..."
                       maxLength={300}
-                      className="flex-1 h-9 px-3 bg-background ring-1 ring-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
+                      className="flex-1 h-9 px-3 bg-surface ring-1 ring-border rounded-xl text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-right"
                     />
                     <button
                       onClick={sendMessage}

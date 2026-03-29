@@ -384,7 +384,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                       value={editingPrivateText}
                                       onChange={e => setEditingPrivateText(e.target.value)}
                                       rows={3}
-                                      className="w-full px-3 py-2 bg-background ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                                      className="w-full px-3 py-2 bg-surface ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
                                     />
                                     <div className="flex gap-2 justify-end">
                                       <button
@@ -415,7 +415,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                       onChange={e => setPrivateAnswerText(prev => ({ ...prev, [q.id]: e.target.value }))}
                                       placeholder="כתוב את תשובתך..."
                                       rows={3}
-                                      className="flex-1 px-3 py-2 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                                      className="flex-1 px-3 py-2 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
                                     />
                                     <div className="flex flex-col gap-1.5">
                                       <button
@@ -542,7 +542,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                                 value={editingLessonAnswerText}
                                                 onChange={e => setEditingLessonAnswerText(e.target.value)}
                                                 rows={3}
-                                                className="w-full px-3 py-2 bg-background ring-1 ring-accent rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all resize-none text-right"
+                                                className="w-full px-3 py-2 bg-surface ring-1 ring-accent rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all resize-none text-right"
                                               />
                                               <div className="flex gap-2 justify-end">
                                                 <button
@@ -600,7 +600,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                     onChange={e => setLessonAnswerText(prev => ({ ...prev, [q.id]: e.target.value }))}
                                     placeholder={hasAnswers ? "הוסף תשובה נוספת..." : "כתוב תשובה שכל התלמידים יראו..."}
                                     rows={2}
-                                    className="flex-1 px-3 py-2 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all resize-none text-right"
+                                    className="flex-1 px-3 py-2 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all resize-none text-right"
                                   />
                                   <div className="flex flex-col gap-1.5">
                                     <button
