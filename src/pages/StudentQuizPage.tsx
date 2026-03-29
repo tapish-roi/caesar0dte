@@ -265,7 +265,7 @@ export default function StudentQuizPage() {
                     {q.question_type === 'free_text' ? idx + 1 :
                      rv?.is_correct ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                   </span>
-                  <p className="text-sm font-semibold text-foreground flex-1 text-right">{q.question_text}</p>
+                  <p className="text-sm font-semibold text-secondary-foreground flex-1 text-right">{q.question_text}</p>
                   {q.question_type !== 'free_text' && (
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                       rv?.is_correct ? 'bg-accent/20 text-accent' : 'bg-destructive/20 text-destructive'
