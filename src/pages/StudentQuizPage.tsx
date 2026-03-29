@@ -211,7 +211,7 @@ export default function StudentQuizPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-card text-card-foreground flex items-center justify-center" dir="rtl">
+      <div className="min-h-screen bg-background text-secondary-foreground flex items-center justify-center" dir="rtl">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
