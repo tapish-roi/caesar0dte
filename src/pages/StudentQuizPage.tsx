@@ -251,7 +251,7 @@ export default function StudentQuizPage() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}
-                className="bg-card border border-border rounded-xl overflow-hidden"
+                className="bg-secondary/50 border border-sidebar-border rounded-xl overflow-hidden"
               >
                 {/* Question header */}
                 <div className={`flex items-center gap-3 px-5 py-3 border-b border-border ${
