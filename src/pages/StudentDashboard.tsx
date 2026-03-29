@@ -1025,7 +1025,7 @@ export default function StudentDashboard() {
                     <TrendingUp className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <div>
-                    <div className="font-bold text-sm text-sidebar-foreground">TradeLearn</div>
+                    <div className="font-bold text-sm text-sidebar-foreground">Caesar 0 DTE</div>
                     <div className="text-xs text-muted-foreground">תלמיד</div>
                   </div>
                 </button>

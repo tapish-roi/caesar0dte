@@ -16,7 +16,7 @@ export default function MobileHeader({ title, subtitle, onSettingsClick, onTitle
       </div>
       <div className="flex-1 min-w-0" onClick={onTitleClick}>
         <div className="flex items-center gap-1 cursor-pointer">
-          <span className="text-sm font-bold text-foreground truncate">{title || 'TradeLearn'}</span>
+          <span className="text-sm font-bold text-foreground truncate"><span className="text-sm font-bold text-foreground truncate">{title || 'Caesar 0 DTE'}</span></span>
           {showChevron && <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
         </div>
         {subtitle && <p className="text-[10px] text-muted-foreground truncate">{subtitle}</p>}
