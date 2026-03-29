@@ -789,7 +789,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                 <p className="text-sm text-muted-foreground">מעלה את ההקלטה לקהילה...</p>
               )}
               {recordingUrl && !isUploadingRecording && (
-                <p className="text-sm text-emerald-600 font-medium">ההקלטה נשמרה בפוסט הקהילה! 🎉</p>
+                <p className="text-sm text-gold-600 font-medium">ההקלטה נשמרה בפוסט הקהילה! 🎉</p>
               )}
               {!isUploadingRecording && !recordingUrl && (
                 <p className="text-sm text-muted-foreground">הפוסט נשאר בקהילה עם סימון "הסתיים"</p>
