@@ -56,6 +56,8 @@ export default function StudentQuizPage() {
   const [score, setScore] = useState<{ got: number; max: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReview, setShowReview] = useState(reviewFromUrl);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, { selected: string; isCorrect: boolean }>>({});
 
   const { data: quiz, isLoading: quizLoading } = useQuery<Quiz | null>({
     queryKey: ['student-quiz', quizId],
