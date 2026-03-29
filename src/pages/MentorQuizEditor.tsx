@@ -16,6 +16,7 @@ interface DraftOption {
   id: string;
   text: string;
   isCorrect: boolean;
+  explanation: string;
 }
 
 interface DraftQuestion {
