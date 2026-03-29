@@ -286,9 +286,9 @@ export default function StudentQuizPage() {
                         return (
                           <div key={opt.id} className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${style}`}>
                             <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold transition-all ${
-                              isCorrectAnswer ? 'border-accent bg-accent text-accent-foreground' :
-                              isStudentAnswer ? 'border-destructive bg-destructive text-destructive-foreground' :
-                              'border-border text-muted-foreground'
+                              isCorrectAnswer ? 'border-green-500 bg-green-500 text-white' :
+                              isStudentAnswer ? 'border-red-500 bg-red-500 text-white' :
+                              'border-sidebar-border text-secondary-foreground/50'
                             }`}>
                               {isCorrectAnswer ? <Check className="w-3.5 h-3.5" /> :
                                isStudentAnswer ? <X className="w-3.5 h-3.5" /> :
