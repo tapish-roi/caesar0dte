@@ -386,38 +386,38 @@ export default function StudentQuizPage() {
   if (submitted && score) {
     const pct = toPercent(score.got, score.max);
     return (
-      <div className="min-h-screen bg-card text-card-foreground flex flex-col items-center justify-center px-4" dir="rtl">
+      <div className="min-h-screen bg-background text-secondary-foreground flex flex-col items-center justify-center px-4" dir="rtl">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-card border border-border rounded-2xl p-8 max-w-md w-full text-center shadow-lg"
+          className="bg-secondary/50 border border-sidebar-border rounded-2xl p-8 max-w-md w-full text-center shadow-lg"
         >
           <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 ${
-            pct == null ? 'bg-accent/10' : pct >= 70 ? 'bg-accent/10' : 'bg-destructive/10'
+            pct == null ? 'bg-primary/10' : pct >= 70 ? 'bg-green-500/10' : 'bg-red-500/10'
           }`}>
             {pct == null ? (
-              <CheckCircle2 className="w-10 h-10 text-accent" />
+              <CheckCircle2 className="w-10 h-10 text-primary" />
             ) : pct >= 70 ? (
-              <CheckCircle2 className="w-10 h-10 text-accent" />
+              <CheckCircle2 className="w-10 h-10 text-green-400" />
             ) : (
-              <X className="w-10 h-10 text-destructive" />
+              <X className="w-10 h-10 text-red-400" />
             )}
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-1">המבחן הוגש!</h2>
+          <h2 className="text-2xl font-bold text-secondary-foreground mb-1">המבחן הוגש!</h2>
           {pct != null ? (
             <>
-              <p className={`text-5xl font-bold mt-3 ${pct >= 70 ? 'text-accent' : 'text-destructive'}`}>
+              <p className={`text-5xl font-bold mt-3 ${pct >= 70 ? 'text-green-400' : 'text-red-400'}`}>
                 {pct}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">נקודות מתוך 100</p>
+              <p className="text-sm text-secondary-foreground/60 mt-1">נקודות מתוך 100</p>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground mt-3">המבחן הוגש בהצלחה. השאלות הפתוחות נשלחו למנטור.</p>
+            <p className="text-sm text-secondary-foreground/60 mt-3">המבחן הוגש בהצלחה. השאלות הפתוחות נשלחו למנטור.</p>
           )}
           <div className="flex gap-3 mt-6">
             <button
               onClick={() => navigate(-1)}
-              className="flex-1 h-10 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+              className="flex-1 h-10 rounded-xl border border-sidebar-border text-sm font-medium text-secondary-foreground hover:bg-secondary/50 transition-all"
             >
               חזרה לשיעור
             </button>
