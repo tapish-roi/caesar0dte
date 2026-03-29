@@ -816,7 +816,7 @@ export default function StudentDashboard() {
   // ── Loading ──
   if (membershipsLoading || invitesLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
+      <div className="min-h-screen bg-background flex items-center justify-center text-secondary-foreground" dir="rtl">
         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
