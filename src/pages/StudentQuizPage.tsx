@@ -59,6 +59,7 @@ export default function StudentQuizPage() {
   const [showReview, setShowReview] = useState(reviewFromUrl);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, { selected: string; isCorrect: boolean }>>({});
+  const [revealedHints, setRevealedHints] = useState<Record<string, boolean>>({});
 
   const { data: quiz, isLoading: quizLoading } = useQuery<Quiz | null>({
     queryKey: ['student-quiz', quizId],
