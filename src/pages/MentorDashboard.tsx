@@ -833,7 +833,7 @@ export default function MentorDashboard() {
       {isMobile && !lessonViewMode && (
         <div className="fixed top-0 left-0 right-0 z-30">
           <MobileHeader
-            title="TradeLearn"
+            title="Caesar 0 DTE"
             subtitle="מנטור"
             onSettingsClick={signOut}
           />
