@@ -296,10 +296,10 @@ export default function StudentQuizPage() {
                             </span>
                             <span className="text-sm flex-1">{opt.option_text}</span>
                             {isCorrectAnswer && (
-                              <span className="text-xs font-medium text-accent">תשובה נכונה</span>
+                              <span className="text-xs font-medium text-green-400">תשובה נכונה</span>
                             )}
                             {isStudentAnswer && !isCorrectAnswer && (
-                              <span className="text-xs font-medium text-destructive">הבחירה שלך</span>
+                              <span className="text-xs font-medium text-red-400">הבחירה שלך</span>
                             )}
                           </div>
                         );
