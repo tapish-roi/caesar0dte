@@ -1110,10 +1110,10 @@ export default function StudentDashboard() {
                     }
                   </div>
                   <div className="flex-1 min-w-0 text-right">
-                    <div className="text-xs font-medium text-foreground truncate">{profile?.full_name || user?.email}</div>
+                    <div className="text-xs font-medium text-sidebar-foreground truncate">{profile?.full_name || user?.email}</div>
                     <div className="text-[10px] text-muted-foreground">הגדרות פרופיל</div>
                   </div>
-                  <Settings className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                  <Settings className="w-3.5 h-3.5 text-muted-foreground group-hover:text-sidebar-foreground transition-colors shrink-0" />
                 </button>
                 {profileOpen && <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />}
                 <AnimatePresence>
