@@ -1561,7 +1561,7 @@ export default function MentorDashboard() {
                           className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all ${
                             hasAccess
                               ? 'border-primary/30 bg-primary/5'
-                              : 'border-border bg-background hover:border-border/80'
+                              : 'border-border bg-surface hover:border-border/80'
                           }`}
                         >
                           <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
