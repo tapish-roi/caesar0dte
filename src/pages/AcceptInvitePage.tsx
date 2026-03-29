@@ -99,12 +99,12 @@ export default function AcceptInvitePage() {
       {/* Background blobs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div
-          className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.12]"
-          style={{ background: 'radial-gradient(circle, hsl(160 84% 39%) 0%, transparent 70%)' }}
+          className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.15]"
+          style={{ background: 'radial-gradient(circle, hsl(42 70% 50%) 0%, transparent 70%)' }}
         />
         <div
-          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full opacity-[0.07]"
-          style={{ background: 'radial-gradient(circle, hsl(222 47% 40%) 0%, transparent 70%)' }}
+          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full opacity-[0.08]"
+          style={{ background: 'radial-gradient(circle, hsl(220 30% 30%) 0%, transparent 70%)' }}
         />
       </div>
 
