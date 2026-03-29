@@ -254,7 +254,7 @@ export default function StudentQuizPage() {
                 className="bg-secondary/50 border border-sidebar-border rounded-xl overflow-hidden"
               >
                 {/* Question header */}
-                <div className={`flex items-center gap-3 px-5 py-3 border-b border-border ${
+                <div className={`flex items-center gap-3 px-5 py-3 border-b border-sidebar-border ${
                   q.question_type === 'free_text' ? 'bg-muted/20' :
                   rv?.is_correct ? 'bg-accent/10' : 'bg-destructive/10'
                 }`}>
