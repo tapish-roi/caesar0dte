@@ -378,10 +378,10 @@ export default function MentorQuizEditor() {
                   onClick={() => updateQuestion(currentQuestion.id, {
                     type: 'multiple_choice',
                     options: currentQuestion.type === 'multiple_choice' ? currentQuestion.options : [
-                      { id: genId(), text: '', isCorrect: false },
-                      { id: genId(), text: '', isCorrect: false },
-                      { id: genId(), text: '', isCorrect: false },
-                      { id: genId(), text: '', isCorrect: false },
+                      { id: genId(), text: '', isCorrect: false, explanation: '' },
+                      { id: genId(), text: '', isCorrect: false, explanation: '' },
+                      { id: genId(), text: '', isCorrect: false, explanation: '' },
+                      { id: genId(), text: '', isCorrect: false, explanation: '' },
                     ]
                   })}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
