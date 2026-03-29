@@ -85,6 +85,8 @@ function AppRoutes() {
         }
       />
       <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
+      <Route path="/mentor/quiz/new" element={<MentorQuizEditor />} />
+      <Route path="/mentor/quiz/edit/:quizId" element={<MentorQuizEditor />} />
       <Route path="/accept-invite" element={<AcceptInvitePage />} />
       <Route path="/auth" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
