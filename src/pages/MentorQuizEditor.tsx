@@ -137,7 +137,7 @@ export default function MentorQuizEditor() {
         options: existingOptions
           .filter((o: any) => o.question_id === q.id)
           .sort((a: any, b: any) => a.position - b.position)
-          .map((o: any) => ({ id: o.id, text: o.option_text, isCorrect: o.is_correct })),
+          .map((o: any) => ({ id: o.id, text: o.option_text, isCorrect: o.is_correct, explanation: o.explanation ?? '' })),
       }));
       setQuestions(drafts.length > 0 ? drafts : [emptyQuestion()]);
     }
