@@ -168,7 +168,7 @@ export default function MentorQuizEditor() {
 
   const addOption = (qId: string) =>
     setQuestions(prev => prev.map(q => q.id === qId ? {
-      ...q, options: [...q.options, { id: genId(), text: '', isCorrect: false }],
+      ...q, options: [...q.options, { id: genId(), text: '', isCorrect: false, explanation: '' }],
     } : q));
 
   const removeOption = (qId: string, optId: string) =>
