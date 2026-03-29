@@ -235,10 +235,10 @@ export default function StudentQuizPage() {
       <div className="min-h-screen bg-background text-secondary-foreground" dir="rtl">
         <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-sidebar-border">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-secondary-foreground/60 hover:text-secondary-foreground transition-colors">
               <ChevronRight className="w-4 h-4" />חזרה
             </button>
-            <span className="text-sm font-semibold text-foreground flex-1 text-center">סקירת תשובות</span>
+            <span className="text-sm font-semibold text-secondary-foreground flex-1 text-center">סקירת תשובות</span>
           </div>
         </div>
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
