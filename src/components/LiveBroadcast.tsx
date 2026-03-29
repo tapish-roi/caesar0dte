@@ -500,7 +500,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                   </span>
                 )}
                 {recordingUrl && !isUploadingRecording && (
-                  <span className="text-xs text-emerald-600 flex items-center gap-1">
+                  <span className="text-xs text-gold-600 flex items-center gap-1">
                     <Check className="w-3 h-3" />
                     הקלטה נשמרה
                   </span>
@@ -780,7 +780,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                 {isUploadingRecording
                   ? <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                   : recordingUrl
-                  ? <Check className="w-6 h-6 text-emerald-600" />
+                  ? <Check className="w-6 h-6 text-gold-600" />
                   : <Radio className="w-6 h-6 text-muted-foreground" />
                 }
               </div>
@@ -789,7 +789,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
                 <p className="text-sm text-muted-foreground">מעלה את ההקלטה לקהילה...</p>
               )}
               {recordingUrl && !isUploadingRecording && (
-                <p className="text-sm text-emerald-600 font-medium">ההקלטה נשמרה בפוסט הקהילה! 🎉</p>
+                <p className="text-sm text-gold-600 font-medium">ההקלטה נשמרה בפוסט הקהילה! 🎉</p>
               )}
               {!isUploadingRecording && !recordingUrl && (
                 <p className="text-sm text-muted-foreground">הפוסט נשאר בקהילה עם סימון "הסתיים"</p>
