@@ -213,7 +213,7 @@ function LandingScreen({
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.06 }}
                   onClick={() => onSelect(m.mentor_id)}
-                  className="w-full flex items-center gap-4 p-4 bg-background rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-right group"
+                  className="w-full flex items-center gap-4 p-4 bg-surface rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-right group"
                 >
                   <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-base shrink-0">
                     {m.avatarLetter}
