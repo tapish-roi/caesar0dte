@@ -851,7 +851,7 @@ export default function StudentDashboard() {
       {isMobile && !lessonViewMode && (
         <div className="fixed top-0 left-0 right-0 z-30">
           <MobileHeader
-            title={mentorName || 'TradeLearn'}
+            title={mentorName || 'Caesar 0 DTE'}
             subtitle={memberships.length > 1 ? 'לחץ להחלפת קהילה' : 'תלמיד'}
             showChevron={memberships.length > 1}
             onTitleClick={memberships.length > 1 ? () => setCommunityDropdownOpen(v => !v) : undefined}
