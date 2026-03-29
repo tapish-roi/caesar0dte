@@ -549,7 +549,7 @@ export default function StudentQuizPage() {
                         onChange={e => setAnswers(prev => ({ ...prev, [q.id]: { type: 'free_text', text: e.target.value } }))}
                         placeholder="כתוב את תשובתך כאן..."
                         rows={4}
-                        className="w-full px-4 py-3 bg-background ring-1 ring-border rounded-xl text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                        className="w-full px-4 py-3 bg-surface ring-1 ring-border rounded-xl text-sm text-card-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
                       />
                     )}
                   </div>
