@@ -16,6 +16,7 @@ interface QuizQuestion {
   question_type: 'multiple_choice' | 'free_text';
   position: number;
   expected_answer?: string | null;
+  hint?: string | null;
 }
 
 interface QuizOption {
