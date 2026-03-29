@@ -256,7 +256,7 @@ function QuizBuilder({
             <input
               value={title} onChange={e => setTitle(e.target.value)}
               placeholder="לדוגמה: מבחן פרק 1 – ניתוח טכני"
-              className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+              className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
             />
           </div>
           <div className="grid grid-cols-3 gap-4">
@@ -265,7 +265,7 @@ function QuizBuilder({
               <select
                 value={selectedCategoryId}
                 onChange={e => { setSelectedCategoryId(e.target.value); setLessonId(''); }}
-                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+                className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
               >
                 <option value="">כל הקטגוריות</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -277,7 +277,7 @@ function QuizBuilder({
                 value={lessonId}
                 onChange={e => setLessonId(e.target.value)}
                 disabled={lessonsInSelectedCategory.length === 0 && !selectedCategoryId}
-                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right disabled:opacity-50"
+                className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right disabled:opacity-50"
               >
                 <option value="">ללא שיעור</option>
                 {lessonsInSelectedCategory.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
@@ -288,7 +288,7 @@ function QuizBuilder({
               <input
                 value={description} onChange={e => setDescription(e.target.value)}
                 placeholder="הוראות לנבחן..."
-                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+                className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
               />
             </div>
           </div>
@@ -339,7 +339,7 @@ function QuizBuilder({
                   onChange={e => updateQuestion(q.id, { text: e.target.value })}
                   placeholder={q.type === 'free_text' ? 'כתוב את השאלה הפתוחה כאן...' : 'כתוב את השאלה כאן...'}
                   rows={2}
-                  className="w-full px-3 py-2.5 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                  className="w-full px-3 py-2.5 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
                 />
 
                 {/* Multiple choice options */}
@@ -363,7 +363,7 @@ function QuizBuilder({
                           value={opt.text}
                           onChange={e => updateOption(q.id, opt.id, { text: e.target.value })}
                           placeholder={`אפשרות ${String.fromCharCode(65 + oIdx)}...`}
-                          className="flex-1 h-9 px-3 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+                          className="flex-1 h-9 px-3 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
                         />
                         {q.options.length > 2 && (
                           <button onClick={() => removeOption(q.id, opt.id)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
@@ -397,7 +397,7 @@ function QuizBuilder({
                         onChange={e => updateQuestion(q.id, { expectedAnswer: e.target.value })}
                         placeholder="לדוגמה: תשובה צריכה לכלול את המושג X, הסבר על Y..."
                         rows={2}
-                        className="w-full px-3 py-2.5 bg-background ring-1 ring-primary/30 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                        className="w-full px-3 py-2.5 bg-surface ring-1 ring-primary/30 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
                       />
                     </div>
                   </div>
@@ -648,7 +648,7 @@ function QuizDetail({
               <label className="block text-sm font-medium text-foreground mb-1.5">כותרת המבחן *</label>
               <input
                 value={editTitle} onChange={e => setEditTitle(e.target.value)}
-                className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+                className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
               />
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -657,7 +657,7 @@ function QuizDetail({
                 <select
                   value={editCategoryId}
                   onChange={e => { setEditCategoryId(e.target.value); setEditLessonId(''); }}
-                  className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+                  className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
                 >
                   <option value="">כל הקטגוריות</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -668,7 +668,7 @@ function QuizDetail({
                 <select
                   value={editLessonId}
                   onChange={e => setEditLessonId(e.target.value)}
-                  className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+                  className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
                 >
                   <option value="">ללא שיעור</option>
                   {(editCategoryId ? lessons.filter(l => l.category_id === editCategoryId) : lessons).map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
@@ -678,7 +678,7 @@ function QuizDetail({
                 <label className="block text-sm font-medium text-foreground mb-1.5">תיאור</label>
                 <input
                   value={editDescription} onChange={e => setEditDescription(e.target.value)}
-                  className="w-full h-11 px-4 bg-background ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+                  className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
                 />
               </div>
             </div>
@@ -724,7 +724,7 @@ function QuizDetail({
                     onChange={e => updateEditQuestion(q.id, { text: e.target.value })}
                     placeholder={q.type === 'free_text' ? 'כתוב את השאלה הפתוחה כאן...' : 'כתוב את השאלה כאן...'}
                     rows={2}
-                    className="w-full px-3 py-2.5 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                    className="w-full px-3 py-2.5 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
                   />
                   {q.type === 'multiple_choice' && (
                     <div className="space-y-2">
@@ -744,7 +744,7 @@ function QuizDetail({
                             value={opt.text}
                             onChange={e => updateEditOption(q.id, opt.id, { text: e.target.value })}
                             placeholder={`אפשרות ${String.fromCharCode(65 + oIdx)}...`}
-                            className="flex-1 h-9 px-3 bg-background ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+                            className="flex-1 h-9 px-3 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
                           />
                           {q.options.length > 2 && (
                             <button onClick={() => removeEditOption(q.id, opt.id)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
@@ -773,7 +773,7 @@ function QuizDetail({
                           onChange={e => updateEditQuestion(q.id, { expectedAnswer: e.target.value })}
                           placeholder="לדוגמה: תשובה צריכה לכלול את המושג X, הסבר על Y..."
                           rows={2}
-                          className="w-full px-3 py-2.5 bg-background ring-1 ring-primary/30 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                          className="w-full px-3 py-2.5 bg-surface ring-1 ring-primary/30 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
                         />
                       </div>
                     </div>
@@ -1235,7 +1235,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                 <select
                   value={filterCategoryId}
                   onChange={e => { setFilterCategoryId(e.target.value); setFilterLessonId(''); }}
-                  className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="h-8 px-3 bg-surface ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">כל הקטגוריות</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -1244,7 +1244,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                 <select
                   value={filterLessonId}
                   onChange={e => setFilterLessonId(e.target.value)}
-                  className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="h-8 px-3 bg-surface ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">כל השיעורים</option>
                   {lessonsInCategory.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
@@ -1336,7 +1336,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                 <select
                   value={filterCategoryId}
                   onChange={e => { setFilterCategoryId(e.target.value); setFilterLessonId(''); }}
-                  className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="h-8 px-3 bg-surface ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">כל הקטגוריות</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -1345,7 +1345,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                 <select
                   value={filterLessonId}
                   onChange={e => setFilterLessonId(e.target.value)}
-                  className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="h-8 px-3 bg-surface ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">כל השיעורים</option>
                   {lessonsInCategory.map(l => <option key={l.id} value={l.id}>{l.title}</option>)}
@@ -1353,7 +1353,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                 <select
                   value={filterStudentId}
                   onChange={e => setFilterStudentId(e.target.value)}
-                  className="h-8 px-3 bg-background ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="h-8 px-3 bg-surface ring-1 ring-border rounded-lg text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">כל התלמידים</option>
                   {members.map(m => <option key={m.student_id} value={m.student_id}>{m.full_name}</option>)}
