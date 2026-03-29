@@ -1388,7 +1388,7 @@ export default function StudentDashboard() {
 
           {/* ──────── COMMUNITY ──────── */}
           {activeTab === 'community' && (
-            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 max-w-2xl">
+            <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 max-w-2xl mx-auto">
               <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
