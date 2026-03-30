@@ -1,4 +1,5 @@
-import { FileText, MonitorPlay, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, MonitorPlay, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface AttachmentViewerProps {
   url: string;
