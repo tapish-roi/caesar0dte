@@ -52,9 +52,7 @@ export default function AuthPage() {
           }
           throw error;
         }
-        // Trigger premium exit transition
-        setExiting(true);
-        startTransition();
+        // Auth state change will trigger the layout animation automatically
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
