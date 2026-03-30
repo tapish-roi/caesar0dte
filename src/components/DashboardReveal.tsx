@@ -1,44 +1,27 @@
 import { motion } from 'framer-motion';
-import { useTransition } from '@/contexts/TransitionContext';
-import { useEffect, useState } from 'react';
 
 const premiumEase = [0.22, 1, 0.36, 1] as const;
 
 export default function DashboardReveal({ children }: { children: React.ReactNode }) {
-  const { isTransitioning, endTransition } = useTransition();
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-
-  useEffect(() => {
-    if (isTransitioning) {
-      // Small delay so the auth exit animation runs first
-      const timer = setTimeout(() => {
-        setShouldAnimate(true);
-        endTransition();
-      }, 400);
-      return () => clearTimeout(timer);
-    }
-  }, [isTransitioning, endTransition]);
-
-  // If not coming from auth transition, just render normally
-  if (!shouldAnimate && !isTransitioning) {
-    return <>{children}</>;
-  }
-
-  // While waiting for auth exit to finish, show nothing
-  if (isTransitioning && !shouldAnimate) {
-    return (
-      <div className="min-h-screen bg-background" />
-    );
-  }
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: premiumEase }}
-      onAnimationComplete={() => setShouldAnimate(false)}
+      layoutId="main-container"
+      className="min-h-screen bg-background"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{
+        layout: { duration: 0.7, ease: premiumEase },
+        opacity: { duration: 0.4, delay: 0.2, ease: premiumEase },
+      }}
+      style={{ borderRadius: 0 }}
     >
-      {children}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.35, ease: premiumEase }}
+      >
+        {children}
+      </motion.div>
     </motion.div>
   );
 }
