@@ -325,7 +325,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                 </div>
                 <div className="aspect-video bg-black">
                   {playingRecording.recording_url ? (
-                    <video src={playingRecording.recording_url} className="w-full h-full" controls autoPlay />
+                    <video src={playingRecording.recording_url} className="w-full h-full" controls autoPlay controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       <div className="text-center">

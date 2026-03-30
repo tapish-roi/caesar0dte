@@ -21,7 +21,7 @@ export default function MediaLightbox({ open, onOpenChange, url, type }: MediaLi
           <X className="w-5 h-5" />
         </button>
         {type === 'video' ? (
-          <video src={url} className="w-full max-h-[85vh] rounded-xl" controls autoPlay />
+          <video src={url} className="w-full max-h-[85vh] rounded-xl" controls autoPlay controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
         ) : (
           <img src={url} alt="" className="w-full max-h-[85vh] object-contain rounded-xl" />
         )}

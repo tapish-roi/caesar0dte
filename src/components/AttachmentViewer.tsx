@@ -1,4 +1,4 @@
-import { Download, FileText, MonitorPlay, ExternalLink } from 'lucide-react';
+import { FileText, MonitorPlay, ExternalLink } from 'lucide-react';
 
 interface AttachmentViewerProps {
   url: string;
@@ -45,17 +45,6 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
           >
             <ExternalLink className="w-3.5 h-3.5" />
             פתח בחלון
-          </a>
-          <a
-            href={url}
-            download={displayName}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-all"
-            onClick={e => e.stopPropagation()}
-          >
-            <Download className="w-3.5 h-3.5" />
-            הורד
           </a>
         </div>
       </div>

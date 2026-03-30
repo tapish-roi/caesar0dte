@@ -1004,7 +1004,7 @@ export default function MentorDashboard() {
                           {/* Video area */}
                           <div className="aspect-video bg-foreground/5 border-b border-border flex items-center justify-center">
                             {lesson.video_url ? (
-                              <video src={lesson.video_url} className="w-full h-full" controls />
+                              <video src={lesson.video_url} className="w-full h-full" controls controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
                             ) : (
                               <div className="text-center">
                                 <Video className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />

@@ -799,7 +799,7 @@ export default function LiveBroadcast({ mentorId, mentorName, onClose, onPostCre
             {/* Video preview if recording done */}
             {recordingUrl && (
               <div className="rounded-xl overflow-hidden border border-border">
-                <video src={recordingUrl} controls className="w-full max-h-48 object-contain bg-black" />
+                <video src={recordingUrl} controls controlsList="nodownload" onContextMenu={e => e.preventDefault()} className="w-full max-h-48 object-contain bg-black" />
               </div>
             )}
 
