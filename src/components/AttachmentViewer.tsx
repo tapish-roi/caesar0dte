@@ -65,6 +65,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
       {isDocument && (
         <div style={{ height: '540px' }} className="w-full">
           <iframe
+            key={iframeKey}
             src={googleViewerUrl}
             className="w-full h-full border-none"
             title={displayName}
