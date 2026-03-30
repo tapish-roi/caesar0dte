@@ -624,7 +624,7 @@ export default function StudentDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lesson_progress')
-        .select('lesson_id, progress_percent, completed')
+        .select('lesson_id, progress_percent, completed, watched_seconds')
         .eq('student_id', user!.id);
       if (error) throw error;
       return data ?? [];
