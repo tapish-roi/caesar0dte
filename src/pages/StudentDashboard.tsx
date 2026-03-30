@@ -139,7 +139,7 @@ function VideoPlayer({
       {
         lesson_id: lessonId,
         student_id: studentId,
-        watched_seconds: Math.min(watched, maxSeconds > 0 ? maxSeconds : watched),
+        watched_seconds: Math.floor(Math.min(watched, maxSeconds > 0 ? maxSeconds : watched)),
         progress_percent: percent,
         completed: done,
         last_watched_at: new Date().toISOString(),
