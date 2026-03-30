@@ -1055,7 +1055,7 @@ export default function MentorDashboard() {
                                 <Eye className="w-4 h-4 text-primary" />
                                 התקדמות צפייה של תלמידים
                               </h3>
-                              <LessonStudentProgress lessonId={lesson.id} mentorId={user?.id} />
+                              <LessonStudentProgress lessonId={lesson.id} mentorId={user?.id} durationMinutes={lesson.duration_minutes} />
                             </div>
                           </div>
                         </div>

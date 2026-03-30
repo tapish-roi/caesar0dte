@@ -1,0 +1,1 @@
+ALTER TABLE public.lesson_progress ADD COLUMN IF NOT EXISTS watched_seconds integer NOT NULL DEFAULT 0;
