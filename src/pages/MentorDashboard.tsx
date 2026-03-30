@@ -1187,7 +1187,7 @@ export default function MentorDashboard() {
                           </motion.div>
                         )}
                       </AnimatePresence>
-                    </div>
+                    </motion.div>
                   );
                 })}
 
