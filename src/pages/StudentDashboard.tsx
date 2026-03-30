@@ -1427,22 +1427,8 @@ export default function StudentDashboard() {
                 {filteredLessons.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
                     <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    {lessonDateRange?.from ? (
-                      <>
-                        <p className="font-medium">לא נמצאו שיעורים בתקופה שנבחרה</p>
-                        <button
-                          onClick={() => setLessonDateRange(undefined)}
-                          className="mt-2 text-sm text-primary hover:opacity-80 transition-opacity"
-                        >
-                          נקה סינון
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <p className="font-medium">עדיין אין תכנים</p>
-                        <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
-                      </>
-                    )}
+                    <p className="font-medium">עדיין אין תכנים</p>
+                    <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
                   </div>
                 )}
               </div>
