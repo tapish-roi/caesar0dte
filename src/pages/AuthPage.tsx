@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useTransition } from '@/contexts/TransitionContext';
 import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info, Loader2 } from 'lucide-react';
 
 type Tab = 'mentor' | 'student';
@@ -20,9 +19,7 @@ export default function AuthPage() {
   const [phone, setPhone] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [exiting, setExiting] = useState(false);
   const { toast } = useToast();
-  const { startTransition } = useTransition();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,9 +39,6 @@ export default function AuthPage() {
         // Sign in after successful creation
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        // Trigger premium exit transition
-        setExiting(true);
-        startTransition();
       } else {
         // Mentor login OR Student login — plain signIn
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -58,9 +52,7 @@ export default function AuthPage() {
           }
           throw error;
         }
-        // Trigger premium exit transition
-        setExiting(true);
-        startTransition();
+        // Auth state change will trigger the layout animation automatically
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
@@ -72,26 +64,14 @@ export default function AuthPage() {
   return (
     <motion.div
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-bg"
-      animate={exiting ? { opacity: 0 } : { opacity: 1 }}
-      transition={{ duration: 0.5, ease: premiumEase }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4, ease: premiumEase }}
     >
-      {/* Dim overlay on exit */}
-      <AnimatePresence>
-        {exiting && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.15 }}
-            className="fixed inset-0 bg-black z-40 pointer-events-none"
-            transition={{ duration: 0.3 }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Background blobs with subtle motion */}
+      {/* Background blobs */}
       <motion.div
         className="fixed inset-0 pointer-events-none overflow-hidden"
-        animate={exiting ? { scale: 1.05, opacity: 0 } : { scale: 1, opacity: 1 }}
-        transition={{ duration: 0.8, ease: premiumEase }}
+        exit={{ opacity: 0, scale: 1.05 }}
+        transition={{ duration: 0.6, ease: premiumEase }}
       >
         <div
           className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.15]"
@@ -107,29 +87,28 @@ export default function AuthPage() {
         />
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={exiting
-          ? { opacity: 0, scale: 0.92, filter: 'blur(8px)', y: -10 }
-          : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }
-        }
-        transition={exiting
-          ? { duration: 0.5, ease: premiumEase }
-          : { duration: 0.4, ease: [0.2, 0, 0, 1] }
-        }
-        className="w-full max-w-[480px] relative z-10"
-      >
+      <div className="w-full max-w-[480px] relative z-10">
         {/* Logo */}
-        <div className="text-center mb-8 flex flex-col items-center gap-2">
+        <motion.div
+          className="text-center mb-8 flex flex-col items-center gap-2"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.3, ease: premiumEase }}
+        >
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
             <TrendingUp className="w-6 h-6 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-secondary-foreground">Caesar 0 DTE</h1>
           <p className="text-sm text-secondary-foreground/60">פלטפורמת מנטורינג למסחר מקצועי</p>
-        </div>
+        </motion.div>
 
-        {/* Card */}
-        <div className="bg-card rounded-2xl card-shadow overflow-hidden">
+        {/* Card — shared layoutId with dashboard */}
+        <motion.div
+          layoutId="main-container"
+          className="bg-card rounded-2xl card-shadow overflow-hidden"
+          transition={{ layout: { duration: 0.7, ease: premiumEase } }}
+        >
           {/* Role tabs */}
           <div className="flex border-b border-border">
             {([
@@ -363,8 +342,8 @@ export default function AuthPage() {
 
             </AnimatePresence>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }
