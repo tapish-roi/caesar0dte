@@ -496,7 +496,6 @@ export default function StudentDashboard() {
   const [lessonViewMode, setLessonViewMode] = useState<LessonViewMode>(null);
 
   // Date filter state
-  const [lessonDateRange, setLessonDateRange] = useState<DateRange | undefined>(undefined);
   const [communityDateRange, setCommunityDateRange] = useState<DateRange | undefined>(undefined);
 
   // Community dropdown state
@@ -843,12 +842,7 @@ export default function StudentDashboard() {
     return isWithinInterval(d, { start: from, end: to });
   };
 
-  // Filtered lessons (by date range)
-  const filteredLessons = useMemo(() =>
-    lessonDateRange?.from
-      ? lessons.filter(l => isInDateRange(l.created_at, lessonDateRange))
-      : lessons
-  , [lessons, lessonDateRange]);
+  const filteredLessons = lessons;
 
   // Filtered posts (by date range)
   const filteredPosts = useMemo(() =>
@@ -1326,11 +1320,8 @@ export default function StudentDashboard() {
                   <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
                   <p className="text-sm text-muted-foreground mt-1">
                     {filteredLessons.length} שיעורים זמינים · {progress.filter(p => p.completed).length} הושלמו
-                    {lessonDateRange?.from && <span className="ms-2 text-primary font-medium">· מסונן לפי תאריך</span>}
                   </p>
                 </div>
-                {/* Date range filter */}
-                <DateRangeFilter range={lessonDateRange} onChange={setLessonDateRange} />
               </div>
 
 
@@ -1436,22 +1427,8 @@ export default function StudentDashboard() {
                 {filteredLessons.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
                     <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    {lessonDateRange?.from ? (
-                      <>
-                        <p className="font-medium">לא נמצאו שיעורים בתקופה שנבחרה</p>
-                        <button
-                          onClick={() => setLessonDateRange(undefined)}
-                          className="mt-2 text-sm text-primary hover:opacity-80 transition-opacity"
-                        >
-                          נקה סינון
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <p className="font-medium">עדיין אין תכנים</p>
-                        <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
-                      </>
-                    )}
+                    <p className="font-medium">עדיין אין תכנים</p>
+                    <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
                   </div>
                 )}
               </div>
