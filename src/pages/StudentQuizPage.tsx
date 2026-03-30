@@ -306,9 +306,9 @@ export default function StudentQuizPage() {
                                 <span className="text-xs font-medium text-red-400">הבחירה שלך</span>
                               )}
                             </div>
-                            {(opt as any).explanation && (isCorrectAnswer || isStudentAnswer) && (
+                            {(opt as any).explanation && (
                               <p className={`text-xs mr-10 px-3 py-1.5 rounded-lg ${
-                                isCorrectAnswer ? 'text-green-400/80' : 'text-red-400/80'
+                                isCorrectAnswer ? 'text-green-400/80' : isStudentAnswer ? 'text-red-400/80' : 'text-muted-foreground'
                               }`}>
                                 {(opt as any).explanation}
                               </p>
@@ -608,17 +608,21 @@ export default function StudentQuizPage() {
                   className="mt-4 space-y-2"
                 >
                   {currentOptions
-                    .filter(o => o.explanation && (o.is_correct || o.id === currentFeedback.selected))
-                    .map(o => (
-                      <div key={o.id} className={`p-3 rounded-xl border ${
-                        o.is_correct ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'
-                      }`}>
-                        <p className={`text-xs font-medium mb-0.5 ${o.is_correct ? 'text-green-400' : 'text-red-400'}`}>
-                          {o.option_text}
-                        </p>
-                        <p className="text-sm text-secondary-foreground/80">{o.explanation}</p>
-                      </div>
-                    ))}
+                    .filter(o => o.explanation)
+                    .map(o => {
+                      const isCorrect = o.is_correct;
+                      const isSelected = o.id === currentFeedback.selected;
+                      return (
+                        <div key={o.id} className={`p-3 rounded-xl border ${
+                          isCorrect ? 'bg-green-500/5 border-green-500/20' : isSelected ? 'bg-red-500/5 border-red-500/20' : 'bg-muted/30 border-border'
+                        }`}>
+                          <p className={`text-xs font-medium mb-0.5 ${isCorrect ? 'text-green-400' : isSelected ? 'text-red-400' : 'text-muted-foreground'}`}>
+                            {o.option_text}
+                          </p>
+                          <p className="text-sm text-secondary-foreground/80">{o.explanation}</p>
+                        </div>
+                      );
+                    })}
                 </motion.div>
               )}
 
