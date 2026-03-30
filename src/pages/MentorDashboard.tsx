@@ -930,10 +930,10 @@ export default function MentorDashboard() {
                    { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                    { key: 'community', label: 'קהילה', icon: Users },
                    { key: 'students', label: 'תלמידים', icon: GraduationCap },
-                   { key: 'live', label: 'לייב', icon: Radio },
+                   { key: 'live', label: 'לייב', icon: Radio, disabled: true },
                    { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
                    { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
-                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
+                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean }[]).map(({ key, label, icon: Icon, disabled }) => (
                    <button
                      key={key}
                      onClick={() => { setActiveTab(key); if (key !== 'quizzes') setQuizNavLessonId(null); }}
