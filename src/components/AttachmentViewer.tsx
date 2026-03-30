@@ -7,6 +7,7 @@ interface AttachmentViewerProps {
 }
 
 export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
+  const [iframeKey, setIframeKey] = useState(0);
   const cleanUrl = url.split('?')[0];
   const ext = (cleanUrl.split('.').pop() ?? '').toLowerCase();
   const displayName = name || 'קובץ מצורף';
