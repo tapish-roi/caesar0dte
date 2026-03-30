@@ -183,15 +183,18 @@ function VideoPlayer({
   const handlePlay = useCallback(() => {
     isPlayingRef.current = true;
     lastTimeRef.current = videoRef.current?.currentTime ?? null;
+    lastWallRef.current = Date.now();
   }, []);
   const handlePause = useCallback(() => {
     isPlayingRef.current = false;
     lastTimeRef.current = null;
+    lastWallRef.current = null;
     saveProgress(true);
   }, [saveProgress]);
   const handleSeeked = useCallback(() => {
-    // Reset lastTime so next tick doesn't count the seek gap
+    // Reset refs so next tick doesn't count the seek gap
     lastTimeRef.current = videoRef.current?.currentTime ?? null;
+    lastWallRef.current = Date.now();
   }, []);
   const handleEnded = useCallback(() => {
     isPlayingRef.current = false;
