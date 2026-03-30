@@ -306,9 +306,9 @@ export default function StudentQuizPage() {
                                 <span className="text-xs font-medium text-red-400">הבחירה שלך</span>
                               )}
                             </div>
-                            {(opt as any).explanation && (isCorrectAnswer || isStudentAnswer) && (
+                            {(opt as any).explanation && (
                               <p className={`text-xs mr-10 px-3 py-1.5 rounded-lg ${
-                                isCorrectAnswer ? 'text-green-400/80' : 'text-red-400/80'
+                                isCorrectAnswer ? 'text-green-400/80' : isStudentAnswer ? 'text-red-400/80' : 'text-muted-foreground'
                               }`}>
                                 {(opt as any).explanation}
                               </p>
