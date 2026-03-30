@@ -1320,11 +1320,8 @@ export default function StudentDashboard() {
                   <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
                   <p className="text-sm text-muted-foreground mt-1">
                     {filteredLessons.length} שיעורים זמינים · {progress.filter(p => p.completed).length} הושלמו
-                    {lessonDateRange?.from && <span className="ms-2 text-primary font-medium">· מסונן לפי תאריך</span>}
                   </p>
                 </div>
-                {/* Date range filter */}
-                <DateRangeFilter range={lessonDateRange} onChange={setLessonDateRange} />
               </div>
 
 
