@@ -106,41 +106,88 @@ interface ProfileItem {
 
 // ─── VideoPlayer with progress tracking ───────────────────────────────────────
 function VideoPlayer({
-  src, lessonId, studentId, initialProgress, onComplete,
+  src, lessonId, studentId, durationMinutes, initialProgress, onComplete,
 }: {
   src: string;
   lessonId: string;
   studentId: string;
+  durationMinutes: number | null;
   initialProgress: ProgressItem | undefined;
   onComplete: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const lastSavedPercent = useRef(initialProgress?.progress_percent ?? 0);
-  const completed = useRef(initialProgress?.completed ?? false);
+  const watchedRef = useRef(initialProgress?.watched_seconds ?? 0);
+  const lastSaveRef = useRef(initialProgress?.watched_seconds ?? 0);
+  const completedRef = useRef(initialProgress?.completed ?? false);
+  const lastTimeRef = useRef<number | null>(null);
+  const isPlayingRef = useRef(false);
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const saveProgress = useCallback(async (percent: number, done: boolean) => {
-    if (done && completed.current) return; // already marked
-    if (!done && Math.abs(percent - lastSavedPercent.current) < 5) return; // only save every ~5%
+  const maxSeconds = (durationMinutes ?? 0) * 60;
 
-    lastSavedPercent.current = percent;
-    if (done) completed.current = true;
+  const saveProgress = useCallback(async (force = false) => {
+    const watched = watchedRef.current;
+    const done = maxSeconds > 0 && watched >= maxSeconds * 0.9;
+    if (done && completedRef.current && !force) return;
+    if (!done && !force && Math.abs(watched - lastSaveRef.current) < 5) return;
 
+    lastSaveRef.current = watched;
+    if (done) completedRef.current = true;
+
+    const percent = maxSeconds > 0 ? Math.min(Math.round((watched / maxSeconds) * 100), 100) : 0;
     await supabase.from('lesson_progress').upsert(
-      { lesson_id: lessonId, student_id: studentId, progress_percent: percent, completed: done, last_watched_at: new Date().toISOString() },
+      {
+        lesson_id: lessonId,
+        student_id: studentId,
+        watched_seconds: Math.min(watched, maxSeconds > 0 ? maxSeconds : watched),
+        progress_percent: percent,
+        completed: done,
+        last_watched_at: new Date().toISOString(),
+      },
       { onConflict: 'lesson_id,student_id' }
     );
     if (done) onComplete();
-  }, [lessonId, studentId, onComplete]);
+  }, [lessonId, studentId, maxSeconds, onComplete]);
 
-  const handleTimeUpdate = useCallback(() => {
-    const v = videoRef.current;
-    if (!v || !v.duration) return;
-    const pct = Math.round((v.currentTime / v.duration) * 100);
-    if (pct >= 90) saveProgress(100, true);
-    else saveProgress(pct, false);
+  useEffect(() => {
+    // Tick every second while playing to accumulate watched time
+    tickRef.current = setInterval(() => {
+      if (!isPlayingRef.current) return;
+      const v = videoRef.current;
+      if (!v) return;
+      const now = v.currentTime;
+      if (lastTimeRef.current !== null) {
+        const delta = now - lastTimeRef.current;
+        // Only count if delta is small (continuous play, not seek)
+        if (delta > 0 && delta < 2) {
+          watchedRef.current = maxSeconds > 0
+            ? Math.min(watchedRef.current + delta, maxSeconds)
+            : watchedRef.current + delta;
+        }
+      }
+      lastTimeRef.current = now;
+      saveProgress(false);
+    }, 1000);
+    return () => { if (tickRef.current) clearInterval(tickRef.current); };
+  }, [saveProgress, maxSeconds]);
+
+  const handlePlay = useCallback(() => {
+    isPlayingRef.current = true;
+    lastTimeRef.current = videoRef.current?.currentTime ?? null;
+  }, []);
+  const handlePause = useCallback(() => {
+    isPlayingRef.current = false;
+    lastTimeRef.current = null;
+    saveProgress(true);
   }, [saveProgress]);
-
-  const handleEnded = useCallback(() => saveProgress(100, true), [saveProgress]);
+  const handleSeeked = useCallback(() => {
+    // Reset lastTime so next tick doesn't count the seek gap
+    lastTimeRef.current = videoRef.current?.currentTime ?? null;
+  }, []);
+  const handleEnded = useCallback(() => {
+    isPlayingRef.current = false;
+    saveProgress(true);
+  }, [saveProgress]);
 
   return (
     <video
@@ -148,7 +195,11 @@ function VideoPlayer({
       src={src}
       className="w-full h-full"
       controls
-      onTimeUpdate={handleTimeUpdate}
+      controlsList="nodownload"
+      onContextMenu={e => e.preventDefault()}
+      onPlay={handlePlay}
+      onPause={handlePause}
+      onSeeked={handleSeeked}
       onEnded={handleEnded}
     />
   );
