@@ -905,7 +905,7 @@ export default function StudentDashboard() {
   const studentNavItems = [
     { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
     { key: 'community' as const, label: 'קהילה', icon: Users },
-    { key: 'live' as const, label: 'לייב', icon: Radio },
+    { key: 'live' as const, label: 'לייב', icon: Radio, disabled: true },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion },
   ];
 

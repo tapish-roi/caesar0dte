@@ -822,7 +822,7 @@ export default function MentorDashboard() {
     { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
     { key: 'community' as const, label: 'קהילה', icon: Users },
     { key: 'students' as const, label: 'תלמידים', icon: GraduationCap },
-    { key: 'live' as const, label: 'לייב', icon: Radio },
+    { key: 'live' as const, label: 'לייב', icon: Radio, disabled: true },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
     { key: 'quizzes' as const, label: 'מבחנים', icon: ClipboardList },
   ];
