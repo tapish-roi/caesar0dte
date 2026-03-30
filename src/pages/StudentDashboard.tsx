@@ -120,6 +120,7 @@ function VideoPlayer({
   const lastSaveRef = useRef(initialProgress?.watched_seconds ?? 0);
   const completedRef = useRef(initialProgress?.completed ?? false);
   const lastTimeRef = useRef<number | null>(null);
+  const lastWallRef = useRef<number | null>(null);
   const isPlayingRef = useRef(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
