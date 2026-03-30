@@ -1,4 +1,5 @@
-import { FileText, MonitorPlay, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, MonitorPlay, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface AttachmentViewerProps {
   url: string;
@@ -6,6 +7,7 @@ interface AttachmentViewerProps {
 }
 
 export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
+  const [iframeKey, setIframeKey] = useState(0);
   const cleanUrl = url.split('?')[0];
   const ext = (cleanUrl.split('.').pop() ?? '').toLowerCase();
   const displayName = name || 'קובץ מצורף';
@@ -36,6 +38,16 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
           <span>{displayName}</span>
         </div>
         <div className="flex items-center gap-2">
+          {isDocument && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIframeKey(k => k + 1); }}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
+              title="רענן תצוגה מקדימה"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              רענן
+            </button>
+          )}
           <a
             href={openUrl}
             target="_blank"
@@ -53,6 +65,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
       {isDocument && (
         <div style={{ height: '540px' }} className="w-full">
           <iframe
+            key={iframeKey}
             src={googleViewerUrl}
             className="w-full h-full border-none"
             title={displayName}
