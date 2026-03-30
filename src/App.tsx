@@ -4,8 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { TransitionProvider } from "@/contexts/TransitionContext";
-import { LayoutGroup, AnimatePresence } from "framer-motion";
+import { LayoutGroup, AnimatePresence, motion } from "framer-motion";
 import DashboardReveal from "@/components/DashboardReveal";
 import AuthPage from "./pages/AuthPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
@@ -21,9 +20,19 @@ const queryClient = new QueryClient({
   },
 });
 
+const premiumEase = [0.22, 1, 0.36, 1] as const;
+
 function LoadingSpinner({ text = "טוען..." }: { text?: string }) {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center text-secondary-foreground" dir="rtl">
+    <motion.div
+      key="spinner"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: premiumEase }}
+      className="min-h-screen bg-background flex items-center justify-center text-secondary-foreground"
+      dir="rtl"
+    >
       <div className="text-center space-y-3">
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center mx-auto animate-pulse">
           <svg className="w-5 h-5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -33,7 +42,7 @@ function LoadingSpinner({ text = "טוען..." }: { text?: string }) {
         </div>
         <p className="text-sm text-muted-foreground">{text}</p>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -56,13 +65,15 @@ function AppRoutes() {
 
   return (
     <LayoutGroup>
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         {phase === 'auth' && (
-          <Routes key="auth-routes">
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/accept-invite" element={<AcceptInvitePage />} />
-            <Route path="*" element={<Navigate to="/auth" replace />} />
-          </Routes>
+          <motion.div key="auth" exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+            <Routes>
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/accept-invite" element={<AcceptInvitePage />} />
+              <Route path="*" element={<Navigate to="/auth" replace />} />
+            </Routes>
+          </motion.div>
         )}
 
         {phase === 'loading-role' && (
@@ -70,20 +81,22 @@ function AppRoutes() {
         )}
 
         {phase === 'dashboard' && (
-          <DashboardReveal key="dashboard">
-            <Routes>
-              <Route
-                path="/"
-                element={role === 'mentor' ? <MentorDashboard /> : <StudentDashboard />}
-              />
-              <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
-              <Route path="/mentor/quiz/new" element={<MentorQuizEditor />} />
-              <Route path="/mentor/quiz/edit/:quizId" element={<MentorQuizEditor />} />
-              <Route path="/accept-invite" element={<AcceptInvitePage />} />
-              <Route path="/auth" element={<Navigate to="/" replace />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </DashboardReveal>
+          <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, ease: premiumEase }}>
+            <DashboardReveal>
+              <Routes>
+                <Route
+                  path="/"
+                  element={role === 'mentor' ? <MentorDashboard /> : <StudentDashboard />}
+                />
+                <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
+                <Route path="/mentor/quiz/new" element={<MentorQuizEditor />} />
+                <Route path="/mentor/quiz/edit/:quizId" element={<MentorQuizEditor />} />
+                <Route path="/accept-invite" element={<AcceptInvitePage />} />
+                <Route path="/auth" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </DashboardReveal>
+          </motion.div>
         )}
       </AnimatePresence>
     </LayoutGroup>
@@ -92,17 +105,15 @@ function AppRoutes() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TransitionProvider>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </TransitionProvider>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

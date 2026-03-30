@@ -1334,7 +1334,7 @@ export default function StudentDashboard() {
 
 
               <div className="space-y-3">
-                {categories.map((cat) => {
+                {categories.map((cat, catIdx) => {
                   // If there are specific grants and this category is not in them → hide
                   const hasSpecificGrants = categoryAccess.length > 0;
                   const hasAccessToCat = !hasSpecificGrants || categoryAccess.some(g => g.category_id === cat.id);
@@ -1345,7 +1345,13 @@ export default function StudentDashboard() {
                   const isExpanded = expandedCats.has(cat.id);
                   
                   return (
-                    <div key={cat.id} className="bg-card rounded-xl card-shadow overflow-hidden">
+                    <motion.div
+                      key={cat.id}
+                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.35, delay: catIdx * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                      className="bg-card rounded-xl card-shadow overflow-hidden"
+                    >
                       <div
                         className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                         onClick={() => toggleCat(cat.id)}
@@ -1399,7 +1405,7 @@ export default function StudentDashboard() {
                           </motion.div>
                         )}
                       </AnimatePresence>
-                    </div>
+                    </motion.div>
                   );
                 })}
 
