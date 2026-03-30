@@ -218,7 +218,7 @@ export default function AuthPage() {
                       disabled={loading}
                       className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
                     >
-                      {loading ? '...' : 'כניסה'}
+                      {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'כניסה'}
                     </button>
                   </form>
                 </motion.div>
