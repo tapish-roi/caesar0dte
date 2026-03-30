@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { TransitionProvider } from "@/contexts/TransitionContext";
+import DashboardReveal from "@/components/DashboardReveal";
 import AuthPage from "./pages/AuthPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import MentorDashboard from "./pages/MentorDashboard";
@@ -80,8 +82,9 @@ function AppRoutes() {
       <Route
         path="/"
         element={
-          role === 'mentor' ? <MentorDashboard /> :
-          <StudentDashboard />
+          <DashboardReveal>
+            {role === 'mentor' ? <MentorDashboard /> : <StudentDashboard />}
+          </DashboardReveal>
         }
       />
       <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
@@ -96,15 +99,17 @@ function AppRoutes() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <TransitionProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </TransitionProvider>
   </QueryClientProvider>
 );
 

@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info } from 'lucide-react';
+import { useTransition } from '@/contexts/TransitionContext';
+import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info, Loader2 } from 'lucide-react';
 
 type Tab = 'mentor' | 'student';
 type MentorMode = 'login' | 'signup';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const premiumEase = [0.22, 1, 0.36, 1] as const;
 
 export default function AuthPage() {
   const [tab, setTab] = useState<Tab>('student');
@@ -18,7 +20,9 @@ export default function AuthPage() {
   const [phone, setPhone] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [exiting, setExiting] = useState(false);
   const { toast } = useToast();
+  const { startTransition } = useTransition();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +42,9 @@ export default function AuthPage() {
         // Sign in after successful creation
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
+        // Trigger premium exit transition
+        setExiting(true);
+        startTransition();
       } else {
         // Mentor login OR Student login — plain signIn
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -51,6 +58,9 @@ export default function AuthPage() {
           }
           throw error;
         }
+        // Trigger premium exit transition
+        setExiting(true);
+        startTransition();
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
@@ -60,9 +70,29 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-bg">
-      {/* Background blobs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+    <motion.div
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-bg"
+      animate={exiting ? { opacity: 0 } : { opacity: 1 }}
+      transition={{ duration: 0.5, ease: premiumEase }}
+    >
+      {/* Dim overlay on exit */}
+      <AnimatePresence>
+        {exiting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.15 }}
+            className="fixed inset-0 bg-black z-40 pointer-events-none"
+            transition={{ duration: 0.3 }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Background blobs with subtle motion */}
+      <motion.div
+        className="fixed inset-0 pointer-events-none overflow-hidden"
+        animate={exiting ? { scale: 1.05, opacity: 0 } : { scale: 1, opacity: 1 }}
+        transition={{ duration: 0.8, ease: premiumEase }}
+      >
         <div
           className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.15]"
           style={{ background: 'radial-gradient(circle, hsl(42 70% 50%) 0%, transparent 70%)' }}
@@ -75,13 +105,19 @@ export default function AuthPage() {
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] opacity-[0.06]"
           style={{ background: 'radial-gradient(ellipse, hsl(42 70% 50%) 0%, transparent 60%)' }}
         />
-      </div>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-        className="w-full max-w-[480px]"
+        animate={exiting
+          ? { opacity: 0, scale: 0.92, filter: 'blur(8px)', y: -10 }
+          : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }
+        }
+        transition={exiting
+          ? { duration: 0.5, ease: premiumEase }
+          : { duration: 0.4, ease: [0.2, 0, 0, 1] }
+        }
+        className="w-full max-w-[480px] relative z-10"
       >
         {/* Logo */}
         <div className="text-center mb-8 flex flex-col items-center gap-2">
@@ -182,7 +218,7 @@ export default function AuthPage() {
                       disabled={loading}
                       className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
                     >
-                      {loading ? '...' : 'כניסה'}
+                      {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'כניסה'}
                     </button>
                   </form>
                 </motion.div>
@@ -309,7 +345,7 @@ export default function AuthPage() {
                       disabled={loading}
                       className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
                     >
-                      {loading ? '...' : mentorMode === 'login' ? 'כניסה' : 'צור חשבון'}
+                      {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : mentorMode === 'login' ? 'כניסה' : 'צור חשבון'}
                     </button>
                   </form>
 
@@ -329,6 +365,6 @@ export default function AuthPage() {
           </div>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
