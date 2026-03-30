@@ -19,8 +19,8 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
   const isDocument = isPdf || isPpt || isDoc;
   const isViewable = isDocument || isImage;
 
-  // Google Docs Viewer for inline preview of all document types
-  const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+  // Google Docs Viewer for inline preview — add cache buster for refresh
+  const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true&cb=${iframeKey}`;
 
   // "Open in new tab" uses Google Docs Viewer for documents
   const openUrl = isDocument ? googleViewerUrl : url;
