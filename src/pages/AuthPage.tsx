@@ -58,6 +58,9 @@ export default function AuthPage() {
           }
           throw error;
         }
+        // Trigger premium exit transition
+        setExiting(true);
+        startTransition();
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
