@@ -1309,7 +1309,8 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   if (view === 'submission-detail' && selectedSubmission) {
     return (
       <SubmissionDetail
-        submission={{ ...selectedSubmission, answers: submissionAnswers }}
+        submission={selectedSubmission}
+        reviewAnswers={submissionReviewAnswers}
         onBack={() => setView('submissions')}
       />
     );
