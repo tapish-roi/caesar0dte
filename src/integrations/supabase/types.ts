@@ -180,6 +180,7 @@ export type Database = {
           lesson_id: string
           progress_percent: number
           student_id: string
+          watched_seconds: number
         }
         Insert: {
           completed?: boolean
@@ -188,6 +189,7 @@ export type Database = {
           lesson_id: string
           progress_percent?: number
           student_id: string
+          watched_seconds?: number
         }
         Update: {
           completed?: boolean
@@ -196,6 +198,7 @@ export type Database = {
           lesson_id?: string
           progress_percent?: number
           student_id?: string
+          watched_seconds?: number
         }
         Relationships: [
           {
