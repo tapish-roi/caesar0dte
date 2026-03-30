@@ -70,6 +70,7 @@ interface ProgressItem {
   lesson_id: string;
   progress_percent: number;
   completed: boolean;
+  watched_seconds: number;
 }
 
 interface PostItem {
