@@ -38,6 +38,16 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
           <span>{displayName}</span>
         </div>
         <div className="flex items-center gap-2">
+          {isDocument && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIframeKey(k => k + 1); }}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
+              title="רענן תצוגה מקדימה"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              רענן
+            </button>
+          )}
           <a
             href={openUrl}
             target="_blank"
