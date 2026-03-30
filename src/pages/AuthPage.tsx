@@ -106,7 +106,8 @@ export default function AuthPage() {
         {/* Card — shared layoutId with dashboard */}
         <motion.div
           layoutId="main-container"
-          className="bg-card rounded-2xl card-shadow overflow-hidden"
+          className="bg-card card-shadow overflow-hidden"
+          style={{ borderRadius: 16 }}
           transition={{ layout: { duration: 0.7, ease: premiumEase } }}
         >
           {/* Role tabs */}
