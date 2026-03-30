@@ -1098,7 +1098,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   const [filterStudentId, setFilterStudentId] = useState<string>('');
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
-  const [submissionAnswers, setSubmissionAnswers] = useState<{ question_text: string; answer_text: string | null; selected_option_text?: string; is_correct: boolean | null }[]>([]);
+  const [submissionReviewAnswers, setSubmissionReviewAnswers] = useState<SubmissionReviewAnswer[]>([]);
 
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM yyyy", { locale: he });
 
