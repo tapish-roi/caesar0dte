@@ -120,6 +120,7 @@ function VideoPlayer({
   const lastSaveRef = useRef(initialProgress?.watched_seconds ?? 0);
   const completedRef = useRef(initialProgress?.completed ?? false);
   const lastTimeRef = useRef<number | null>(null);
+  const lastWallRef = useRef<number | null>(null);
   const isPlayingRef = useRef(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -156,33 +157,44 @@ function VideoPlayer({
       const v = videoRef.current;
       if (!v) return;
       const now = v.currentTime;
-      if (lastTimeRef.current !== null) {
-        const delta = now - lastTimeRef.current;
-        // Only count if delta is small (continuous play, not seek)
-        if (delta > 0 && delta < 2) {
+      const wallNow = Date.now();
+      if (lastTimeRef.current !== null && lastWallRef.current !== null) {
+        const videoDelta = now - lastTimeRef.current;
+        const wallDelta = (wallNow - lastWallRef.current) / 1000;
+        // Count as continuous if video delta is positive, within 5s,
+        // and wall-clock time confirms it wasn't a seek
+        if (videoDelta > 0 && videoDelta < 5 && wallDelta < 5) {
+          const increment = Math.min(videoDelta, wallDelta);
           watchedRef.current = maxSeconds > 0
-            ? Math.min(watchedRef.current + delta, maxSeconds)
-            : watchedRef.current + delta;
+            ? Math.min(watchedRef.current + increment, maxSeconds)
+            : watchedRef.current + increment;
         }
       }
       lastTimeRef.current = now;
+      lastWallRef.current = wallNow;
       saveProgress(false);
     }, 1000);
-    return () => { if (tickRef.current) clearInterval(tickRef.current); };
+    return () => {
+      if (tickRef.current) clearInterval(tickRef.current);
+      saveProgress(true);
+    };
   }, [saveProgress, maxSeconds]);
 
   const handlePlay = useCallback(() => {
     isPlayingRef.current = true;
     lastTimeRef.current = videoRef.current?.currentTime ?? null;
+    lastWallRef.current = Date.now();
   }, []);
   const handlePause = useCallback(() => {
     isPlayingRef.current = false;
     lastTimeRef.current = null;
+    lastWallRef.current = null;
     saveProgress(true);
   }, [saveProgress]);
   const handleSeeked = useCallback(() => {
-    // Reset lastTime so next tick doesn't count the seek gap
+    // Reset refs so next tick doesn't count the seek gap
     lastTimeRef.current = videoRef.current?.currentTime ?? null;
+    lastWallRef.current = Date.now();
   }, []);
   const handleEnded = useCallback(() => {
     isPlayingRef.current = false;
