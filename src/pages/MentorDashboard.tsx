@@ -822,7 +822,7 @@ export default function MentorDashboard() {
     { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
     { key: 'community' as const, label: 'קהילה', icon: Users },
     { key: 'students' as const, label: 'תלמידים', icon: GraduationCap },
-    { key: 'live' as const, label: 'לייב', icon: Radio },
+    { key: 'live' as const, label: 'לייב', icon: Radio, disabled: true },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
     { key: 'quizzes' as const, label: 'מבחנים', icon: ClipboardList },
   ];
@@ -930,21 +930,24 @@ export default function MentorDashboard() {
                    { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                    { key: 'community', label: 'קהילה', icon: Users },
                    { key: 'students', label: 'תלמידים', icon: GraduationCap },
-                   { key: 'live', label: 'לייב', icon: Radio },
+                   { key: 'live', label: 'לייב', icon: Radio, disabled: true },
                    { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
                    { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
-                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen }[]).map(({ key, label, icon: Icon }) => (
+                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean }[]).map(({ key, label, icon: Icon, disabled }) => (
                    <button
                      key={key}
-                     onClick={() => { setActiveTab(key); if (key !== 'quizzes') setQuizNavLessonId(null); }}
+                     onClick={() => { if (disabled) { toast({ title: 'בקרוב', description: 'פיצ׳ר הלייב יהיה זמין בקרוב' }); return; } setActiveTab(key); if (key !== 'quizzes') setQuizNavLessonId(null); }}
                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                       activeTab === key
-                         ? 'bg-sidebar-accent text-sidebar-foreground'
-                         : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                       disabled
+                         ? 'text-muted-foreground/40 cursor-not-allowed'
+                         : activeTab === key
+                           ? 'bg-sidebar-accent text-sidebar-foreground'
+                           : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                      }`}
                    >
                      <Icon className="w-4 h-4" />
                      <span className="flex-1 text-right">{label}</span>
+                     {disabled && <Lock className="w-3 h-3 text-muted-foreground/40" />}
                      {key === 'questions' && unansweredCount > 0 && (
                        <span className="min-w-[20px] h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
                          {unansweredCount > 99 ? '99+' : unansweredCount}
