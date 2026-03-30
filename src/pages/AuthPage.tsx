@@ -39,9 +39,6 @@ export default function AuthPage() {
         // Sign in after successful creation
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        // Trigger premium exit transition
-        setExiting(true);
-        startTransition();
       } else {
         // Mentor login OR Student login — plain signIn
         const { error } = await supabase.auth.signInWithPassword({ email, password });
