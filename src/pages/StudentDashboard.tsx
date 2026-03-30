@@ -1213,6 +1213,7 @@ export default function StudentDashboard() {
                             src={selectedLessonData.video_url}
                             lessonId={selectedLessonData.id}
                             studentId={user!.id}
+                            durationMinutes={selectedLessonData.duration_minutes}
                             initialProgress={getProgress(selectedLessonData.id)}
                             onComplete={() => qc.invalidateQueries({ queryKey: ['progress', user?.id] })}
                           />
