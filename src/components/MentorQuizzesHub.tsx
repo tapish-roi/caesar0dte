@@ -1198,30 +1198,55 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
     },
   });
 
-  // Load submission detail
+  // Load submission detail — fetch full question data with all options for student-style review
   const loadSubmissionDetail = async (sub: Submission) => {
     setSelectedSubmission(sub);
-    // Fetch answers with question texts and option texts
+
+    // Fetch student answers
     const { data: answers } = await supabase
       .from('quiz_answers')
       .select('question_id, answer_text, selected_option_id, is_correct')
       .eq('submission_id', sub.id);
 
-    const enriched = await Promise.all((answers ?? []).map(async (a) => {
-      const { data: qq } = await supabase.from('quiz_questions').select('question_text').eq('id', a.question_id).single();
-      let selected_option_text: string | undefined;
-      if (a.selected_option_id) {
-        const { data: opt } = await supabase.from('quiz_question_options').select('option_text').eq('id', a.selected_option_id).single();
-        selected_option_text = (opt as { option_text?: string } | null)?.option_text;
-      }
+    // Fetch all questions for this quiz
+    const { data: questions } = await supabase
+      .from('quiz_questions')
+      .select('id, question_text, question_type, position, expected_answer')
+      .eq('quiz_id', sub.quiz_id)
+      .order('position');
+
+    // Fetch all options for these questions
+    const questionIds = (questions ?? []).map(q => q.id);
+    const { data: allOptions } = questionIds.length > 0
+      ? await supabase
+          .from('quiz_question_options')
+          .select('id, question_id, option_text, is_correct, position, explanation')
+          .in('question_id', questionIds)
+          .order('position')
+      : { data: [] };
+
+    const enriched: SubmissionReviewAnswer[] = (questions ?? []).map(q => {
+      const studentAnswer = (answers ?? []).find(a => a.question_id === q.id);
+      const qOptions = (allOptions ?? []).filter(o => o.question_id === q.id);
       return {
-        question_text: (qq as { question_text?: string } | null)?.question_text ?? '',
-        answer_text: a.answer_text,
-        selected_option_text,
-        is_correct: a.is_correct,
+        question_id: q.id,
+        question_text: q.question_text,
+        question_type: q.question_type,
+        selected_option_id: studentAnswer?.selected_option_id ?? null,
+        answer_text: studentAnswer?.answer_text ?? null,
+        is_correct: studentAnswer?.is_correct ?? null,
+        expected_answer: q.expected_answer ?? null,
+        options: qOptions.map(o => ({
+          id: o.id,
+          option_text: o.option_text,
+          is_correct: o.is_correct,
+          position: o.position,
+          explanation: o.explanation,
+        })),
       };
-    }));
-    setSubmissionAnswers(enriched);
+    });
+
+    setSubmissionReviewAnswers(enriched);
     setView('submission-detail');
   };
 
