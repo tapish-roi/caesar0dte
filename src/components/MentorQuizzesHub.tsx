@@ -930,47 +930,156 @@ function QuizDetail({
 }
 
 // ═══════════════════════════════════════════════════════
-// SUBMISSIONS VIEW
+// SUBMISSIONS VIEW (student-style review)
 // ═══════════════════════════════════════════════════════
-function SubmissionDetail({ submission, onBack }: { submission: Submission & { answers?: { question_text: string; answer_text: string | null; selected_option_text?: string; is_correct: boolean | null }[] }; onBack: () => void }) {
+interface SubmissionReviewAnswer {
+  question_id: string;
+  question_text: string;
+  question_type: string;
+  selected_option_id: string | null;
+  answer_text: string | null;
+  is_correct: boolean | null;
+  expected_answer: string | null;
+  options: { id: string; option_text: string; is_correct: boolean; position: number; explanation: string | null }[];
+}
+
+function SubmissionDetail({ submission, reviewAnswers, onBack }: {
+  submission: Submission;
+  reviewAnswers: SubmissionReviewAnswer[];
+  onBack: () => void;
+}) {
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM yyyy, HH:mm", { locale: he });
+
+  // Normalize score
+  const pct = submission.score != null && submission.max_score != null && submission.max_score > 0
+    ? (submission.max_score === 100 ? submission.score : Math.round((submission.score / submission.max_score) * 100))
+    : null;
+
   return (
-    <div className="h-full flex flex-col p-8" dir="rtl">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-5 self-start">
-        <ChevronRight className="w-4 h-4" />חזרה לתוצאות
-      </button>
-      <div className="bg-card border border-border rounded-xl p-5 mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-muted-foreground">{fmt(submission.submitted_at)}</span>
-          <h2 className="text-lg font-bold text-foreground">{submission.studentName}</h2>
-        </div>
-        <p className="text-sm text-muted-foreground text-right">{submission.quizTitle}</p>
-        {submission.score != null && (
-          <div className="mt-3 flex items-center gap-2 justify-end">
-            <span className="text-2xl font-bold text-primary">{submission.score}/{submission.max_score}</span>
-            <span className="text-sm text-muted-foreground">נקודות</span>
-          </div>
-        )}
-      </div>
-      <div className="space-y-3 overflow-y-auto flex-1">
-        {(submission.answers ?? []).map((a, idx) => (
-          <div key={idx} className="bg-card border border-border rounded-xl p-4">
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <p className="text-sm font-medium text-foreground text-right flex-1">{idx + 1}. {a.question_text}</p>
-              {a.is_correct != null && (
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${
-                  a.is_correct ? 'bg-accent/10 text-accent' : 'bg-destructive/10 text-destructive'
-                }`}>
-                  {a.is_correct ? <Check className="w-2.5 h-2.5" /> : <X className="w-2.5 h-2.5" />}
-                  {a.is_correct ? 'נכון' : 'שגוי'}
-                </span>
+    <div className="h-full flex flex-col" dir="rtl">
+      {/* Header */}
+      <div className="px-8 pt-8 pb-0 shrink-0">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
+          <ChevronRight className="w-4 h-4" />חזרה לתוצאות
+        </button>
+
+        {/* Score card */}
+        <div className="bg-card border border-border rounded-xl p-5 mb-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                pct == null ? 'bg-primary/10' : pct >= 70 ? 'bg-accent/10' : 'bg-destructive/10'
+              }`}>
+                {pct == null || pct >= 70
+                  ? <Check className={`w-6 h-6 ${pct == null ? 'text-primary' : 'text-accent'}`} />
+                  : <X className="w-6 h-6 text-destructive" />}
+              </div>
+              {pct != null && (
+                <div>
+                  <span className={`text-3xl font-bold ${pct >= 70 ? 'text-accent' : 'text-destructive'}`}>{pct}</span>
+                  <span className="text-sm text-muted-foreground mr-1">/ 100</span>
+                </div>
               )}
             </div>
-            <div className="bg-muted/40 rounded-lg px-3 py-2">
-              <p className="text-sm text-foreground text-right">{a.selected_option_text || a.answer_text || <span className="text-muted-foreground italic">לא ענה</span>}</p>
+            <div className="text-left">
+              <h2 className="text-lg font-bold text-foreground">{submission.studentName}</h2>
+              <p className="text-xs text-muted-foreground">{submission.quizTitle} · {fmt(submission.submitted_at)}</p>
             </div>
           </div>
-        ))}
+        </div>
+      </div>
+
+      {/* Questions - student-style review */}
+      <div className="flex-1 overflow-y-auto px-8 pb-8 space-y-4">
+        {reviewAnswers.map((ra, idx) => {
+          return (
+            <motion.div
+              key={ra.question_id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.04 }}
+              className="bg-card border border-border rounded-xl overflow-hidden"
+            >
+              {/* Question header */}
+              <div className={`flex items-center gap-3 px-5 py-3 border-b border-border ${
+                ra.question_type === 'free_text' ? 'bg-muted/20' :
+                ra.is_correct ? 'bg-accent/10' : 'bg-destructive/10'
+              }`}>
+                <span className={`w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center shrink-0 ${
+                  ra.question_type === 'free_text' ? 'bg-muted text-muted-foreground' :
+                  ra.is_correct ? 'bg-accent text-accent-foreground' : 'bg-destructive text-destructive-foreground'
+                }`}>
+                  {ra.question_type === 'free_text' ? idx + 1 :
+                   ra.is_correct ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                </span>
+                <p className="text-sm font-semibold text-foreground flex-1 text-right">{ra.question_text}</p>
+                {ra.question_type !== 'free_text' && (
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    ra.is_correct ? 'bg-accent/20 text-accent' : 'bg-destructive/20 text-destructive'
+                  }`}>
+                    {ra.is_correct ? 'נכון' : 'שגוי'}
+                  </span>
+                )}
+              </div>
+
+              <div className="p-5">
+                {ra.question_type === 'multiple_choice' ? (
+                  <div className="space-y-2">
+                    {ra.options.sort((a, b) => a.position - b.position).map((opt, oIdx) => {
+                      const isStudentAnswer = ra.selected_option_id === opt.id;
+                      const isCorrectAnswer = opt.is_correct;
+                      let borderStyle = 'border-border bg-muted/20 text-foreground/60';
+                      if (isCorrectAnswer) borderStyle = 'border-accent bg-accent/5 text-foreground';
+                      if (isStudentAnswer && !isCorrectAnswer) borderStyle = 'border-destructive bg-destructive/5 text-foreground';
+                      return (
+                        <div key={opt.id} className="space-y-1">
+                          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 ${borderStyle}`}>
+                            <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-bold ${
+                              isCorrectAnswer ? 'border-accent bg-accent text-accent-foreground' :
+                              isStudentAnswer ? 'border-destructive bg-destructive text-destructive-foreground' :
+                              'border-border text-muted-foreground'
+                            }`}>
+                              {isCorrectAnswer ? <Check className="w-3.5 h-3.5" /> :
+                               isStudentAnswer ? <X className="w-3.5 h-3.5" /> :
+                               String.fromCharCode(65 + oIdx)}
+                            </span>
+                            <span className="text-sm flex-1">{opt.option_text}</span>
+                            {isCorrectAnswer && (
+                              <span className="text-xs font-medium text-accent">תשובה נכונה</span>
+                            )}
+                            {isStudentAnswer && !isCorrectAnswer && (
+                              <span className="text-xs font-medium text-destructive">בחירת התלמיד</span>
+                            )}
+                          </div>
+                          {opt.explanation && (
+                            <p className={`text-xs mr-10 px-3 py-1.5 rounded-lg ${
+                              isCorrectAnswer ? 'text-accent' : isStudentAnswer ? 'text-destructive' : 'text-muted-foreground'
+                            }`}>
+                              {opt.explanation}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-muted/30 rounded-xl border border-border">
+                      <p className="text-xs text-muted-foreground mb-1 font-medium">תשובת התלמיד:</p>
+                      <p className="text-sm text-foreground">{ra.answer_text || '—'}</p>
+                    </div>
+                    {ra.expected_answer && (
+                      <div className="p-3 bg-primary/5 rounded-xl border border-primary/30">
+                        <p className="text-xs font-medium text-primary mb-1">התשובה הרצויה:</p>
+                        <p className="text-sm text-foreground">{ra.expected_answer}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
@@ -989,7 +1098,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   const [filterStudentId, setFilterStudentId] = useState<string>('');
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
-  const [submissionAnswers, setSubmissionAnswers] = useState<{ question_text: string; answer_text: string | null; selected_option_text?: string; is_correct: boolean | null }[]>([]);
+  const [submissionReviewAnswers, setSubmissionReviewAnswers] = useState<SubmissionReviewAnswer[]>([]);
 
   const fmt = (iso: string) => format(parseISO(iso), "d בMMM yyyy", { locale: he });
 
@@ -1089,30 +1198,55 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
     },
   });
 
-  // Load submission detail
+  // Load submission detail — fetch full question data with all options for student-style review
   const loadSubmissionDetail = async (sub: Submission) => {
     setSelectedSubmission(sub);
-    // Fetch answers with question texts and option texts
+
+    // Fetch student answers
     const { data: answers } = await supabase
       .from('quiz_answers')
       .select('question_id, answer_text, selected_option_id, is_correct')
       .eq('submission_id', sub.id);
 
-    const enriched = await Promise.all((answers ?? []).map(async (a) => {
-      const { data: qq } = await supabase.from('quiz_questions').select('question_text').eq('id', a.question_id).single();
-      let selected_option_text: string | undefined;
-      if (a.selected_option_id) {
-        const { data: opt } = await supabase.from('quiz_question_options').select('option_text').eq('id', a.selected_option_id).single();
-        selected_option_text = (opt as { option_text?: string } | null)?.option_text;
-      }
+    // Fetch all questions for this quiz
+    const { data: questions } = await supabase
+      .from('quiz_questions')
+      .select('id, question_text, question_type, position, expected_answer')
+      .eq('quiz_id', sub.quiz_id)
+      .order('position');
+
+    // Fetch all options for these questions
+    const questionIds = (questions ?? []).map(q => q.id);
+    const { data: allOptions } = questionIds.length > 0
+      ? await supabase
+          .from('quiz_question_options')
+          .select('id, question_id, option_text, is_correct, position, explanation')
+          .in('question_id', questionIds)
+          .order('position')
+      : { data: [] };
+
+    const enriched: SubmissionReviewAnswer[] = (questions ?? []).map(q => {
+      const studentAnswer = (answers ?? []).find(a => a.question_id === q.id);
+      const qOptions = (allOptions ?? []).filter(o => o.question_id === q.id);
       return {
-        question_text: (qq as { question_text?: string } | null)?.question_text ?? '',
-        answer_text: a.answer_text,
-        selected_option_text,
-        is_correct: a.is_correct,
+        question_id: q.id,
+        question_text: q.question_text,
+        question_type: q.question_type,
+        selected_option_id: studentAnswer?.selected_option_id ?? null,
+        answer_text: studentAnswer?.answer_text ?? null,
+        is_correct: studentAnswer?.is_correct ?? null,
+        expected_answer: q.expected_answer ?? null,
+        options: qOptions.map(o => ({
+          id: o.id,
+          option_text: o.option_text,
+          is_correct: o.is_correct,
+          position: o.position,
+          explanation: o.explanation,
+        })),
       };
-    }));
-    setSubmissionAnswers(enriched);
+    });
+
+    setSubmissionReviewAnswers(enriched);
     setView('submission-detail');
   };
 
@@ -1175,7 +1309,8 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   if (view === 'submission-detail' && selectedSubmission) {
     return (
       <SubmissionDetail
-        submission={{ ...selectedSubmission, answers: submissionAnswers }}
+        submission={selectedSubmission}
+        reviewAnswers={submissionReviewAnswers}
         onBack={() => setView('submissions')}
       />
     );
