@@ -1,34 +1,23 @@
 
 
-# עיצוב מחדש של דף המבחן — שאלה אחת בכל פעם
+## Analysis: Why only 36 seconds recorded instead of 1:30
 
-## מה משתנה
-דף המבחן (`/quiz/:quizId`) נשאר כדף נפרד אבל עובר עיצוב מחדש מוחלט:
-- במקום להציג את כל השאלות ברצף — **שאלה אחת בכל מסך** עם ניווט הבא/הקודם
-- אחרי בחירת תשובה — מוצג מיידית **פידבק** (נכון/לא נכון) עם הסבר, בדומה לתמונה השנייה
-- עיצוב כהה (dark blue background) עם כרטיסי תשובות בסגנון כהה ו-borders צבעוניים
+**Root cause identified:** The continuous-play detection threshold is too strict. The interval fires every 1000ms, but on slower devices or when the browser is busy, the interval can fire every 2-3 seconds. When this happens, `delta` (difference in `currentTime` between ticks) exceeds the threshold of `2`, and the tick is **rejected as a "skip"** — even though the student was watching continuously.
 
-## עיצוב (לפי שתי התמונות + צבעי האתר)
-- **רקע**: `bg-background` (dark blue)
-- **שאלה**: טקסט בהיר בחלק העליון
-- **תשובות (לפני בחירה)**: cards כהים עם border עדין, אות (A/B/C/D) + טקסט
-- **אחרי בחירה — פידבק מיידי**:
-  - תשובה נכונה: border ירוק + badge "התשובה הנכונה" + V
-  - תשובה שגויה שנבחרה: border אדום + badge "לא בדיוק" + X + הסבר מתחת
-  - תשובות אחרות: נשארות רגילות (ללא שינוי)
-- **תחתית**: כפתור "הבא" (primary/gold) בצד שמאל, כפתור "הסבר" בצד ימין
-- **מונה**: "3/10" בחלק העליון
-- **Progress bar**: זהוב
+Over 90 seconds of playback, if many ticks are rejected due to slightly delayed intervals, only ~40% of the real watch time gets counted — explaining the 36 seconds.
 
-## לוגיקה חדשה
-- `currentIndex` state — מנהל איזו שאלה מוצגת
-- אחרי בחירת תשובה — **פידבק מיידי** (לא מחכה להגשה): בודק `is_correct` מה-options ומציג ירוק/אדום
-- כפתור "הבא" עובר לשאלה הבאה (אפשר ללחוץ גם בלי לענות)
-- כפתור "הקודם" חוזר אחורה
-- בשאלה האחרונה — כפתור "הגש מבחן" במקום "הבא"
-- אנימציית slide בין שאלות (framer-motion)
-- שאלות פתוחות (free_text) — textarea כמו היום, בלי פידבק מיידי
+**Secondary issue:** No progress save on component unmount (e.g., when the student navigates away without pausing).
 
-## קובץ לשינוי
-- `src/pages/StudentQuizPage.tsx` — שכתוב מלא של ה-Quiz Form section (שורות 434-583), השאר (review, submitted, result) נשאר כמו שהוא עם התאמות עיצוב קלות לרקע כהה
+## Plan
+
+### 1. Increase delta threshold in VideoPlayer
+In `src/pages/StudentDashboard.tsx`, change the continuous-play detection from `delta < 2` to `delta < 5`. A real user seek/skip typically jumps 10+ seconds, while a delayed interval tick produces deltas of 2-4 seconds. A threshold of 5 safely distinguishes the two.
+
+### 2. Add progress save on unmount
+Add a cleanup function that calls `saveProgress(true)` when the VideoPlayer component unmounts, so progress is never lost when navigating away.
+
+### 3. Use actual elapsed wall-clock time as fallback
+Track wall-clock time (via `Date.now()`) alongside `currentTime` to cross-validate. If the interval fires late but both wall-clock and video time advanced by similar amounts, it's continuous playback — not a seek.
+
+**Files to modify:** `src/pages/StudentDashboard.tsx` (VideoPlayer component only, ~5 lines changed)
 
