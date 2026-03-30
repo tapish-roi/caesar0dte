@@ -82,8 +82,9 @@ function AppRoutes() {
       <Route
         path="/"
         element={
-          role === 'mentor' ? <MentorDashboard /> :
-          <StudentDashboard />
+          <DashboardReveal>
+            {role === 'mentor' ? <MentorDashboard /> : <StudentDashboard />}
+          </DashboardReveal>
         }
       />
       <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
