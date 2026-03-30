@@ -1405,7 +1405,7 @@ export default function StudentDashboard() {
                           </motion.div>
                         )}
                       </AnimatePresence>
-                    </div>
+                    </motion.div>
                   );
                 })}
 
