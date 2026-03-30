@@ -1,4 +1,4 @@
-import { Download, FileText, MonitorPlay, ExternalLink } from 'lucide-react';
+import { FileText, MonitorPlay, ExternalLink } from 'lucide-react';
 
 interface AttachmentViewerProps {
   url: string;

@@ -1660,7 +1660,7 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
               <span className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
               <span className="text-xs text-muted-foreground font-medium">הקלטת הלייב</span>
             </div>
-            <video src={post.media_url} className="w-full max-h-72 object-contain bg-black rounded-b-xl" controls />
+            <video src={post.media_url} className="w-full max-h-72 object-contain bg-black rounded-b-xl" controls controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
           </div>
         )}
 

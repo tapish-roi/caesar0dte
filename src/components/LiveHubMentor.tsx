@@ -469,7 +469,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                 </div>
                 <div className="aspect-video bg-black">
                   {playingRecording.recording_url
-                    ? <video src={playingRecording.recording_url} className="w-full h-full" controls autoPlay />
+                    ? <video src={playingRecording.recording_url} className="w-full h-full" controls autoPlay controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
                     : <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Video className="w-12 h-12 opacity-30" /></div>
                   }
                 </div>
