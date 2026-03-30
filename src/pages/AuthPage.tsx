@@ -70,9 +70,29 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-bg">
-      {/* Background blobs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+    <motion.div
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-bg"
+      animate={exiting ? { opacity: 0 } : { opacity: 1 }}
+      transition={{ duration: 0.5, ease: premiumEase }}
+    >
+      {/* Dim overlay on exit */}
+      <AnimatePresence>
+        {exiting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.15 }}
+            className="fixed inset-0 bg-black z-40 pointer-events-none"
+            transition={{ duration: 0.3 }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Background blobs with subtle motion */}
+      <motion.div
+        className="fixed inset-0 pointer-events-none overflow-hidden"
+        animate={exiting ? { scale: 1.05, opacity: 0 } : { scale: 1, opacity: 1 }}
+        transition={{ duration: 0.8, ease: premiumEase }}
+      >
         <div
           className="absolute -top-40 -right-40 w-[600px] h-[600px] rounded-full opacity-[0.15]"
           style={{ background: 'radial-gradient(circle, hsl(42 70% 50%) 0%, transparent 70%)' }}
@@ -85,13 +105,19 @@ export default function AuthPage() {
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] opacity-[0.06]"
           style={{ background: 'radial-gradient(ellipse, hsl(42 70% 50%) 0%, transparent 60%)' }}
         />
-      </div>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.2, 0, 0, 1] }}
-        className="w-full max-w-[480px]"
+        animate={exiting
+          ? { opacity: 0, scale: 0.92, filter: 'blur(8px)', y: -10 }
+          : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }
+        }
+        transition={exiting
+          ? { duration: 0.5, ease: premiumEase }
+          : { duration: 0.4, ease: [0.2, 0, 0, 1] }
+        }
+        className="w-full max-w-[480px] relative z-10"
       >
         {/* Logo */}
         <div className="text-center mb-8 flex flex-col items-center gap-2">
