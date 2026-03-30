@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useTransition } from '@/contexts/TransitionContext';
 import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info, Loader2 } from 'lucide-react';
 
 type Tab = 'mentor' | 'student';
@@ -20,9 +19,7 @@ export default function AuthPage() {
   const [phone, setPhone] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [exiting, setExiting] = useState(false);
   const { toast } = useToast();
-  const { startTransition } = useTransition();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
