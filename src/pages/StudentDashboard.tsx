@@ -842,12 +842,7 @@ export default function StudentDashboard() {
     return isWithinInterval(d, { start: from, end: to });
   };
 
-  // Filtered lessons (by date range)
-  const filteredLessons = useMemo(() =>
-    lessonDateRange?.from
-      ? lessons.filter(l => isInDateRange(l.created_at, lessonDateRange))
-      : lessons
-  , [lessons, lessonDateRange]);
+  const filteredLessons = lessons;
 
   // Filtered posts (by date range)
   const filteredPosts = useMemo(() =>
