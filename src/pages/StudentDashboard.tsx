@@ -496,7 +496,6 @@ export default function StudentDashboard() {
   const [lessonViewMode, setLessonViewMode] = useState<LessonViewMode>(null);
 
   // Date filter state
-  const [lessonDateRange, setLessonDateRange] = useState<DateRange | undefined>(undefined);
   const [communityDateRange, setCommunityDateRange] = useState<DateRange | undefined>(undefined);
 
   // Community dropdown state
