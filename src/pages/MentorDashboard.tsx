@@ -976,7 +976,7 @@ export default function MentorDashboard() {
       </aside>
 
       {/* Main */}
-      <main className={`flex-1 bg-card text-card-foreground ${isMobile ? 'pt-14 pb-20' : ''} ${activeTab === 'questions' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
+      <main className={`flex-1 main-content-gradient text-card-foreground ${isMobile ? 'pt-14 pb-20' : ''} ${activeTab === 'questions' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
         <AnimatePresence mode="wait">
 
           {/* ──────── LESSONS ──────── */}

@@ -1187,7 +1187,7 @@ export default function StudentDashboard() {
       </aside>
 
       {/* Main */}
-      <main className={`flex-1 overflow-y-auto bg-card text-card-foreground ${isMobile ? 'pt-14 pb-20' : ''}`}>
+      <main className={`flex-1 overflow-y-auto main-content-gradient text-card-foreground ${isMobile ? 'pt-14 pb-20' : ''}`}>
         <AnimatePresence mode="wait">
 
           {/* ──────── LESSONS ──────── */}
