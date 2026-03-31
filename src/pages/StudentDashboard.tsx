@@ -1603,7 +1603,7 @@ function DateRangeFilter({ range, onChange }: { range: DateRange | undefined; on
         <Button
           variant="outline"
           size="sm"
-          className={`flex items-center gap-2 h-9 px-3 text-xs ${hasFilter ? 'border-primary text-primary bg-primary/5' : 'text-muted-foreground'}`}
+          className={`flex items-center gap-2 h-9 px-3 text-xs ${hasFilter ? 'border-primary text-primary bg-primary/5' : 'text-card-foreground/70'}`}
         >
           <CalendarDays className="w-3.5 h-3.5" />
           {label}
