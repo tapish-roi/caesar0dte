@@ -1216,7 +1216,7 @@ export default function StudentDashboard() {
                       exit={{ opacity: 0 }}
                       className="bg-card rounded-xl card-shadow overflow-hidden"
                     >
-                      <div className="aspect-video bg-foreground/5 border-b border-border flex items-center justify-center">
+                      <div className="aspect-video max-h-[55vh] bg-foreground/5 border-b border-border flex items-center justify-center">
                         {selectedLessonData.video_url ? (
                           <VideoPlayer
                             src={selectedLessonData.video_url}
