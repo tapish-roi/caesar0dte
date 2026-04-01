@@ -1226,7 +1226,7 @@ export default function MentorDashboard() {
                           onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                           onDelete={() => deleteLesson.mutate(lesson.id)}
                           onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
-                          onView={() => { setLessonViewMode({ categoryId: '', categoryTitle: 'ללא קטגוריה' }); setSelectedLesson(lesson.id); }}
+                          onView={() => { setLessonViewMode({ categoryId: '', categoryTitle: 'ללא קטגוריה' }); selectLessonWithDraftCheck(lesson.id); }}
                           typeIcon={typeIcon} typeLabel={typeLabel}
                         />
                       ))}
