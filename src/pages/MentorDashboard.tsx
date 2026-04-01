@@ -1057,12 +1057,17 @@ export default function MentorDashboard() {
                             )}
                           </div>
                           <div className="p-6">
+                            {/* Publish status banner */}
+                            <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg mb-4 text-sm font-medium ${lesson.is_published ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-red-500/10 text-red-600 border border-red-500/20'}`}>
+                              {lesson.is_published ? (
+                                <><Eye className="w-4 h-4 shrink-0" />השיעור פורסם לתלמידים</>
+                              ) : (
+                                <><EyeOff className="w-4 h-4 shrink-0" />השיעור טרם פורסם לתלמידים</>
+                              )}
+                            </div>
                             <div className="flex items-start justify-between gap-4">
                               <h2 className="text-xl font-bold text-foreground">{lesson.title}</h2>
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${lesson.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
-                                  {lesson.is_published ? 'פורסם' : 'טיוטה'}
-                                </span>
                                 <button
                                   onClick={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
                                   className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-foreground hover:bg-muted transition-all"
