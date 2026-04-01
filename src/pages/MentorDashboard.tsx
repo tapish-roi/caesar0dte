@@ -258,6 +258,16 @@ export default function MentorDashboard() {
 
   // Drag & drop
   const [dragLesson, setDragLesson] = useState<string | null>(null);
+
+  // Helper: select lesson and show draft alert if unpublished
+  const selectLessonWithDraftCheck = useCallback((lessonId: string) => {
+    setSelectedLesson(lessonId);
+    // We need lessons data, so we check after setting
+    const lesson = (qc.getQueryData<Lesson[]>(['lessons', user?.id]) ?? []).find(l => l.id === lessonId);
+    if (lesson && !lesson.is_published) {
+      setDraftAlertLessonId(lessonId);
+    }
+  }, [qc, user?.id]);
   const [dragOverLesson, setDragOverLesson] = useState<string | null>(null);
 
   // ─── Queries ────────────────────────────────────────────────────────────────
