@@ -897,7 +897,7 @@ export default function MentorDashboard() {
                     return (
                       <button
                         key={lesson.id}
-                        onClick={() => setSelectedLesson(isSelected ? null : lesson.id)}
+                        onClick={() => isSelected ? setSelectedLesson(null) : selectLessonWithDraftCheck(lesson.id)}
                         className={`w-full text-start flex items-start gap-3 px-4 py-3 transition-all hover:bg-sidebar-accent/60 ${isSelected ? 'bg-sidebar-accent border-e-2 border-primary' : ''}`}
                       >
                         <span className="w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-muted-foreground">{idx + 1}</span>
