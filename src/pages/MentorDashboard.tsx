@@ -1,4 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import MediaLightbox, { useMediaLightbox } from '@/components/MediaLightbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
