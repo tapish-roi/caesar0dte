@@ -848,8 +848,8 @@ export default function MentorDashboard() {
       <AlertDialog open={!!draftAlertLessonId} onOpenChange={(open) => { if (!open) setDraftAlertLessonId(null); }}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>שים לב! השיעור עדיין לא פורסם לתלמידים!</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-foreground">שים לב! השיעור עדיין לא פורסם לתלמידים!</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               השיעור הזה נמצא במצב טיוטה ולא נראה לתלמידים. מה תרצה לעשות?
             </AlertDialogDescription>
           </AlertDialogHeader>
