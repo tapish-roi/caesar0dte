@@ -210,6 +210,7 @@ export default function MentorDashboard() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [lessonViewMode, setLessonViewMode] = useState<LessonViewMode>(null);
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
+  const [draftAlertLessonId, setDraftAlertLessonId] = useState<string | null>(null);
   const [newCatTitle, setNewCatTitle] = useState('');
   const [inviteContact, setInviteContact] = useState('');
   const [isUploading, setIsUploading] = useState(false);
