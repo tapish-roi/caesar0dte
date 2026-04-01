@@ -1094,7 +1094,7 @@ export default function MentorDashboard() {
                         return catLessons.map((lesson, idx) => (
                           <button
                             key={lesson.id}
-                            onClick={() => setSelectedLesson(lesson.id)}
+                            onClick={() => selectLessonWithDraftCheck(lesson.id)}
                             className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-right"
                           >
                             <span className="w-5 h-5 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">{idx + 1}</span>
