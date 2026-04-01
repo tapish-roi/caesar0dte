@@ -1,4 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 import MediaLightbox, { useMediaLightbox } from '@/components/MediaLightbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
@@ -206,6 +210,7 @@ export default function MentorDashboard() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [lessonViewMode, setLessonViewMode] = useState<LessonViewMode>(null);
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
+  const [draftAlertLessonId, setDraftAlertLessonId] = useState<string | null>(null);
   const [newCatTitle, setNewCatTitle] = useState('');
   const [inviteContact, setInviteContact] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -253,6 +258,16 @@ export default function MentorDashboard() {
 
   // Drag & drop
   const [dragLesson, setDragLesson] = useState<string | null>(null);
+
+  // Helper: select lesson and show draft alert if unpublished
+  const selectLessonWithDraftCheck = useCallback((lessonId: string) => {
+    setSelectedLesson(lessonId);
+    // We need lessons data, so we check after setting
+    const lesson = (qc.getQueryData<Lesson[]>(['lessons', user?.id]) ?? []).find(l => l.id === lessonId);
+    if (lesson && !lesson.is_published) {
+      setDraftAlertLessonId(lessonId);
+    }
+  }, [qc, user?.id]);
   const [dragOverLesson, setDragOverLesson] = useState<string | null>(null);
 
   // ─── Queries ────────────────────────────────────────────────────────────────
@@ -829,6 +844,32 @@ export default function MentorDashboard() {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
+      {/* Draft lesson alert */}
+      <AlertDialog open={!!draftAlertLessonId} onOpenChange={(open) => { if (!open) setDraftAlertLessonId(null); }}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>שים לב! השיעור עדיין לא פורסם לתלמידים!</AlertDialogTitle>
+            <AlertDialogDescription>
+              השיעור הזה נמצא במצב טיוטה ולא נראה לתלמידים. מה תרצה לעשות?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2 sm:flex-row-reverse">
+            <AlertDialogCancel onClick={() => setDraftAlertLessonId(null)}>
+              המשך לערוך שיעור
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (draftAlertLessonId) {
+                  togglePublish.mutate({ id: draftAlertLessonId, is_published: false });
+                }
+                setDraftAlertLessonId(null);
+              }}
+            >
+              פרסם שיעור
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {/* Mobile Header */}
       {isMobile && !lessonViewMode && (
         <div className="fixed top-0 left-0 right-0 z-30">
@@ -882,7 +923,7 @@ export default function MentorDashboard() {
                     return (
                       <button
                         key={lesson.id}
-                        onClick={() => setSelectedLesson(isSelected ? null : lesson.id)}
+                        onClick={() => isSelected ? setSelectedLesson(null) : selectLessonWithDraftCheck(lesson.id)}
                         className={`w-full text-start flex items-start gap-3 px-4 py-3 transition-all hover:bg-sidebar-accent/60 ${isSelected ? 'bg-sidebar-accent border-e-2 border-primary' : ''}`}
                       >
                         <span className="w-5 h-5 flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold text-muted-foreground">{idx + 1}</span>
@@ -1079,7 +1120,7 @@ export default function MentorDashboard() {
                         return catLessons.map((lesson, idx) => (
                           <button
                             key={lesson.id}
-                            onClick={() => setSelectedLesson(lesson.id)}
+                            onClick={() => selectLessonWithDraftCheck(lesson.id)}
                             className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-right"
                           >
                             <span className="w-5 h-5 flex items-center justify-center shrink-0 text-xs font-bold text-muted-foreground">{idx + 1}</span>
@@ -1182,7 +1223,7 @@ export default function MentorDashboard() {
                                   onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                                   onDelete={() => deleteLesson.mutate(lesson.id)}
                                   onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
-                                  onView={() => { setLessonViewMode({ categoryId: cat.id, categoryTitle: cat.title }); setSelectedLesson(lesson.id); }}
+                                  onView={() => { setLessonViewMode({ categoryId: cat.id, categoryTitle: cat.title }); selectLessonWithDraftCheck(lesson.id); }}
                                   typeIcon={typeIcon} typeLabel={typeLabel}
                                 />
                               ))}
@@ -1211,7 +1252,7 @@ export default function MentorDashboard() {
                           onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                           onDelete={() => deleteLesson.mutate(lesson.id)}
                           onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
-                          onView={() => { setLessonViewMode({ categoryId: '', categoryTitle: 'ללא קטגוריה' }); setSelectedLesson(lesson.id); }}
+                          onView={() => { setLessonViewMode({ categoryId: '', categoryTitle: 'ללא קטגוריה' }); selectLessonWithDraftCheck(lesson.id); }}
                           typeIcon={typeIcon} typeLabel={typeLabel}
                         />
                       ))}
