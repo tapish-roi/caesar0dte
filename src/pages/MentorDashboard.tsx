@@ -844,6 +844,32 @@ export default function MentorDashboard() {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
+      {/* Draft lesson alert */}
+      <AlertDialog open={!!draftAlertLessonId} onOpenChange={(open) => { if (!open) setDraftAlertLessonId(null); }}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>שים לב! השיעור עדיין לא פורסם לתלמידים!</AlertDialogTitle>
+            <AlertDialogDescription>
+              השיעור הזה נמצא במצב טיוטה ולא נראה לתלמידים. מה תרצה לעשות?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2 sm:flex-row-reverse">
+            <AlertDialogCancel onClick={() => setDraftAlertLessonId(null)}>
+              המשך לערוך שיעור
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (draftAlertLessonId) {
+                  togglePublish.mutate({ id: draftAlertLessonId, is_published: false });
+                }
+                setDraftAlertLessonId(null);
+              }}
+            >
+              פרסם שיעור
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {/* Mobile Header */}
       {isMobile && !lessonViewMode && (
         <div className="fixed top-0 left-0 right-0 z-30">
