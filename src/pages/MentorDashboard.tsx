@@ -50,7 +50,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
     queryFn: async () => {
       const { data } = await supabase
         .from('quiz_questions')
-        .select('id, question_text, question_type, position')
+        .select('id, question_text, question_type, position, expected_answer')
         .eq('quiz_id', quiz!.id)
         .order('position');
       return data ?? [];
@@ -63,7 +63,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
     queryFn: async () => {
       const { data } = await supabase
         .from('quiz_question_options')
-        .select('id, question_id, option_text, is_correct, position')
+        .select('id, question_id, option_text, is_correct, position, explanation')
         .in('question_id', questions.map(q => q.id))
         .order('position');
       return data ?? [];
@@ -119,18 +119,28 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
               {q.question_type === 'multiple_choice' ? (
                 <div className="space-y-1 me-7">
                   {qOptions.map((opt, oIdx) => (
-                    <div key={opt.id} className={`flex items-center gap-2 px-2 py-1 rounded-md text-[11px] ${opt.is_correct ? 'bg-accent/10 text-accent font-medium' : 'text-muted-foreground'}`}>
-                      <span className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0 text-[9px] font-bold border-current">
-                        {String.fromCharCode(65 + oIdx)}
-                      </span>
-                      {opt.option_text}
-                      {opt.is_correct && <Check className="w-3 h-3 ms-auto shrink-0" />}
+                    <div key={opt.id} className="space-y-0.5">
+                      <div className={`flex items-center gap-2 px-2 py-1 rounded-md text-[11px] ${opt.is_correct ? 'bg-accent/10 text-accent font-medium' : 'text-muted-foreground'}`}>
+                        <span className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0 text-[9px] font-bold border-current">
+                          {String.fromCharCode(65 + oIdx)}
+                        </span>
+                        {opt.option_text}
+                        {opt.is_correct && <Check className="w-3 h-3 ms-auto shrink-0" />}
+                      </div>
+                      {opt.explanation && (
+                        <p className="text-[10px] text-muted-foreground/70 me-6 px-2 leading-snug">💬 {opt.explanation}</p>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="me-7 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <AlignLeft className="w-3 h-3 shrink-0" />שאלה פתוחה
+                <div className="me-7 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <AlignLeft className="w-3 h-3 shrink-0" />שאלה פתוחה
+                  </div>
+                  {q.expected_answer && (
+                    <p className="text-[10px] text-accent/80 px-2 leading-snug">✅ תשובה רצויה: {q.expected_answer}</p>
+                  )}
                 </div>
               )}
             </div>
