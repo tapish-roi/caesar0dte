@@ -26,6 +26,7 @@ interface QuizOption {
   option_text: string;
   is_correct: boolean;
   position: number;
+  explanation?: string | null;
 }
 
 interface QuizQuestion {
@@ -499,7 +500,7 @@ function QuizDetail({
       if (questions.length === 0) return [];
       const { data } = await supabase
         .from('quiz_question_options')
-        .select('id, question_id, option_text, is_correct, position')
+        .select('id, question_id, option_text, is_correct, position, explanation')
         .in('question_id', questions.map(q => q.id))
         .order('position');
       return (data ?? []) as QuizOption[];
@@ -897,25 +898,41 @@ function QuizDetail({
                     {q.question_type === 'multiple_choice' ? (
                       <div className="space-y-2">
                         {qOptions.map((opt, oIdx) => (
-                          <div key={opt.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
-                            opt.is_correct
-                              ? 'border-accent/40 bg-accent/8 text-accent'
-                              : 'border-border text-foreground'
-                          }`}>
-                            <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                              opt.is_correct ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-muted-foreground'
+                          <div key={opt.id} className="space-y-1.5">
+                            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
+                              opt.is_correct
+                                ? 'border-accent/40 bg-accent/10 text-accent'
+                                : 'border-border text-foreground'
                             }`}>
-                              {opt.is_correct ? <Check className="w-3 h-3" /> : String.fromCharCode(65 + oIdx)}
-                            </span>
-                            <span className={`text-sm flex-1 ${opt.is_correct ? 'font-medium' : ''}`}>{opt.option_text}</span>
-                            {opt.is_correct && <span className="text-[10px] font-medium text-accent shrink-0">✓ תשובה נכונה</span>}
+                              <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                                opt.is_correct ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-muted-foreground'
+                              }`}>
+                                {opt.is_correct ? <Check className="w-3 h-3" /> : String.fromCharCode(65 + oIdx)}
+                              </span>
+                              <span className={`text-sm flex-1 ${opt.is_correct ? 'font-medium' : ''}`}>{opt.option_text}</span>
+                              {opt.is_correct && <span className="text-[10px] font-medium text-accent shrink-0">✓ תשובה נכונה</span>}
+                            </div>
+                            {opt.explanation && (
+                              <div className="mr-9 rounded-lg border border-border bg-muted/30 px-3 py-2">
+                                <p className="text-[11px] font-medium text-foreground">הערת המנטור:</p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">{opt.explanation}</p>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
-                        <AlignLeft className="w-4 h-4 text-accent shrink-0" />
-                        <p className="text-xs text-muted-foreground">שאלה פתוחה — התלמיד יכתוב תשובה חופשית. לא ינתן ציון אוטומטי.</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                          <AlignLeft className="w-4 h-4 text-accent shrink-0" />
+                          <p className="text-xs text-muted-foreground">שאלה פתוחה — התלמיד יכתוב תשובה חופשית. לא ינתן ציון אוטומטי.</p>
+                        </div>
+                        {q.expected_answer && (
+                          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+                            <p className="text-[11px] font-medium text-foreground">התשובה הרצויה:</p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{q.expected_answer}</p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
