@@ -846,15 +846,15 @@ export default function MentorDashboard() {
     <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
       {/* Draft lesson alert */}
       <AlertDialog open={!!draftAlertLessonId} onOpenChange={(open) => { if (!open) setDraftAlertLessonId(null); }}>
-        <AlertDialogContent dir="rtl" className="text-foreground">
+        <AlertDialogContent dir="rtl" className="text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground">שים לב! השיעור עדיין לא פורסם לתלמידים!</AlertDialogTitle>
-            <AlertDialogDescription className="text-foreground/70">
+            <AlertDialogTitle className="text-white">שים לב! השיעור עדיין לא פורסם לתלמידים!</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/70">
               השיעור הזה נמצא במצב טיוטה ולא נראה לתלמידים. מה תרצה לעשות?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-2 sm:flex-row-reverse">
-            <AlertDialogCancel onClick={() => setDraftAlertLessonId(null)} className="text-foreground border-foreground/20">
+            <AlertDialogCancel onClick={() => setDraftAlertLessonId(null)} className="text-white border-white/20 hover:bg-white/10 hover:text-white">
               המשך לערוך שיעור
             </AlertDialogCancel>
             <AlertDialogAction
