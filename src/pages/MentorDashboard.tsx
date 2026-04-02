@@ -134,8 +134,13 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
                   ))}
                 </div>
               ) : (
-                <div className="me-7 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <AlignLeft className="w-3 h-3 shrink-0" />שאלה פתוחה
+                <div className="me-7 space-y-1">
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <AlignLeft className="w-3 h-3 shrink-0" />שאלה פתוחה
+                  </div>
+                  {q.expected_answer && (
+                    <p className="text-[10px] text-accent/80 px-2 leading-snug">✅ תשובה רצויה: {q.expected_answer}</p>
+                  )}
                 </div>
               )}
             </div>
