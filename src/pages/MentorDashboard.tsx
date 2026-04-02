@@ -63,7 +63,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
     queryFn: async () => {
       const { data } = await supabase
         .from('quiz_question_options')
-        .select('id, question_id, option_text, is_correct, position')
+        .select('id, question_id, option_text, is_correct, position, explanation')
         .in('question_id', questions.map(q => q.id))
         .order('position');
       return data ?? [];
