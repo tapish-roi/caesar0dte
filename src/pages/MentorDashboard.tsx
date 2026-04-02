@@ -2204,6 +2204,13 @@ function LessonRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-foreground truncate">{lesson.title}</span>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${
+            lesson.is_published 
+              ? 'bg-green-500/10 border border-green-500/20 text-green-500' 
+              : 'bg-red-500/10 border border-red-500/20 text-red-500'
+          }`}>
+            {lesson.is_published ? <><Eye className="w-2.5 h-2.5" />פורסם</> : <><EyeOff className="w-2.5 h-2.5" />טרם פורסם</>}
+          </span>
           {lesson.lesson_type === 'live' && (
             <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
               <Radio className="w-2.5 h-2.5" />הוקלט בלייב
