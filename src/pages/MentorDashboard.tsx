@@ -119,12 +119,17 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
               {q.question_type === 'multiple_choice' ? (
                 <div className="space-y-1 me-7">
                   {qOptions.map((opt, oIdx) => (
-                    <div key={opt.id} className={`flex items-center gap-2 px-2 py-1 rounded-md text-[11px] ${opt.is_correct ? 'bg-accent/10 text-accent font-medium' : 'text-muted-foreground'}`}>
-                      <span className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0 text-[9px] font-bold border-current">
-                        {String.fromCharCode(65 + oIdx)}
-                      </span>
-                      {opt.option_text}
-                      {opt.is_correct && <Check className="w-3 h-3 ms-auto shrink-0" />}
+                    <div key={opt.id} className="space-y-0.5">
+                      <div className={`flex items-center gap-2 px-2 py-1 rounded-md text-[11px] ${opt.is_correct ? 'bg-accent/10 text-accent font-medium' : 'text-muted-foreground'}`}>
+                        <span className="w-4 h-4 rounded-full border flex items-center justify-center shrink-0 text-[9px] font-bold border-current">
+                          {String.fromCharCode(65 + oIdx)}
+                        </span>
+                        {opt.option_text}
+                        {opt.is_correct && <Check className="w-3 h-3 ms-auto shrink-0" />}
+                      </div>
+                      {opt.explanation && (
+                        <p className="text-[10px] text-muted-foreground/70 me-6 px-2 leading-snug">💬 {opt.explanation}</p>
+                      )}
                     </div>
                   ))}
                 </div>
