@@ -500,7 +500,7 @@ function QuizDetail({
       if (questions.length === 0) return [];
       const { data } = await supabase
         .from('quiz_question_options')
-        .select('id, question_id, option_text, is_correct, position')
+        .select('id, question_id, option_text, is_correct, position, explanation')
         .in('question_id', questions.map(q => q.id))
         .order('position');
       return (data ?? []) as QuizOption[];
