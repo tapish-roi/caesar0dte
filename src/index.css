@@ -98,15 +98,8 @@
   body {
     @apply text-foreground;
     font-family: 'IBM Plex Sans Hebrew', 'Segoe UI', system-ui, sans-serif;
-    background: linear-gradient(
-      160deg,
-      hsl(230, 35%, 88%) 0%,
-      hsl(260, 30%, 85%) 25%,
-      hsl(220, 28%, 87%) 50%,
-      hsl(280, 25%, 83%) 75%,
-      hsl(240, 30%, 86%) 100%
-    );
-    background-attachment: fixed;
+    background: url('/images/space-bg.jpg') center center / cover no-repeat fixed;
+    min-height: 100vh;
     min-height: 100vh;
     font-feature-settings: "tnum";
     line-height: 1.6;
