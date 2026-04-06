@@ -297,6 +297,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                         className={`rounded-xl border transition-all overflow-hidden ${
                           isOpen ? 'border-primary/30 shadow-sm' : 'border-border'
                         } ${!hasAnswer ? 'ring-1 ring-primary/20' : ''}`}
+                        style={{ background: 'hsl(200, 40%, 12%)' }}
                       >
                         {/* Question header */}
                         <button
