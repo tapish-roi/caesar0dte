@@ -294,7 +294,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                     return (
                       <div
                         key={q.id}
-                        className={`bg-card rounded-xl border transition-all overflow-hidden ${
+                        className={`rounded-xl border transition-all overflow-hidden ${
                           isOpen ? 'border-primary/30 shadow-sm' : 'border-border'
                         } ${!hasAnswer ? 'ring-1 ring-primary/20' : ''}`}
                       >
