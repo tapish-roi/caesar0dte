@@ -10,7 +10,7 @@ interface MobileHeaderProps {
 
 export default function MobileHeader({ title, subtitle, onSettingsClick, onTitleClick, showChevron }: MobileHeaderProps) {
   return (
-    <header className="flex md:hidden items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-30">
+    <header className="flex md:hidden items-center gap-3 px-4 py-3 border-b border-[var(--glass-border)] backdrop-blur-md sticky top-0 z-30" style={{ background: 'var(--glass-bg)' }}>
       <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
         <TrendingUp className="w-4 h-4 text-primary-foreground" />
       </div>
