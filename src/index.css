@@ -100,10 +100,11 @@
     font-family: 'IBM Plex Sans Hebrew', 'Segoe UI', system-ui, sans-serif;
     background: linear-gradient(
       160deg,
-      hsl(220, 30%, 12%) 0%,
-      hsl(222, 28%, 16%) 35%,
-      hsl(220, 25%, 13%) 65%,
-      hsl(225, 30%, 10%) 100%
+      hsl(230, 35%, 88%) 0%,
+      hsl(260, 30%, 85%) 25%,
+      hsl(220, 28%, 87%) 50%,
+      hsl(280, 25%, 83%) 75%,
+      hsl(240, 30%, 86%) 100%
     );
     background-attachment: fixed;
     min-height: 100vh;
