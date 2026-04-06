@@ -1,23 +1,38 @@
 
 
-## Analysis: Why only 36 seconds recorded instead of 1:30
+## Plan: Update Main Content Gradient to Space-Nebula Colors
 
-**Root cause identified:** The continuous-play detection threshold is too strict. The interval fires every 1000ms, but on slower devices or when the browser is busy, the interval can fire every 2-3 seconds. When this happens, `delta` (difference in `currentTime` between ticks) exceeds the threshold of `2`, and the tick is **rejected as a "skip"** — even though the student was watching continuously.
+The nebula image has deep blues, teals/cyans, and subtle purple tones. The current `.main-content-gradient` uses gold/beige tones which don't match.
 
-Over 90 seconds of playback, if many ticks are rejected due to slightly delayed intervals, only ~40% of the real watch time gets counted — explaining the 36 seconds.
+### Changes
 
-**Secondary issue:** No progress save on component unmount (e.g., when the student navigates away without pausing).
+**1. `src/index.css` — Update `.main-content-gradient`**
 
-## Plan
+Replace the gold gradient with a space-inspired gradient using colors extracted from the nebula image:
+- Deep navy blue → teal/cyan → soft blue-purple → dark blue
 
-### 1. Increase delta threshold in VideoPlayer
-In `src/pages/StudentDashboard.tsx`, change the continuous-play detection from `delta < 2` to `delta < 5`. A real user seek/skip typically jumps 10+ seconds, while a delayed interval tick produces deltas of 2-4 seconds. A threshold of 5 safely distinguishes the two.
+```css
+.main-content-gradient {
+  background: linear-gradient(
+    160deg,
+    hsl(220, 45%, 15%) 0%,
+    hsl(200, 50%, 22%) 30%,
+    hsl(190, 45%, 28%) 55%,
+    hsl(210, 40%, 20%) 80%,
+    hsl(230, 35%, 16%) 100%
+  );
+}
+```
 
-### 2. Add progress save on unmount
-Add a cleanup function that calls `saveProgress(true)` when the VideoPlayer component unmounts, so progress is never lost when navigating away.
+**2. `src/index.css` — Remove the image background from `body`**
 
-### 3. Use actual elapsed wall-clock time as fallback
-Track wall-clock time (via `Date.now()`) alongside `currentTime` to cross-validate. If the interval fires late but both wall-clock and video time advanced by similar amounts, it's continuous playback — not a seek.
+Replace `background: url('/images/space-bg.jpg') ...` with just a solid dark fallback color, since the gradient on `.main-content-gradient` will be the actual visible background.
 
-**Files to modify:** `src/pages/StudentDashboard.tsx` (VideoPlayer component only, ~5 lines changed)
+**3. Ensure text readability**
+
+Since the background is now dark, the `text-card-foreground` class used on the main content areas may need adjustment. Will verify the card-foreground color is light enough, or switch to `text-foreground` or a light color where needed.
+
+### Files to edit
+- `src/index.css` (gradient + body background)
+- Potentially `src/pages/MentorDashboard.tsx` and `src/pages/StudentDashboard.tsx` if text color classes need updating
 
