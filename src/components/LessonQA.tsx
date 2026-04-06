@@ -479,16 +479,16 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
             >
               <div className="bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-md" dir="rtl">
                 <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-primary" />
+                    <h3 className="text-base font-bold text-foreground">שאלה פרטית למנטור</h3>
+                  </div>
                   <button
                     onClick={() => setPrivateModalOpen(false)}
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                   >
                     <X className="w-4 h-4" />
                   </button>
-                  <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-primary" />
-                    <h3 className="text-base font-bold text-foreground">שאלה פרטית למנטור</h3>
-                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground mb-4 text-right leading-relaxed">
                   השאלה שלך תישלח ישירות למנטור בלבד. התשובה תופיע אצלך תחת "השאלות שלי".
