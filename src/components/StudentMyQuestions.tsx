@@ -126,9 +126,10 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
           return (
             <div
               key={q.id}
-              className={`bg-card rounded-xl border overflow-hidden transition-all ${
+              className={`rounded-xl border overflow-hidden transition-all ${
                 isOpen ? 'border-primary/30 shadow-sm' : 'border-border'
               } ${!hasAnswer ? 'ring-1 ring-primary/15' : ''}`}
+              style={{ background: 'hsla(200, 40%, 12%, 0.85)' }}
             >
               <button
                 onClick={() => !isEditingThis && setExpanded(isOpen ? null : q.id)}
