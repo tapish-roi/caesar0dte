@@ -477,9 +477,10 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                     return (
                       <div
                         key={q.id}
-                        className={`bg-card rounded-xl border transition-all overflow-hidden ${
+                        className={`rounded-xl border transition-all overflow-hidden ${
                           isOpen ? 'border-accent/30 shadow-sm' : 'border-border'
                         } ${!hasAnswers ? 'ring-1 ring-accent/20' : ''}`}
+                        style={{ background: 'hsl(200, 40%, 12%)' }}
                       >
                         <button
                           onClick={() => setExpandedLesson(isOpen ? null : q.id)}
