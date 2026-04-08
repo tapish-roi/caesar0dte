@@ -22,8 +22,9 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
   // Google Docs Viewer for inline preview — add cache buster for refresh
   const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true&cb=${iframeKey}`;
 
-  // "Open in new tab" uses Google Docs Viewer for documents
-  const openUrl = isDocument ? googleViewerUrl : url;
+  // "Open in new tab" uses Google Docs Viewer WITHOUT embedded mode
+  const googleViewerExternalUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}`;
+  const openUrl = isDocument ? googleViewerExternalUrl : url;
 
   return (
     <div className="border-t border-border">
