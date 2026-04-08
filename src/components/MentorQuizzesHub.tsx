@@ -826,7 +826,7 @@ function QuizDetail({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-bold text-foreground">{quiz.title}</h1>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${quiz.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${quiz.is_published ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                   {quiz.is_published ? 'פורסם' : 'טיוטה'}
                 </span>
               </div>
@@ -1434,7 +1434,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap justify-end">
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                              quiz.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'
+                              quiz.is_published ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
                             }`}>
                               {quiz.is_published ? 'פורסם' : 'טיוטה'}
                             </span>

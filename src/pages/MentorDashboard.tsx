@@ -100,7 +100,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground truncate">{quiz.title}</p>
-          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${quiz.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${quiz.is_published ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
             {quiz.is_published ? 'פורסם' : 'טיוטה'}
           </span>
         </div>
