@@ -1197,49 +1197,104 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   stopRemoteSpeakingDetectionRef.current = stopRemoteSpeakingDetection;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Mic
+  // Mic / Camera shared local stream
   // ─────────────────────────────────────────────────────────────────────────────
+  const ensureLocalStream = useCallback(() => {
+    if (!localStreamRef.current) localStreamRef.current = new MediaStream();
+    return localStreamRef.current;
+  }, []);
+
+  const removeLocalTracks = useCallback((kind: 'audio' | 'video') => {
+    if (!localStreamRef.current) return;
+    const tracks = kind === 'audio'
+      ? localStreamRef.current.getAudioTracks()
+      : localStreamRef.current.getVideoTracks();
+
+    tracks.forEach(track => {
+      localStreamRef.current?.removeTrack(track);
+    });
+
+    if (localStreamRef.current.getTracks().length === 0) {
+      localStreamRef.current = null;
+    }
+  }, []);
+
+  const syncLocalVideoPreview = useCallback(() => {
+    const el = localVideoRef.current;
+    if (!el) return;
+
+    const localStream = localStreamRef.current;
+    const hasLiveVideo = !!localStream?.getVideoTracks().some(track => track.readyState === 'live');
+    const nextStream = hasLiveVideo ? localStream : null;
+
+    if (el.srcObject !== nextStream) {
+      el.srcObject = nextStream;
+    }
+
+    if (nextStream && el.paused) {
+      el.play().catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    syncLocalVideoPreview();
+  });
+
   const toggleMic = useCallback(async () => {
     if (micEnabled) {
-      // Remove audio senders from all peers
       peersRef.current.forEach(pc => {
         pc.getSenders().filter(s => s.track?.kind === 'audio').forEach(s => pc.removeTrack(s));
       });
-      localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
+
+      localStreamRef.current?.getAudioTracks().forEach(t => {
+        t.enabled = false;
+        t.stop();
+      });
+      removeLocalTracks('audio');
+
+      localMicStreamForAnalysis.current?.getTracks().forEach(t => t.stop());
       localMicStreamForAnalysis.current = null;
       stopSpeakingDetection();
       setMicEnabled(false);
-      // Renegotiate so remote peers know the audio track was removed
+      syncLocalVideoPreview();
       renegotiateAll();
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: selectedMic ? { deviceId: { exact: selectedMic } } : true });
-        // Store stream so peers can use it
-        if (!localStreamRef.current) localStreamRef.current = new MediaStream();
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: selectedMic ? { deviceId: { exact: selectedMic } } : true,
+        });
+
+        removeLocalTracks('audio');
+        const localStream = ensureLocalStream();
+
         stream.getAudioTracks().forEach(t => {
-          localStreamRef.current!.addTrack(t);
-          // Add to all existing peer connections
+          localStream.addTrack(t);
           peersRef.current.forEach(pc => {
             const alreadyAdded = pc.getSenders().some(s => s.track === t);
-            if (!alreadyAdded) pc.addTrack(t, localStreamRef.current!);
+            if (!alreadyAdded) pc.addTrack(t, localStream);
           });
         });
+
         localMicStreamForAnalysis.current = stream;
         startSpeakingDetection(stream);
         setMicEnabled(true);
-        // Clear force-mute state when student manually re-enables mic
         if (isForceMuted) setIsForceMuted(false);
         if (deafened) setDeafened(false);
-        // ★ Renegotiate so remote peers receive the new audio track
+        syncLocalVideoPreview();
         renegotiateAll();
-      } catch { toast({ title: 'לא ניתן לגשת למיקרופון', variant: 'destructive' }); }
+      } catch {
+        toast({ title: 'לא ניתן לגשת למיקרופון', variant: 'destructive' });
+      }
     }
-  }, [micEnabled, selectedMic, deafened, isForceMuted, toast, startSpeakingDetection, stopSpeakingDetection, renegotiateAll]);
+  }, [micEnabled, selectedMic, deafened, isForceMuted, toast, ensureLocalStream, removeLocalTracks, syncLocalVideoPreview, startSpeakingDetection, stopSpeakingDetection, renegotiateAll]);
 
   const toggleDeafen = useCallback(() => {
     setDeafened(v => {
       const next = !v;
-      if (next && micEnabled) { localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; }); setMicEnabled(false); }
+      if (next && micEnabled) {
+        localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; });
+        setMicEnabled(false);
+      }
       return next;
     });
   }, [micEnabled]);
@@ -1295,37 +1350,42 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   const toggleCamera = useCallback(async () => {
     if (cameraEnabled) {
-      // Disable camera
       peersRef.current.forEach(pc => {
         pc.getSenders().filter(s => s.track?.kind === 'video').forEach(s => pc.removeTrack(s));
       });
+
       localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
+      removeLocalTracks('video');
       cameraStreamRef.current = null;
-      if (localVideoRef.current) localVideoRef.current.srcObject = null;
       setCameraEnabled(false);
+      syncLocalVideoPreview();
       renegotiateAll();
     } else {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: selectedCamera ? { deviceId: { exact: selectedCamera } } : true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: selectedCamera ? { deviceId: { exact: selectedCamera } } : true,
+        });
+
+        removeLocalTracks('video');
+        const localStream = ensureLocalStream();
         cameraStreamRef.current = stream;
-        if (!localStreamRef.current) localStreamRef.current = new MediaStream();
+
         stream.getVideoTracks().forEach(t => {
-          localStreamRef.current!.addTrack(t);
+          localStream.addTrack(t);
           peersRef.current.forEach(pc => {
             const alreadyAdded = pc.getSenders().some(s => s.track === t);
-            if (!alreadyAdded) pc.addTrack(t, localStreamRef.current!);
+            if (!alreadyAdded) pc.addTrack(t, localStream);
           });
         });
+
         setCameraEnabled(true);
-        // srcObject will be set by the callback ref in the render when cameraEnabled triggers re-render
-        // Also set it directly in case the ref is already mounted
-        requestAnimationFrame(() => {
-          if (localVideoRef.current && cameraStreamRef.current) {
-            localVideoRef.current.srcObject = cameraStreamRef.current;
-          }
-        });
+        syncLocalVideoPreview();
         renegotiateAll();
       } catch {
+        toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' });
+      }
+    }
+  }, [cameraEnabled, selectedCamera, toast, ensureLocalStream, removeLocalTracks, syncLocalVideoPreview, renegotiateAll]);
         toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' });
       }
     }
