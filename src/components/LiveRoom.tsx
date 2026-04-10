@@ -1220,22 +1220,21 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   // Screen share
   // ─────────────────────────────────────────────────────────────────────────────
+  const pendingScreenStreamRef = useRef<MediaStream | null>(null);
+
   const stopScreenShare = useCallback(() => {
     screenStreamRef.current?.getTracks().forEach(t => t.stop());
     screenStreamRef.current = null;
+    pendingScreenStreamRef.current = null;
     if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
     setScreenSharing(false);
     setShowDrawToolbar(false);
-    // Clear pending stream ref
-    if (typeof pendingScreenStreamRef !== 'undefined') pendingScreenStreamRef.current = null;
     // Notify others
     screenFrameChannelRef.current?.send({
       type: 'broadcast', event: 'screen_share_stop',
       payload: { sharerId: userId },
     });
   }, [userId]);
-
-  const pendingScreenStreamRef = useRef<MediaStream | null>(null);
 
   const toggleScreenShare = useCallback(async () => {
     if (screenSharing) { stopScreenShare(); return; }
