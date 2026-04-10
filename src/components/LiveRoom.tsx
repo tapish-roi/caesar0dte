@@ -1535,6 +1535,19 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           )}
         </div>
         <div className="flex items-center gap-1">
+          {isMentor && (
+            <button onClick={toggleRoomLock} title={roomLocked ? 'פתח חדר' : 'נעל חדר'}
+              className={`flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-all ${roomLocked ? 'bg-orange-500/20 text-orange-400' : 'text-white/50 hover:bg-white/5 hover:text-white/80'}`}>
+              {roomLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+            </button>
+          )}
+          {isMentor && (
+            <button onClick={() => { const link = `${window.location.origin}/livestream?session=${sessionId}`; navigator.clipboard.writeText(link); toast({ title: '🔗 הלינק הועתק!' }); }}
+              title="העתק לינק הצטרפות"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium text-white/50 hover:bg-white/5 hover:text-white/80 transition-all">
+              <Link2 className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button onClick={() => setShowMembers(v => !v)}
             className={`flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-all ${showMembers ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white/80'}`}>
             <Users className="w-3.5 h-3.5" />{participants.length}
