@@ -159,6 +159,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ── Remote speaking detection (Web Audio API per remote stream) ──
   const remoteAnalysersRef = useRef<Map<string, { ctx: AudioContext; analyser: AnalyserNode; animId: number }>>(new Map());
   const [remoteSpeakingUsers, setRemoteSpeakingUsers] = useState<Set<string>>(new Set());
+  const remoteSpeakingStateRef = useRef<Map<string, boolean>>(new Map());
   // Stable function refs so getOrCreatePeer (defined earlier) can call them without forward-ref issues
   const startRemoteSpeakingDetectionRef = useRef<(remoteId: string, stream: MediaStream) => void>(() => {});
   const stopRemoteSpeakingDetectionRef = useRef<(remoteId: string) => void>(() => {});
@@ -1265,7 +1266,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     }
   }, []);
 
-  const syncLocalVideoPreview = useCallback(() => {
+  const syncLocalVideoPreview = useCallback((force = false) => {
     const el = localVideoRef.current;
     if (!el) return;
 
@@ -1273,10 +1274,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const hasLiveVideo = !!localStream?.getVideoTracks().some(track => track.readyState === 'live');
     const nextStream = hasLiveVideo ? localStream : null;
 
-    // Force-reassign srcObject even if it's the same stream object,
-    // so the browser picks up newly added/removed tracks
-    el.srcObject = null;
-    el.srcObject = nextStream;
+    if (force) {
+      el.srcObject = null;
+      el.srcObject = nextStream;
+    } else if (el.srcObject !== nextStream) {
+      el.srcObject = nextStream;
+    }
 
     if (nextStream && el.paused) {
       el.play().catch(() => {});
@@ -1285,7 +1288,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   useEffect(() => {
     syncLocalVideoPreview();
-  });
+  }, [cameraEnabled, syncLocalVideoPreview]);
 
   const broadcastMediaState = useCallback((mic: boolean, cam: boolean) => {
     webrtcChannelRef.current?.send({
@@ -1711,21 +1714,18 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             <video
               ref={el => {
                 localVideoRef.current = el;
-                if (el) {
-                  const localStream = localStreamRef.current;
-                  const hasLiveVideo = !!localStream?.getVideoTracks().some(track => track.readyState === 'live');
-                  // Force-reassign to pick up new tracks
-                  el.srcObject = null;
-                  el.srcObject = hasLiveVideo ? localStream : null;
-                  if (el.paused && hasLiveVideo) el.play().catch(() => {});
-                }
               }}
               autoPlay playsInline muted className="w-full h-full object-cover"
             />
           ) : (
             <video
               autoPlay playsInline
-              ref={el => { if (el && remoteStream) el.srcObject = remoteStream; }}
+              ref={el => {
+                if (!el) return;
+                if (el.srcObject !== remoteStream) {
+                  el.srcObject = remoteStream ?? null;
+                }
+              }}
               className="w-full h-full object-cover"
             />
           )
