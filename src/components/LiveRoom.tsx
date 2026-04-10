@@ -184,6 +184,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const recordedChunksRef = useRef<Blob[]>([]);
   const sessionStartRef = useRef<number>(Date.now());
   const recordingStreamRef = useRef<MediaStream | null>(null);
+  // Track which senders are for audio vs video — needed because sender.track is null after replaceTrack(null)
+  const audioSenderMapRef = useRef<Map<RTCPeerConnection, RTCRtpSender>>(new Map());
 
   // ── Screen share frame streaming ──
   const screenFrameChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
