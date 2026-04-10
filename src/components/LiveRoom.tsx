@@ -1265,6 +1265,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     if (cameraEnabled) {
       navigator.mediaDevices.getUserMedia({ video: selectedCamera ? { deviceId: { exact: selectedCamera } } : true })
         .then(stream => {
+          cameraStreamRef.current = stream;
           if (!localStreamRef.current) localStreamRef.current = new MediaStream();
           stream.getVideoTracks().forEach(t => {
             localStreamRef.current!.addTrack(t);
@@ -1285,6 +1286,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         pc.getSenders().filter(s => s.track?.kind === 'video').forEach(s => pc.removeTrack(s));
       });
       localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
+      cameraStreamRef.current = null;
       if (localVideoRef.current) localVideoRef.current.srcObject = null;
       renegotiateAll();
     }
