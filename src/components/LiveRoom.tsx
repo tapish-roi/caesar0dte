@@ -2377,6 +2377,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   const isMentorEntry = p.userId === mentorId;
                   const forceMuted = forceMutedUsers.has(p.userId);
                   const isSpeaking = isMe ? speakingUsers.has(userId) : remoteSpeakingUsers.has(p.userId);
+                  const isMuted = isMe ? !micEnabled : p.isMuted;
                   const userColor = getColorForUser(p.userId);
                   return (
                     <div key={p.userId} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors group">
@@ -2388,17 +2389,23 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         >
                           {initials(p.name)}
                         </div>
-                        <div className={`absolute -bottom-0.5 -start-0.5 w-3 h-3 rounded-full border-2 border-card ${p.isMuted ? 'bg-secondary' : 'bg-green-500'}`} />
+                        <div className={`absolute -bottom-0.5 -start-0.5 w-3 h-3 rounded-full border-2 border-card ${isMuted ? 'bg-secondary' : 'bg-green-500'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground/80 truncate">
+                        <p className="text-sm font-medium text-foreground/80 truncate flex items-center gap-1">
                           {p.name}
                           {isMe && <span className="text-[10px] text-muted-foreground/50 ms-1">(אתה)</span>}
                           {isMentorEntry && !isMe && <span className="text-[10px] text-primary ms-1">מנטור</span>}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/50">
-                          {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מיקרופון כבוי' : isSpeaking ? 'מדבר...' : 'מחובר'}
-                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {isMuted ? <MicOff className="w-3 h-3 text-red-400/70" /> : <Mic className={`w-3 h-3 ${isSpeaking ? 'text-green-400' : 'text-muted-foreground/50'}`} />}
+                          {(isMe ? cameraEnabled : p.hasCamera) ? <Video className="w-3 h-3 text-muted-foreground/50" /> : <VideoOff className="w-3 h-3 text-red-400/70" />}
+                          {(isMe ? screenSharing : p.hasScreen) && <Monitor className="w-3 h-3 text-blue-400" />}
+                          {p.isDeafened && <VolumeX className="w-3 h-3 text-red-400/70" />}
+                          <span className="text-[10px] text-muted-foreground/50 ms-0.5">
+                            {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : isMuted ? 'מיקרופון כבוי' : isSpeaking ? 'מדבר...' : 'מחובר'}
+                          </span>
+                        </div>
                       </div>
                       {isMentor && !isMe && (
                         <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
