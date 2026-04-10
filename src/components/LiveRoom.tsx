@@ -105,6 +105,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const localAnalyserRef = useRef<AnalyserNode | null>(null);
   const speakingAnimRef = useRef<number | null>(null);
   const localMicStreamForAnalysis = useRef<MediaStream | null>(null);
+  const localSpeakingActiveRef = useRef(false);
 
   // ── Collaborative drawing state ──
   const [showDrawToolbar, setShowDrawToolbar] = useState(false);
@@ -158,6 +159,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ── Remote speaking detection (Web Audio API per remote stream) ──
   const remoteAnalysersRef = useRef<Map<string, { ctx: AudioContext; analyser: AnalyserNode; animId: number }>>(new Map());
   const [remoteSpeakingUsers, setRemoteSpeakingUsers] = useState<Set<string>>(new Set());
+  const remoteSpeakingStateRef = useRef<Map<string, boolean>>(new Map());
   // Stable function refs so getOrCreatePeer (defined earlier) can call them without forward-ref issues
   const startRemoteSpeakingDetectionRef = useRef<(remoteId: string, stream: MediaStream) => void>(() => {});
   const stopRemoteSpeakingDetectionRef = useRef<(remoteId: string) => void>(() => {});
@@ -1174,7 +1176,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         if (ctx.state === 'suspended') ctx.resume();
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        setSpeakingUsers(prev => { const n = new Set(prev); avg > 18 ? n.add(userId) : n.delete(userId); return n; });
+        const isSpeakingNow = avg > 18;
+        if (localSpeakingActiveRef.current !== isSpeakingNow) {
+          localSpeakingActiveRef.current = isSpeakingNow;
+          setSpeakingUsers(prev => {
+            const next = new Set(prev);
+            isSpeakingNow ? next.add(userId) : next.delete(userId);
+            return next;
+          });
+        }
         speakingAnimRef.current = requestAnimationFrame(tick);
       };
       speakingAnimRef.current = requestAnimationFrame(tick);
@@ -1184,6 +1194,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const stopSpeakingDetection = useCallback(() => {
     if (speakingAnimRef.current) { cancelAnimationFrame(speakingAnimRef.current); speakingAnimRef.current = null; }
     localAnalyserRef.current = null;
+    localSpeakingActiveRef.current = false;
     setSpeakingUsers(prev => { const n = new Set(prev); n.delete(userId); return n; });
   }, [userId]);
 
@@ -1211,15 +1222,18 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       const data = new Uint8Array(analyser.frequencyBinCount);
       let animId = 0;
       const tick = () => {
-        // Auto-resume if Chrome suspended the context after inactivity
         if (ctx.state === 'suspended') ctx.resume();
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        setRemoteSpeakingUsers(prev => {
-          const n = new Set(prev);
-          avg > 15 ? n.add(remoteId) : n.delete(remoteId);
-          return n;
-        });
+        const isSpeakingNow = avg > 15;
+        if (remoteSpeakingStateRef.current.get(remoteId) !== isSpeakingNow) {
+          remoteSpeakingStateRef.current.set(remoteId, isSpeakingNow);
+          setRemoteSpeakingUsers(prev => {
+            const next = new Set(prev);
+            isSpeakingNow ? next.add(remoteId) : next.delete(remoteId);
+            return next;
+          });
+        }
         animId = requestAnimationFrame(tick);
         remoteAnalysersRef.current.get(remoteId) && (remoteAnalysersRef.current.get(remoteId)!.animId = animId);
       };
@@ -1237,6 +1251,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       existing.ctx.close().catch(() => {});
       remoteAnalysersRef.current.delete(remoteId);
     }
+    remoteSpeakingStateRef.current.delete(remoteId);
     setRemoteSpeakingUsers(prev => { const n = new Set(prev); n.delete(remoteId); return n; });
   }, []);
   stopRemoteSpeakingDetectionRef.current = stopRemoteSpeakingDetection;
@@ -1264,7 +1279,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     }
   }, []);
 
-  const syncLocalVideoPreview = useCallback(() => {
+  const syncLocalVideoPreview = useCallback((force = false) => {
     const el = localVideoRef.current;
     if (!el) return;
 
@@ -1272,10 +1287,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const hasLiveVideo = !!localStream?.getVideoTracks().some(track => track.readyState === 'live');
     const nextStream = hasLiveVideo ? localStream : null;
 
-    // Force-reassign srcObject even if it's the same stream object,
-    // so the browser picks up newly added/removed tracks
-    el.srcObject = null;
-    el.srcObject = nextStream;
+    if (force) {
+      el.srcObject = null;
+      el.srcObject = nextStream;
+    } else if (el.srcObject !== nextStream) {
+      el.srcObject = nextStream;
+    }
 
     if (nextStream && el.paused) {
       el.play().catch(() => {});
@@ -1284,7 +1301,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   useEffect(() => {
     syncLocalVideoPreview();
-  });
+  }, [cameraEnabled, syncLocalVideoPreview]);
 
   const broadcastMediaState = useCallback((mic: boolean, cam: boolean) => {
     webrtcChannelRef.current?.send({
@@ -1710,21 +1727,18 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             <video
               ref={el => {
                 localVideoRef.current = el;
-                if (el) {
-                  const localStream = localStreamRef.current;
-                  const hasLiveVideo = !!localStream?.getVideoTracks().some(track => track.readyState === 'live');
-                  // Force-reassign to pick up new tracks
-                  el.srcObject = null;
-                  el.srcObject = hasLiveVideo ? localStream : null;
-                  if (el.paused && hasLiveVideo) el.play().catch(() => {});
-                }
               }}
               autoPlay playsInline muted className="w-full h-full object-cover"
             />
           ) : (
             <video
               autoPlay playsInline
-              ref={el => { if (el && remoteStream) el.srcObject = remoteStream; }}
+              ref={el => {
+                if (!el) return;
+                if (el.srcObject !== remoteStream) {
+                  el.srcObject = remoteStream ?? null;
+                }
+              }}
               className="w-full h-full object-cover"
             />
           )
