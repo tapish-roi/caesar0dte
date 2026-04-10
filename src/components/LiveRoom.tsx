@@ -1387,13 +1387,37 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const toggleDeafen = useCallback(() => {
     setDeafened(v => {
       const next = !v;
-      if (next && micEnabled) {
-        localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; });
-        setMicEnabled(false);
+      if (next) {
+        // Deafening: mute outgoing mic via WebRTC senders + stop local audio tracks
+        if (micEnabled) {
+          peersRef.current.forEach(pc => {
+            const knownSender = audioSenderMapRef.current.get(pc);
+            if (knownSender) {
+              knownSender.replaceTrack(null).catch(() => {});
+            } else {
+              pc.getSenders().filter(s => s.track?.kind === 'audio').forEach(s => {
+                s.replaceTrack(null).catch(() => {});
+                audioSenderMapRef.current.set(pc, s);
+              });
+            }
+          });
+          localStreamRef.current?.getAudioTracks().forEach(t => { t.stop(); });
+          removeLocalTracks('audio');
+          localMicStreamForAnalysis.current?.getTracks().forEach(t => t.stop());
+          localMicStreamForAnalysis.current = null;
+          stopSpeakingDetection();
+          setMicEnabled(false);
+        }
+        // Broadcast that mic is off
+        broadcastMediaState(false, cameraEnabled);
+        // Incoming audio is muted via volume=0 in the useEffect below
+      } else {
+        // Un-deafening: incoming audio resumes via volume useEffect
+        // Mic stays off — user can re-enable manually
       }
       return next;
     });
-  }, [micEnabled]);
+  }, [micEnabled, cameraEnabled, broadcastMediaState, removeLocalTracks, stopSpeakingDetection]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Screen share
