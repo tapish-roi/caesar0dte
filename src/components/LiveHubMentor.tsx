@@ -13,7 +13,7 @@ import { he } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import {
   CalendarDays, Plus, Radio, Video, Clock, Trash2,
-  Pencil, X, Check, Upload, Play, ChevronLeft,
+  Pencil, X, Check, Upload, Play, ChevronLeft, Link2, Copy,
 } from 'lucide-react';
 import LiveRoom from '@/components/LiveRoom';
 
@@ -333,29 +333,48 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
               </div>
             ) : (
               <div className="space-y-3">
-                {activeSessions.map(session => (
-                  <div key={session.id} className="bg-card rounded-2xl card-shadow p-5 border border-destructive/20">
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
-                      <span className="font-bold text-foreground">{session.title}</span>
-                      <span className="text-xs text-destructive font-bold mr-auto">LIVE</span>
+                {activeSessions.map(session => {
+                  const shareLink = `${window.location.origin}/livestream?session=${session.id}`;
+                  return (
+                    <div key={session.id} className="bg-card rounded-2xl card-shadow p-5 border border-destructive/20">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
+                        <span className="font-bold text-foreground">{session.title}</span>
+                        <span className="text-xs text-destructive font-bold mr-auto">LIVE</span>
+                      </div>
+
+                      {/* Shareable link */}
+                      <div className="flex items-center gap-2 mb-4 bg-muted/40 rounded-lg px-3 py-2">
+                        <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-xs text-muted-foreground truncate flex-1 select-all font-mono" dir="ltr">{shareLink}</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(shareLink);
+                            toast({ title: '🔗 הלינק הועתק!' });
+                          }}
+                          className="shrink-0 h-7 px-2.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all flex items-center gap-1"
+                        >
+                          <Copy className="w-3 h-3" />העתק
+                        </button>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setActiveSession(session)}
+                          className="flex-1 h-10 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                        >
+                          <Radio className="w-4 h-4" />פתח שידור
+                        </button>
+                        <button
+                          onClick={() => endLiveSession(session.id)}
+                          className="h-10 px-4 border border-destructive/30 text-destructive rounded-xl text-sm font-medium hover:bg-destructive/10 transition-all"
+                        >
+                          סיים שידור
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setActiveSession(session)}
-                        className="flex-1 h-10 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
-                      >
-                        <Radio className="w-4 h-4" />פתח שידור
-                      </button>
-                      <button
-                        onClick={() => endLiveSession(session.id)}
-                        className="h-10 px-4 border border-destructive/30 text-destructive rounded-xl text-sm font-medium hover:bg-destructive/10 transition-all"
-                      >
-                        סיים שידור
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </motion.div>

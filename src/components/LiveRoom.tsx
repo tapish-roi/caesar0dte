@@ -13,6 +13,7 @@ import {
   Monitor, MonitorOff, Settings, X, Users, PhoneOff,
   Pencil, Eraser, RotateCcw, MessageSquare, Send, Headphones,
   FlaskConical, StopCircle, Type, Zap, Minus, Plus,
+  Lock, Unlock, UserX, Copy, Link2,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -134,6 +135,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ── Screen share requests ──
   const [screenShareRequested, setScreenShareRequested] = useState(false); // student sent request
   const [pendingScreenRequests, setPendingScreenRequests] = useState<{ userId: string; userName: string }[]>([]); // mentor sees
+
+  // ── Room lock (mentor only) ──
+  const [roomLocked, setRoomLocked] = useState(false);
 
   // ── Chat ──
   const [showChat, setShowChat] = useState(false);
@@ -460,6 +464,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         setScreenShareRequested(false);
         setStudentScreenShareApproved(false);
         toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
+        return;
+      }
+      // ── Kicked signal ──
+      if (type === 'kicked' && !isMentor) {
+        toast({ title: 'הוסרת מהשיחה על ידי המנטור', variant: 'destructive' });
+        setTimeout(() => onClose(), 1500);
+        return;
+      }
+      // ── Room lock signal ──
+      if (type === 'room_lock') {
+        // Students just get informed — actual blocking happens on presence join
         return;
       }
     });
@@ -1431,6 +1446,33 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     setParticipants(prev => prev.map(p => p.userId === targetId ? { ...p, isMuted: !muted, isForceMuted: !muted } : p));
   }, [sessionId, userId]);
 
+  // ── Kick participant (mentor only) ──
+  const kickParticipant = useCallback(async (targetId: string) => {
+    webrtcChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'webrtc',
+      payload: { fromId: userId, toId: targetId, type: 'kicked', data: {} },
+    });
+    const pc = peersRef.current.get(targetId);
+    if (pc) { pc.close(); peersRef.current.delete(targetId); }
+    remoteStreamsRef.current.delete(targetId);
+    setRemoteStreams(new Map(remoteStreamsRef.current));
+    setParticipants(prev => prev.filter(p => p.userId !== targetId));
+    toast({ title: 'המשתמש הוסר מהשיחה' });
+  }, [userId, toast]);
+
+  // ── Toggle room lock (mentor only) ──
+  const toggleRoomLock = useCallback(() => {
+    const newLocked = !roomLocked;
+    setRoomLocked(newLocked);
+    webrtcChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'webrtc',
+      payload: { fromId: userId, toId: '*', type: 'room_lock', data: { locked: newLocked } },
+    });
+    toast({ title: newLocked ? '🔒 החדר ננעל' : '🔓 החדר נפתח' });
+  }, [roomLocked, userId, toast]);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Send chat
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1493,6 +1535,19 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           )}
         </div>
         <div className="flex items-center gap-1">
+          {isMentor && (
+            <button onClick={toggleRoomLock} title={roomLocked ? 'פתח חדר' : 'נעל חדר'}
+              className={`flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-all ${roomLocked ? 'bg-orange-500/20 text-orange-400' : 'text-white/50 hover:bg-white/5 hover:text-white/80'}`}>
+              {roomLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+            </button>
+          )}
+          {isMentor && (
+            <button onClick={() => { const link = `${window.location.origin}/livestream?session=${sessionId}`; navigator.clipboard.writeText(link); toast({ title: '🔗 הלינק הועתק!' }); }}
+              title="העתק לינק הצטרפות"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium text-white/50 hover:bg-white/5 hover:text-white/80 transition-all">
+              <Link2 className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button onClick={() => setShowMembers(v => !v)}
             className={`flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-all ${showMembers ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5 hover:text-white/80'}`}>
             <Users className="w-3.5 h-3.5" />{participants.length}
@@ -2119,10 +2174,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         </p>
                       </div>
                       {isMentor && !isMe && (
-                        <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק משתמש'}
-                          className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shrink-0 ${forceMuted ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30' : 'opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500/20'}`}>
-                          {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
-                        </button>
+                        <div className="flex gap-1 shrink-0">
+                          <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק משתמש'}
+                            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${forceMuted ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30' : 'opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500/20'}`}>
+                            {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                          </button>
+                          <button onClick={() => kickParticipant(p.userId)} title="הסר מהשיחה"
+                            className="w-7 h-7 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all">
+                            <UserX className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       )}
                       {!isMentor && (
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
