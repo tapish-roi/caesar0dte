@@ -1176,7 +1176,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         if (ctx.state === 'suspended') ctx.resume();
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        setSpeakingUsers(prev => { const n = new Set(prev); avg > 18 ? n.add(userId) : n.delete(userId); return n; });
+        const isSpeakingNow = avg > 18;
+        if (localSpeakingActiveRef.current !== isSpeakingNow) {
+          localSpeakingActiveRef.current = isSpeakingNow;
+          setSpeakingUsers(prev => {
+            const next = new Set(prev);
+            isSpeakingNow ? next.add(userId) : next.delete(userId);
+            return next;
+          });
+        }
         speakingAnimRef.current = requestAnimationFrame(tick);
       };
       speakingAnimRef.current = requestAnimationFrame(tick);
@@ -1186,6 +1194,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const stopSpeakingDetection = useCallback(() => {
     if (speakingAnimRef.current) { cancelAnimationFrame(speakingAnimRef.current); speakingAnimRef.current = null; }
     localAnalyserRef.current = null;
+    localSpeakingActiveRef.current = false;
     setSpeakingUsers(prev => { const n = new Set(prev); n.delete(userId); return n; });
   }, [userId]);
 
@@ -1213,15 +1222,18 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       const data = new Uint8Array(analyser.frequencyBinCount);
       let animId = 0;
       const tick = () => {
-        // Auto-resume if Chrome suspended the context after inactivity
         if (ctx.state === 'suspended') ctx.resume();
         analyser.getByteFrequencyData(data);
         const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        setRemoteSpeakingUsers(prev => {
-          const n = new Set(prev);
-          avg > 15 ? n.add(remoteId) : n.delete(remoteId);
-          return n;
-        });
+        const isSpeakingNow = avg > 15;
+        if (remoteSpeakingStateRef.current.get(remoteId) !== isSpeakingNow) {
+          remoteSpeakingStateRef.current.set(remoteId, isSpeakingNow);
+          setRemoteSpeakingUsers(prev => {
+            const next = new Set(prev);
+            isSpeakingNow ? next.add(remoteId) : next.delete(remoteId);
+            return next;
+          });
+        }
         animId = requestAnimationFrame(tick);
         remoteAnalysersRef.current.get(remoteId) && (remoteAnalysersRef.current.get(remoteId)!.animId = animId);
       };
@@ -1239,6 +1251,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       existing.ctx.close().catch(() => {});
       remoteAnalysersRef.current.delete(remoteId);
     }
+    remoteSpeakingStateRef.current.delete(remoteId);
     setRemoteSpeakingUsers(prev => { const n = new Set(prev); n.delete(remoteId); return n; });
   }, []);
   stopRemoteSpeakingDetectionRef.current = stopRemoteSpeakingDetection;
