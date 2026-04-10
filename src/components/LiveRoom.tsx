@@ -665,7 +665,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!screenSharing) {
-      if (screenFrameTimerRef.current !== null) { cancelAnimationFrame(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
+      if (screenFrameTimerRef.current !== null) { clearInterval(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
       isSendingFrameRef.current = false;
       return;
     }
@@ -673,10 +673,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     if (!offscreenCanvasRef.current) offscreenCanvasRef.current = document.createElement('canvas');
     const offscreen = offscreenCanvasRef.current;
 
-    // Use requestAnimationFrame so frame capture runs in sync with vsync and does NOT
-    // block the main thread with a tight setInterval — preventing WebRTC jitter buffer buildup.
-    // isSendingFrameRef prevents overlap if toDataURL takes longer than one frame interval.
-    let lastCapture = 0;
     const captureFrame = async () => {
       if (isSendingFrameRef.current) return;
       const video = screenVideoRef.current;
@@ -706,19 +702,23 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
     };
 
-    const loop = (ts: number) => {
-      if (!screenFrameTimerRef.current && screenFrameTimerRef.current !== 0) return; // stopped
-      if (ts - lastCapture >= FRAME_INTERVAL_MS) {
-        lastCapture = ts;
-        captureFrame();
-      }
-      screenFrameTimerRef.current = requestAnimationFrame(loop);
+    // Use setInterval instead of rAF — setInterval keeps running when the tab loses focus,
+    // preventing the screen share from freezing when the sharer switches windows.
+    const timer = window.setInterval(() => {
+      captureFrame();
+    }, FRAME_INTERVAL_MS);
+    screenFrameTimerRef.current = timer;
+
+    // When tab regains focus, immediately send a fresh frame
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') captureFrame();
     };
-    screenFrameTimerRef.current = requestAnimationFrame(loop);
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
-      if (screenFrameTimerRef.current !== null) { cancelAnimationFrame(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
+      if (screenFrameTimerRef.current !== null) { clearInterval(screenFrameTimerRef.current); screenFrameTimerRef.current = null; }
       isSendingFrameRef.current = false;
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenSharing, userId, userName]);
@@ -1875,8 +1875,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           playsInline
           data-remote-audio={remoteId}
           ref={el => {
-            if (el) {
+            if (el && el.srcObject !== stream) {
               el.srcObject = stream;
+              el.volume = deafened ? 0 : volume / 100;
+              el.play().catch(() => {});
+            } else if (el) {
               el.volume = deafened ? 0 : volume / 100;
             }
           }}
