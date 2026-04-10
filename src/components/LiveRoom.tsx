@@ -2174,10 +2174,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         </p>
                       </div>
                       {isMentor && !isMe && (
-                        <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק משתמש'}
-                          className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all shrink-0 ${forceMuted ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30' : 'opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500/20'}`}>
-                          {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
-                        </button>
+                        <div className="flex gap-1 shrink-0">
+                          <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק משתמש'}
+                            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${forceMuted ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30' : 'opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500/20'}`}>
+                            {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                          </button>
+                          <button onClick={() => kickParticipant(p.userId)} title="הסר מהשיחה"
+                            className="w-7 h-7 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all">
+                            <UserX className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       )}
                       {!isMentor && (
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
