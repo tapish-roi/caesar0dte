@@ -397,8 +397,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       // ── Force mute signals (still via broadcast) ──
       if (type === 'force_mute') {
         setIsForceMuted(true); setMicEnabled(false);
+        // Remove audio senders from peers so re-enable works cleanly
+        peersRef.current.forEach(pc => {
+          pc.getSenders().filter(s => s.track?.kind === 'audio').forEach(s => pc.removeTrack(s));
+        });
         localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
-        toast({ title: 'הושתקת על ידי המנטור', description: 'אתה יכול להסיר את ההשתקה בעצמך' });
+        localMicStreamForAnalysis.current = null;
+        toast({ title: '🔇 הושתקת על ידי המנטור', description: 'לחץ על כפתור המיקרופון כדי לפתוח מחדש' });
         return;
       }
       if (type === 'force_unmute') {
@@ -512,8 +517,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           const sig = payload.new as { signal_type: string; from_user_id: string; to_user_id: string; payload: Record<string, unknown> };
           if (sig.signal_type === 'force_mute' && sig.to_user_id === userId) {
             setIsForceMuted(true); setMicEnabled(false);
+            peersRef.current.forEach(pc => {
+              pc.getSenders().filter(s => s.track?.kind === 'audio').forEach(s => pc.removeTrack(s));
+            });
             localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
-            toast({ title: 'הושתקת על ידי המנטור', description: 'אתה יכול להסיר את ההשתקה בעצמך' });
+            localMicStreamForAnalysis.current = null;
+            toast({ title: '🔇 הושתקת על ידי המנטור', description: 'לחץ על כפתור המיקרופון כדי לפתוח מחדש' });
           }
           if (sig.signal_type === 'force_unmute' && sig.to_user_id === userId) {
             setIsForceMuted(false); toast({ title: 'המנטור הסיר את ההשתקה שלך' });
@@ -1202,12 +1211,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         localMicStreamForAnalysis.current = stream;
         startSpeakingDetection(stream);
         setMicEnabled(true);
+        // Clear force-mute state when student manually re-enables mic
+        if (isForceMuted) setIsForceMuted(false);
         if (deafened) setDeafened(false);
         // ★ Renegotiate so remote peers receive the new audio track
         renegotiateAll();
       } catch { toast({ title: 'לא ניתן לגשת למיקרופון', variant: 'destructive' }); }
     }
-  }, [micEnabled, selectedMic, deafened, toast, startSpeakingDetection, stopSpeakingDetection, renegotiateAll]);
+  }, [micEnabled, selectedMic, deafened, isForceMuted, toast, startSpeakingDetection, stopSpeakingDetection, renegotiateAll]);
 
   const toggleDeafen = useCallback(() => {
     setDeafened(v => {
