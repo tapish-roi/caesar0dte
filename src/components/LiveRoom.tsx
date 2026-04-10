@@ -317,15 +317,31 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sendSignal]);
 
-  // Renegotiate with ALL existing peers — called after adding/removing mic or camera tracks
+  // Renegotiate with ALL existing peers — serialized to prevent overlapping negotiations
+  const renegotiatingRef = useRef(false);
+  const renegotiatePendingRef = useRef(false);
+
   const renegotiateAll = useCallback(async () => {
-    for (const [remoteId, pc] of peersRef.current) {
-      if (pc.signalingState === 'closed') continue;
-      try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        sendSignal(remoteId, 'offer', { sdp: pc.localDescription, senderName: userName });
-      } catch { /* noop */ }
+    if (renegotiatingRef.current) {
+      renegotiatePendingRef.current = true;
+      return;
+    }
+    renegotiatingRef.current = true;
+    try {
+      for (const [remoteId, pc] of peersRef.current) {
+        if (pc.signalingState === 'closed') continue;
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          sendSignal(remoteId, 'offer', { sdp: pc.localDescription, senderName: userName });
+        } catch { /* noop */ }
+      }
+    } finally {
+      renegotiatingRef.current = false;
+      if (renegotiatePendingRef.current) {
+        renegotiatePendingRef.current = false;
+        renegotiateAll();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sendSignal, userName]);
