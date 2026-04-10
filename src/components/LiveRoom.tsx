@@ -13,7 +13,7 @@ import {
   Monitor, MonitorOff, Settings, X, Users, PhoneOff,
   Pencil, Eraser, RotateCcw, MessageSquare, Send, Headphones,
   FlaskConical, StopCircle, Type, Zap, Minus, Plus,
-  Lock, Unlock, UserX, Copy, Link2,
+  Lock, Unlock, UserX, Copy, Link2, LayoutGrid, Maximize2,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -138,6 +138,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   // ── Room lock (mentor only) ──
   const [roomLocked, setRoomLocked] = useState(false);
+  const [viewMode, setViewMode] = useState<'gallery' | 'speaker'>('gallery');
 
   // ── Chat ──
   const [showChat, setShowChat] = useState(false);
@@ -1640,6 +1641,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               </button>
             </>
           )}
+          {/* View mode toggle */}
+          {!isScreenVisible && participants.length > 1 && (
+            <button onClick={() => setViewMode(v => v === 'gallery' ? 'speaker' : 'gallery')}
+              title={viewMode === 'gallery' ? 'Speaker View' : 'Gallery View'}
+              className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-white/40 hover:bg-white/5 hover:text-white/70">
+              {viewMode === 'gallery' ? <Maximize2 className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{viewMode === 'gallery' ? 'Speaker' : 'Gallery'}</span>
+            </button>
+          )}
           <button onClick={() => setShowMembers(v => !v)}
             className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-white/10 text-white' : 'text-white/40 hover:bg-white/5 hover:text-white/70'}`}>
             <Users className="w-3.5 h-3.5" />{participants.length}
@@ -1886,6 +1896,37 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   </div>
                 )}
               </>
+            ) : viewMode === 'speaker' && participants.length > 1 ? (
+              /* ═══ SPEAKER VIEW ═══ — Active speaker large, others in strip on top */
+              (() => {
+                // Determine the active speaker: prioritize someone currently speaking, fallback to mentor, then first participant
+                const allSpeaking = participants.filter(p => 
+                  (p.userId === userId ? speakingUsers.has(userId) : remoteSpeakingUsers.has(p.userId))
+                );
+                const activeSpeaker = allSpeaking.length > 0
+                  ? allSpeaking[0]
+                  : participants.find(p => p.userId === mentorId) || participants[0];
+                const others = participants.filter(p => p.userId !== activeSpeaker.userId);
+
+                return (
+                  <div className="w-full h-full flex flex-col gap-2">
+                    {/* Top filmstrip — other participants */}
+                    {others.length > 0 && (
+                      <div className="shrink-0 flex gap-2 overflow-x-auto py-1 px-1">
+                        {others.map(p => (
+                          <div key={p.userId} className="group">
+                            {renderParticipantTile(p, 'sm')}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Main — active speaker */}
+                    <div className="flex-1 min-h-0 group">
+                      {renderParticipantTile(activeSpeaker, 'lg')}
+                    </div>
+                  </div>
+                );
+              })()
             ) : (
               /* ═══ GALLERY VIEW ═══ — Zoom-style grid of all participants */
               <div className={`w-full h-full grid gap-2 p-1 ${
