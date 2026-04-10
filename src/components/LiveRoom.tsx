@@ -466,6 +466,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
         return;
       }
+      // ── Kicked signal ──
+      if (type === 'kicked' && !isMentor) {
+        toast({ title: 'הוסרת מהשיחה על ידי המנטור', variant: 'destructive' });
+        setTimeout(() => onClose(), 1500);
+        return;
+      }
+      // ── Room lock signal ──
+      if (type === 'room_lock') {
+        // Students just get informed — actual blocking happens on presence join
+        return;
+      }
     });
 
     ch.subscribe(async (status) => {
