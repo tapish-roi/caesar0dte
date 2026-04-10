@@ -2429,7 +2429,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           {isMentorEntry && !isMe && <span className="text-[10px] text-primary ms-1">מנטור</span>}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          {isMuted ? <MicOff className="w-3 h-3 text-red-400/70" /> : <Mic className={`w-3 h-3 ${isSpeaking ? 'text-green-400' : 'text-muted-foreground/50'}`} />}
+                          {isMuted ? <MicOff className="w-3 h-3 text-red-400/70" /> : (
+                            <span className="relative inline-flex">
+                              <Mic className={`w-3 h-3 ${isSpeaking ? 'text-green-400' : 'text-muted-foreground/50'}`} />
+                              {isSpeaking && <span className="absolute inset-0 rounded-full animate-ping bg-green-400/40" />}
+                            </span>
+                          )}
                           {(isMe ? cameraEnabled : p.hasCamera) ? <Video className="w-3 h-3 text-muted-foreground/50" /> : <VideoOff className="w-3 h-3 text-red-400/70" />}
                           {(isMe ? screenSharing : p.hasScreen) && <Monitor className="w-3 h-3 text-blue-400" />}
                           {p.isDeafened && <VolumeX className="w-3 h-3 text-red-400/70" />}
