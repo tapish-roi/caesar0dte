@@ -515,6 +515,25 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
         return;
       }
+      // ── Media state sync ──
+      if (type === 'media_state') {
+        const mic = data.micEnabled as boolean;
+        const cam = data.cameraEnabled as boolean;
+        setParticipants(prev => prev.map(p =>
+          p.userId === fromId ? { ...p, isMuted: !mic, hasCamera: cam } : p
+        ));
+        return;
+      }
+      // ── Leave signal ──
+      if (type === 'leave') {
+        const pc = peersRef.current.get(fromId);
+        if (pc) { pc.close(); peersRef.current.delete(fromId); }
+        remoteStreamsRef.current.delete(fromId);
+        setRemoteStreams(new Map(remoteStreamsRef.current));
+        setParticipants(prev => prev.filter(p => p.userId !== fromId));
+        stopRemoteSpeakingDetectionRef.current(fromId);
+        return;
+      }
       // ── Kicked signal ──
       if (type === 'kicked' && !isMentor) {
         toast({ title: 'הוסרת מהשיחה על ידי המנטור', variant: 'destructive' });
