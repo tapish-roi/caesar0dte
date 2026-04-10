@@ -1528,7 +1528,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       >
         {hasVideo ? (
           isMe ? (
-            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+            <video
+              ref={el => {
+                localVideoRef.current = el;
+                if (el && cameraStreamRef.current) el.srcObject = cameraStreamRef.current;
+              }}
+              autoPlay playsInline muted className="w-full h-full object-cover"
+            />
           ) : (
             <video
               autoPlay playsInline
