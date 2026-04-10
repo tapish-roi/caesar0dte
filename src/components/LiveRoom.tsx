@@ -1314,8 +1314,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     });
   }, [userId]);
 
-  // Track which senders are for audio vs video — needed because sender.track is null after replaceTrack(null)
-  const audioSenderMapRef = useRef<Map<RTCPeerConnection, RTCRtpSender>>(new Map());
+  // audioSenderMapRef is declared near other refs above
 
   const toggleMic = useCallback(async () => {
     if (micEnabled) {
