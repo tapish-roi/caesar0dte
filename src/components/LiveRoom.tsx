@@ -2488,18 +2488,32 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           </span>
                         </div>
                       </div>
-                      {isMentor && !isMe && (
-                        <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק'}
-                            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${forceMuted ? 'bg-orange-500/20 text-orange-400' : 'bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400'}`}>
-                            {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
-                          </button>
-                          <button onClick={() => kickParticipant(p.userId)} title="הסר"
-                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400 transition-all">
-                            <UserX className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isMentor && !isMe && pendingScreenRequests.some(r => r.userId === p.userId) && (
+                          <motion.button
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            onClick={() => approveScreenShare(p.userId)}
+                            className="h-7 px-2.5 rounded-lg bg-green-500/20 text-green-400 text-[10px] font-semibold hover:bg-green-500/30 border border-green-500/40 transition-all flex items-center gap-1 whitespace-nowrap"
+                          >
+                            <Monitor className="w-3 h-3" />
+                            אשר שיתוף
+                          </motion.button>
+                        )}
+                        {isMentor && !isMe && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק'}
+                              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${forceMuted ? 'bg-orange-500/20 text-orange-400' : 'bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400'}`}>
+                              {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                            </button>
+                            <button onClick={() => kickParticipant(p.userId)} title="הסר"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400 transition-all">
+                              <UserX className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
