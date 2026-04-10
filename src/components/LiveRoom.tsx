@@ -1641,6 +1641,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               </button>
             </>
           )}
+          {/* View mode toggle */}
+          {!isScreenVisible && participants.length > 1 && (
+            <button onClick={() => setViewMode(v => v === 'gallery' ? 'speaker' : 'gallery')}
+              title={viewMode === 'gallery' ? 'Speaker View' : 'Gallery View'}
+              className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-white/40 hover:bg-white/5 hover:text-white/70">
+              {viewMode === 'gallery' ? <Maximize2 className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{viewMode === 'gallery' ? 'Speaker' : 'Gallery'}</span>
+            </button>
+          )}
           <button onClick={() => setShowMembers(v => !v)}
             className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-white/10 text-white' : 'text-white/40 hover:bg-white/5 hover:text-white/70'}`}>
             <Users className="w-3.5 h-3.5" />{participants.length}
