@@ -1211,6 +1211,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         localMicStreamForAnalysis.current = stream;
         startSpeakingDetection(stream);
         setMicEnabled(true);
+        // Clear force-mute state when student manually re-enables mic
+        if (isForceMuted) setIsForceMuted(false);
         if (deafened) setDeafened(false);
         // ★ Renegotiate so remote peers receive the new audio track
         renegotiateAll();
