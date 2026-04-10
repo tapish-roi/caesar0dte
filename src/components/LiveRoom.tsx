@@ -138,6 +138,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   // ── Room lock (mentor only) ──
   const [roomLocked, setRoomLocked] = useState(false);
+  const [viewMode, setViewMode] = useState<'gallery' | 'speaker'>('gallery');
 
   // ── Chat ──
   const [showChat, setShowChat] = useState(false);
