@@ -311,8 +311,8 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
           <motion.div key="live" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
             {activeSessions.length === 0 ? (
               <div className="bg-card rounded-2xl card-shadow p-6">
-                <h2 className="font-semibold text-foreground mb-1">פתח שידור חי חדש</h2>
-                <p className="text-sm text-muted-foreground mb-4">שידור כמו Discord — כולל מיק, מצלמה, שיתוף מסך וציור</p>
+                <h2 className="font-semibold text-foreground mb-1">פתח לייב חדש</h2>
+                <p className="text-sm text-muted-foreground mb-4">תן שם ללייב ופתח שידור — התלמידים יראו את הלייב ויוכלו להצטרף</p>
                 <div className="flex gap-2">
                   <input
                     value={newLiveTitle}
