@@ -2377,6 +2377,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   const isMentorEntry = p.userId === mentorId;
                   const forceMuted = forceMutedUsers.has(p.userId);
                   const isSpeaking = isMe ? speakingUsers.has(userId) : remoteSpeakingUsers.has(p.userId);
+                  const isMuted = isMe ? !micEnabled : p.isMuted;
                   const userColor = getColorForUser(p.userId);
                   return (
                     <div key={p.userId} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors group">
