@@ -1811,7 +1811,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 12, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute bottom-16 left-4 z-20 flex flex-col gap-1 bg-[#1a1a1a]/95 backdrop-blur border border-white/10 rounded-2xl p-3 shadow-2xl w-52"
+                        className="absolute bottom-16 left-4 z-20 flex flex-col gap-1 bg-card/95 backdrop-blur-xl border border-border rounded-2xl p-3 shadow-2xl w-52"
                       >
                         <div className="flex gap-1 mb-1">
                           {([
@@ -1947,7 +1947,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {/* ══════════════════════════════════════════════════════════════════
               BOTTOM CONTROLS BAR — Zoom-style centered
               ══════════════════════════════════════════════════════════════════ */}
-          <div className="shrink-0 bg-[#1a1a1a] border-t border-white/5 py-3 px-6">
+          <div className="shrink-0 bg-card/95 backdrop-blur-xl border-t border-border py-3 px-6">
             <div className="flex items-center justify-center gap-2">
               {/* Mic */}
               <div className="relative">
@@ -2041,7 +2041,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         <AnimatePresence>
           {showMembers && (
             <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 260, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }} className="bg-[#1a1a1a] border-s border-white/8 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
+              transition={{ duration: 0.2 }} className="bg-card/95 backdrop-blur-xl border-s border-border flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
               <div className="px-4 h-12 border-b border-white/8 flex items-center justify-between shrink-0">
                 <p className="text-sm font-semibold text-white/80">משתתפים ({participants.length})</p>
                 <button onClick={() => setShowMembers(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 transition-all">
@@ -2101,7 +2101,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         <AnimatePresence>
           {showChat && (
             <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 320, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }} className="bg-[#1a1a1a] border-s border-white/8 flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
+              transition={{ duration: 0.2 }} className="bg-card/95 backdrop-blur-xl border-s border-border flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
               <div className="px-4 h-12 border-b border-white/8 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-white/40" />
@@ -2157,7 +2157,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             <motion.div initial={{ opacity: 0, scale: 0.93, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.93, y: 12 }} transition={{ duration: 0.18 }}
               className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
-              <div className="pointer-events-auto w-[520px] bg-[#1a1a1a] rounded-2xl shadow-2xl border border-white/10 overflow-hidden" dir="rtl">
+              <div className="pointer-events-auto w-[520px] bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border overflow-hidden" dir="rtl">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
                   <h2 className="text-base font-bold text-white">הגדרות</h2>
                   <button onClick={() => setShowSettings(false)}
