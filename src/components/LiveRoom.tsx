@@ -105,6 +105,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const localAnalyserRef = useRef<AnalyserNode | null>(null);
   const speakingAnimRef = useRef<number | null>(null);
   const localMicStreamForAnalysis = useRef<MediaStream | null>(null);
+  const localSpeakingActiveRef = useRef(false);
 
   // ── Collaborative drawing state ──
   const [showDrawToolbar, setShowDrawToolbar] = useState(false);
