@@ -317,15 +317,31 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sendSignal]);
 
-  // Renegotiate with ALL existing peers — called after adding/removing mic or camera tracks
+  // Renegotiate with ALL existing peers — serialized to prevent overlapping negotiations
+  const renegotiatingRef = useRef(false);
+  const renegotiatePendingRef = useRef(false);
+
   const renegotiateAll = useCallback(async () => {
-    for (const [remoteId, pc] of peersRef.current) {
-      if (pc.signalingState === 'closed') continue;
-      try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        sendSignal(remoteId, 'offer', { sdp: pc.localDescription, senderName: userName });
-      } catch { /* noop */ }
+    if (renegotiatingRef.current) {
+      renegotiatePendingRef.current = true;
+      return;
+    }
+    renegotiatingRef.current = true;
+    try {
+      for (const [remoteId, pc] of peersRef.current) {
+        if (pc.signalingState === 'closed') continue;
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          sendSignal(remoteId, 'offer', { sdp: pc.localDescription, senderName: userName });
+        } catch { /* noop */ }
+      }
+    } finally {
+      renegotiatingRef.current = false;
+      if (renegotiatePendingRef.current) {
+        renegotiatePendingRef.current = false;
+        renegotiateAll();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sendSignal, userName]);
@@ -1277,36 +1293,42 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   // Camera
   // ─────────────────────────────────────────────────────────────────────────────
-  useEffect(() => {
+  const toggleCamera = useCallback(async () => {
     if (cameraEnabled) {
-      navigator.mediaDevices.getUserMedia({ video: selectedCamera ? { deviceId: { exact: selectedCamera } } : true })
-        .then(stream => {
-          cameraStreamRef.current = stream;
-          if (!localStreamRef.current) localStreamRef.current = new MediaStream();
-          stream.getVideoTracks().forEach(t => {
-            localStreamRef.current!.addTrack(t);
-            // Add to all existing peer connections
-            peersRef.current.forEach(pc => {
-              const alreadyAdded = pc.getSenders().some(s => s.track === t);
-              if (!alreadyAdded) pc.addTrack(t, localStreamRef.current!);
-            });
-          });
-          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-          // ★ Renegotiate so remote peers receive the new video track
-          renegotiateAll();
-        })
-        .catch(() => { toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' }); setCameraEnabled(false); });
-    } else {
-      // Remove video senders from all peers and renegotiate
+      // Disable camera
       peersRef.current.forEach(pc => {
         pc.getSenders().filter(s => s.track?.kind === 'video').forEach(s => pc.removeTrack(s));
       });
       localStreamRef.current?.getVideoTracks().forEach(t => t.stop());
       cameraStreamRef.current = null;
       if (localVideoRef.current) localVideoRef.current.srcObject = null;
+      setCameraEnabled(false);
       renegotiateAll();
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: selectedCamera ? { deviceId: { exact: selectedCamera } } : true });
+        cameraStreamRef.current = stream;
+        if (!localStreamRef.current) localStreamRef.current = new MediaStream();
+        stream.getVideoTracks().forEach(t => {
+          localStreamRef.current!.addTrack(t);
+          peersRef.current.forEach(pc => {
+            const alreadyAdded = pc.getSenders().some(s => s.track === t);
+            if (!alreadyAdded) pc.addTrack(t, localStreamRef.current!);
+          });
+        });
+        setCameraEnabled(true);
+        // srcObject will be set by the callback ref in the render when cameraEnabled triggers re-render
+        // Also set it directly in case the ref is already mounted
+        requestAnimationFrame(() => {
+          if (localVideoRef.current && cameraStreamRef.current) {
+            localVideoRef.current.srcObject = cameraStreamRef.current;
+          }
+        });
+        renegotiateAll();
+      } catch {
+        toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' });
+      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraEnabled, selectedCamera, toast, renegotiateAll]);
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1999,7 +2021,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               </button>
 
               {/* Camera */}
-              <button onClick={() => setCameraEnabled(v => !v)} title={cameraEnabled ? 'כבה מצלמה' : 'הפעל מצלמה'}
+              <button onClick={toggleCamera} title={cameraEnabled ? 'כבה מצלמה' : 'הפעל מצלמה'}
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md ${
                   cameraEnabled ? 'bg-secondary hover:bg-secondary/80 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
                 }`}>
