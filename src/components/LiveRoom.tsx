@@ -74,6 +74,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [deafened, setDeafened] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
+  const [sessionEndedByMentor, setSessionEndedByMentor] = useState(false);
   // Is someone else sharing screen?
   const [remoteScreenActive, setRemoteScreenActive] = useState(false);
   const [remoteScreenSharer, setRemoteScreenSharer] = useState<string>('');
@@ -402,8 +403,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
     ch.on('broadcast', { event: 'webrtc' }, async ({ payload }) => {
       const { fromId, toId, type, data } = payload as { fromId: string; toId: string; type: string; data: Record<string, unknown> };
-      // Accept broadcast messages (toId='*') for: presence, media_state, leave, room_lock
-      const broadcastTypes = ['presence', 'media_state', 'leave', 'room_lock'];
+      // Accept broadcast messages (toId='*') for: presence, media_state, leave, room_lock, session_end
+      const broadcastTypes = ['presence', 'media_state', 'leave', 'room_lock', 'session_end'];
       if (toId !== userId && toId !== '*') return;
       if (toId === '*' && !broadcastTypes.includes(type)) return;
 
@@ -564,6 +565,18 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       if (type === 'kicked' && !isMentor) {
         toast({ title: 'הוסרת מהשיחה על ידי המנטור', variant: 'destructive' });
         setTimeout(() => onClose(), 1500);
+        return;
+      }
+      // ── Session end signal (mentor ended the live) ──
+      if (type === 'session_end' && !isMentor) {
+        // Clean up everything and show end dialog
+        peersRef.current.forEach(pc => pc.close());
+        peersRef.current.clear();
+        localStreamRef.current?.getTracks().forEach(t => t.stop());
+        localStreamRef.current = null;
+        cameraStreamRef.current?.getTracks().forEach(t => t.stop());
+        cameraStreamRef.current = null;
+        setSessionEndedByMentor(true);
         return;
       }
       // ── Room lock signal ──
