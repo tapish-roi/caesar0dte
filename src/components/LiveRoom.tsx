@@ -1915,6 +1915,31 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────────
+  // ── Session ended by mentor overlay ──
+  if (sessionEndedByMentor) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" dir="rtl">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-card rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 text-center space-y-4"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+            <PhoneOff className="w-7 h-7 text-destructive" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">הלייב הסתיים</h2>
+          <p className="text-sm text-muted-foreground">המנטור סיים את השידור החי.</p>
+          <button
+            onClick={onClose}
+            className="h-11 px-8 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-all mx-auto"
+          >
+            חזרה לדף הראשי
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background" dir="rtl">
 
