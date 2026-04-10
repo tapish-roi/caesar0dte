@@ -1521,7 +1521,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         className={`relative rounded-xl overflow-hidden transition-all ${
           isSpeaking ? 'ring-2 ring-green-400 shadow-lg shadow-green-500/20' : 'ring-1 ring-white/10'
         } ${size === 'sm' ? 'w-36 h-24 shrink-0' : 'w-full h-full'}`}
-        style={{ background: '#202225' }}
+        style={{ background: 'hsl(var(--card))' }}
       >
         {hasVideo ? (
           isMe ? (
@@ -1589,7 +1589,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // Render
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0f0f0f]" dir="rtl">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background" dir="rtl">
 
       {/* ── Hidden remote audio elements ── */}
       {Array.from(remoteStreams.entries()).map(([remoteId, stream]) => (
@@ -1955,7 +1955,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   title={isForceMuted ? 'הושתקת ע"י המנטור' : micEnabled ? 'השתק מיקרופון' : 'הפעל מיקרופון'}
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md disabled:opacity-40 ${
                     micEnabled ? 'bg-[#2d2d2d] hover:bg-[#3d3d3d] text-white' : 'bg-red-500 hover:bg-red-600 text-white'
-                  } ${isForceMuted ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-[#1a1a1a]' : ''}`}>
+                  } ${isForceMuted ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-card' : ''}`}>
                   {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
                 </button>
                 {isForceMuted && (
@@ -2008,7 +2008,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   }`}>
                   <Monitor className="w-5 h-5" />
                   {screenShareRequested && (
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-[#1a1a1a] animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-card animate-pulse" />
                   )}
                 </button>
               )}
@@ -2060,12 +2060,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                       <div className="relative shrink-0">
                         {isSpeaking && <span className="absolute -inset-0.5 rounded-full border-2 border-green-500 animate-ping opacity-40" />}
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white ${isSpeaking ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-[#1a1a1a]' : ''}`}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white ${isSpeaking ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-card' : ''}`}
                           style={{ background: `linear-gradient(135deg, ${userColor}bb, ${userColor})` }}
                         >
                           {initials(p.name)}
                         </div>
-                        <div className={`absolute -bottom-0.5 -start-0.5 w-3 h-3 rounded-full border-2 border-[#1a1a1a] ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
+                        <div className={`absolute -bottom-0.5 -start-0.5 w-3 h-3 rounded-full border-2 border-card ${p.isMuted ? 'bg-[#4e5058]' : 'bg-green-500'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white/80 truncate">
