@@ -2043,8 +2043,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 const totalPages = Math.max(1, Math.ceil(participants.length / ITEMS_PER_PAGE));
                 const clampedPage = Math.min(galleryPage, totalPages - 1);
                 const pageParticipants = participants.slice(clampedPage * ITEMS_PER_PAGE, (clampedPage + 1) * ITEMS_PER_PAGE);
-                // Determine grid cols based on count on this page
-                const cols = pageParticipants.length <= 2 ? 2 : pageParticipants.length <= 4 ? 2 : 5;
+                // Adaptive grid: fill the space based on participant count
+                const n = pageParticipants.length;
+                const cols = n === 1 ? 1 : n === 2 ? 2 : n <= 4 ? 2 : n <= 6 ? 3 : n <= 8 ? 4 : 5;
+                const rows = Math.ceil(n / cols);
 
                 return (
                   <div className="w-full h-full flex flex-col">
@@ -2055,15 +2057,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                       onTouchEnd={e => {
                         const dx = galleryTouchStartRef.current - e.changedTouches[0].clientX;
                         if (Math.abs(dx) > 60) {
-                          // RTL: swipe left = next page, swipe right = prev page (reversed for RTL)
                           setGalleryPage(p => dx > 0 ? Math.min(p + 1, totalPages - 1) : Math.max(p - 1, 0));
                         }
                       }}
                     >
-                      <div className={`w-full h-full grid gap-2 p-2 content-center`}
+                      <div className="w-full h-full grid gap-2 p-2"
                         style={{
                           gridTemplateColumns: `repeat(${cols}, 1fr)`,
-                          gridTemplateRows: pageParticipants.length > cols ? 'repeat(2, 1fr)' : '1fr',
+                          gridTemplateRows: `repeat(${rows}, 1fr)`,
                         }}
                       >
                         {pageParticipants.map(p => (
