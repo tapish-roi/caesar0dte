@@ -1582,13 +1582,24 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // Leave
   // ─────────────────────────────────────────────────────────────────────────────
   const handleLeave = useCallback(() => {
+    // Broadcast leave signal so others remove us immediately
+    webrtcChannelRef.current?.send({
+      type: 'broadcast', event: 'webrtc',
+      payload: { fromId: userId, toId: '*', type: 'leave', data: {} },
+    });
     stopScreenShare(); stopSpeakingDetection(); stopMicTest();
+    // Stop all remote speaking detections
+    remoteAnalysersRef.current.forEach((_, remoteId) => {
+      stopRemoteSpeakingDetectionRef.current(remoteId);
+    });
     // Close all WebRTC peers
     peersRef.current.forEach(pc => pc.close());
     peersRef.current.clear();
     // Release camera and microphone
     localStreamRef.current?.getTracks().forEach(t => t.stop());
     localStreamRef.current = null;
+    cameraStreamRef.current?.getTracks().forEach(t => t.stop());
+    cameraStreamRef.current = null;
     localMicStreamForAnalysis.current?.getTracks().forEach(t => t.stop());
     localMicStreamForAnalysis.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
@@ -1603,7 +1614,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       mr.stop();
     } else { onClose(); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMentor, onClose, onSessionEnd, stopScreenShare, stopSpeakingDetection]);
+  }, [isMentor, userId, onClose, onSessionEnd, stopScreenShare, stopSpeakingDetection]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Force mute (mentor)
