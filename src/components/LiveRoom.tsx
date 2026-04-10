@@ -553,9 +553,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         const pc = peersRef.current.get(fromId);
         if (pc) { pc.close(); peersRef.current.delete(fromId); }
         remoteStreamsRef.current.delete(fromId);
+        audioSenderMapRef.current.forEach((sender, peerPc) => { if (peerPc === pc) audioSenderMapRef.current.delete(peerPc); });
         setRemoteStreams(new Map(remoteStreamsRef.current));
         setParticipants(prev => prev.filter(p => p.userId !== fromId));
         stopRemoteSpeakingDetectionRef.current(fromId);
+        setRemoteSpeakingUsers(prev => { const n = new Set(prev); n.delete(fromId); return n; });
         return;
       }
       // ── Kicked signal ──
