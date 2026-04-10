@@ -1560,9 +1560,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               <MicOff className="w-2.5 h-2.5 text-white" />
             </div>
           )}
-          <span className={`text-[11px] font-medium text-white/90 truncate ${size === 'sm' ? 'max-w-[60px]' : ''}`}>
+          <span className={`text-[11px] font-medium text-foreground truncate ${size === 'sm' ? 'max-w-[60px]' : ''}`}>
             {p.name}
-            {isMe && <span className="text-white/40 ms-0.5">(אתה)</span>}
+            {isMe && <span className="text-muted-foreground/70 ms-0.5">(אתה)</span>}
           </span>
           {isMentorEntry && !isMe && (
             <span className="text-[9px] bg-primary/30 text-primary-foreground/90 px-1.5 py-0.5 rounded font-bold ms-auto">מנטור</span>
@@ -1571,11 +1571,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {isMentor && !isMe && (
             <div className="ms-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק'}
-                className="w-6 h-6 flex items-center justify-center rounded-md bg-black/50 hover:bg-red-500/50 text-white/70 hover:text-white transition-all">
+                className="w-6 h-6 flex items-center justify-center rounded-md bg-black/50 hover:bg-red-500/50 text-foreground/70 hover:text-foreground transition-all">
                 {forceMuted ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
               </button>
               <button onClick={() => kickParticipant(p.userId)} title="הסר"
-                className="w-6 h-6 flex items-center justify-center rounded-md bg-black/50 hover:bg-red-500/50 text-white/70 hover:text-white transition-all">
+                className="w-6 h-6 flex items-center justify-center rounded-md bg-black/50 hover:bg-red-500/50 text-foreground/70 hover:text-foreground transition-all">
                 <UserX className="w-3 h-3" />
               </button>
             </div>
@@ -1611,15 +1611,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       {/* ══════════════════════════════════════════════════════════════════════
           TOP HEADER — Zoom-style minimal
           ══════════════════════════════════════════════════════════════════════ */}
-      <div className="shrink-0 h-12 bg-[#1a1a1a] border-b border-white/5 flex items-center justify-between px-4">
+      <div className="shrink-0 h-12 bg-[#1a1a1a] border-b border-border flex items-center justify-between px-4">
         {/* Left: Session info */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
             <span className="text-[11px] font-bold text-red-400 tracking-wider">LIVE</span>
           </div>
-          <span className="w-px h-5 bg-white/10" />
-          <span className="text-sm font-semibold text-white/90 truncate max-w-[200px]">{sessionTitle}</span>
+          <span className="w-px h-5 bg-muted" />
+          <span className="text-sm font-semibold text-foreground truncate max-w-[200px]">{sessionTitle}</span>
           {connectionStatus === 'connected' && (
             <span className="text-[10px] text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full font-medium">מחובר</span>
           )}
@@ -1630,13 +1630,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {isMentor && (
             <>
               <button onClick={toggleRoomLock} title={roomLocked ? 'פתח חדר' : 'נעל חדר'}
-                className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${roomLocked ? 'bg-orange-500/20 text-orange-400' : 'text-white/40 hover:bg-white/5 hover:text-white/70'}`}>
+                className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${roomLocked ? 'bg-orange-500/20 text-orange-400' : 'text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground/70'}`}>
                 {roomLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                 {roomLocked ? 'נעול' : ''}
               </button>
               <button onClick={() => { const link = `${window.location.origin}/livestream?session=${sessionId}`; navigator.clipboard.writeText(link); toast({ title: '🔗 הלינק הועתק!' }); }}
                 title="העתק לינק"
-                className="h-8 px-3 rounded-lg text-xs text-white/40 hover:bg-white/5 hover:text-white/70 transition-all flex items-center gap-1.5">
+                className="h-8 px-3 rounded-lg text-xs text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground/70 transition-all flex items-center gap-1.5">
                 <Link2 className="w-3.5 h-3.5" />
               </button>
             </>
@@ -1645,17 +1645,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {!isScreenVisible && participants.length > 1 && (
             <button onClick={() => setViewMode(v => v === 'gallery' ? 'speaker' : 'gallery')}
               title={viewMode === 'gallery' ? 'Speaker View' : 'Gallery View'}
-              className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-white/40 hover:bg-white/5 hover:text-white/70">
+              className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground/70">
               {viewMode === 'gallery' ? <Maximize2 className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{viewMode === 'gallery' ? 'Speaker' : 'Gallery'}</span>
             </button>
           )}
           <button onClick={() => setShowMembers(v => !v)}
-            className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-white/10 text-white' : 'text-white/40 hover:bg-white/5 hover:text-white/70'}`}>
+            className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-muted text-white' : 'text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground/70'}`}>
             <Users className="w-3.5 h-3.5" />{participants.length}
           </button>
           <button onClick={() => setShowChat(v => !v)}
-            className={`relative h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showChat ? 'bg-white/10 text-white' : 'text-white/40 hover:bg-white/5 hover:text-white/70'}`}>
+            className={`relative h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showChat ? 'bg-muted text-white' : 'text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground/70'}`}>
             <MessageSquare className="w-3.5 h-3.5" />
             {chatMessages.length > 0 && !showChat && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold">
@@ -1679,7 +1679,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             className="shrink-0 bg-amber-500/10 border-b border-amber-500/30 px-5 py-2.5 flex items-center gap-3"
           >
             <Monitor className="w-4 h-4 text-amber-400 shrink-0" />
-            <span className="text-sm text-white/80 flex-1">
+            <span className="text-sm text-foreground/80 flex-1">
               <span className="font-semibold text-amber-300">{req.userName}</span> מבקש לשתף מסך
             </span>
             <button onClick={() => approveScreenShare(req.userId)}
@@ -1737,9 +1737,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   />
 
                   {/* Screen share label */}
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-card/80 backdrop-blur px-3 py-1.5 rounded-full border border-white/10">
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-card/80 backdrop-blur px-3 py-1.5 rounded-full border border-border">
                     <Monitor className="w-3.5 h-3.5 text-green-400" />
-                    <span className="text-xs text-white/80 font-medium">
+                    <span className="text-xs text-foreground/80 font-medium">
                       {screenSharing ? 'אתה משתף את המסך' : `${remoteScreenSharer} משתף את המסך`}
                     </span>
                   </div>
@@ -1797,7 +1797,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                     className={`absolute bottom-4 left-4 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-all border ${
                       showDrawToolbar
                         ? 'bg-indigo-500 border-indigo-400 text-white shadow-indigo-500/40'
-                        : 'bg-card/80 border-white/20 text-white/60 hover:text-white hover:bg-black/80'
+                        : 'bg-card/80 border-border text-foreground/60 hover:text-foreground hover:bg-black/80'
                     }`}
                   >
                     <Pencil className="w-4 h-4" />
@@ -1825,14 +1825,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                               onClick={() => setActiveTool(t.id)}
                               title={t.label}
                               className={`flex-1 h-8 flex items-center justify-center rounded-lg transition-all text-xs ${
-                                activeTool === t.id ? 'bg-indigo-500 text-white' : 'text-white/50 hover:text-white hover:bg-white/10'
+                                activeTool === t.id ? 'bg-indigo-500 text-white' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                               }`}
                             >
                               {t.icon}
                             </button>
                           ))}
                         </div>
-                        <p className="text-[10px] text-white/30 text-center mb-1">
+                        <p className="text-[10px] text-muted-foreground/50 text-center mb-1">
                           {{ pen: 'עיפרון', text: 'טקסט', laser: 'לייזר (נמחק תוך 5 שנ׳)', eraser: 'מחק' }[activeTool]}
                         </p>
                         {activeTool !== 'eraser' && (
@@ -1845,30 +1845,30 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           </div>
                         )}
                         {activeTool === 'pen' && (
-                          <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
-                            <button onClick={() => setPenSize(s => Math.max(1, s - 1))} className="text-white/50 hover:text-white"><Minus className="w-3 h-3" /></button>
-                            <div className="flex-1 text-center text-[11px] text-white/70 font-bold">{penSize}px</div>
-                            <button onClick={() => setPenSize(s => Math.min(30, s + 1))} className="text-white/50 hover:text-white"><Plus className="w-3 h-3" /></button>
+                          <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-2 py-1.5">
+                            <button onClick={() => setPenSize(s => Math.max(1, s - 1))} className="text-muted-foreground hover:text-foreground"><Minus className="w-3 h-3" /></button>
+                            <div className="flex-1 text-center text-[11px] text-foreground/70 font-bold">{penSize}px</div>
+                            <button onClick={() => setPenSize(s => Math.min(30, s + 1))} className="text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3" /></button>
                           </div>
                         )}
                         {activeTool === 'eraser' && (
-                          <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
-                            <button onClick={() => setEraserSize(s => Math.max(8, s - 4))} className="text-white/50 hover:text-white"><Minus className="w-3 h-3" /></button>
-                            <div className="flex-1 text-center text-[11px] text-white/70 font-bold">{eraserSize}px</div>
-                            <button onClick={() => setEraserSize(s => Math.min(80, s + 4))} className="text-white/50 hover:text-white"><Plus className="w-3 h-3" /></button>
+                          <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-2 py-1.5">
+                            <button onClick={() => setEraserSize(s => Math.max(8, s - 4))} className="text-muted-foreground hover:text-foreground"><Minus className="w-3 h-3" /></button>
+                            <div className="flex-1 text-center text-[11px] text-foreground/70 font-bold">{eraserSize}px</div>
+                            <button onClick={() => setEraserSize(s => Math.min(80, s + 4))} className="text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3" /></button>
                           </div>
                         )}
                         {activeTool === 'text' && (
-                          <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5">
-                            <button onClick={() => setFontSize(s => Math.max(10, s - 2))} className="text-white/50 hover:text-white"><Minus className="w-3 h-3" /></button>
-                            <div className="flex-1 text-center text-[11px] text-white/70 font-bold">{fontSize}px</div>
-                            <button onClick={() => setFontSize(s => Math.min(72, s + 2))} className="text-white/50 hover:text-white"><Plus className="w-3 h-3" /></button>
+                          <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-2 py-1.5">
+                            <button onClick={() => setFontSize(s => Math.max(10, s - 2))} className="text-muted-foreground hover:text-foreground"><Minus className="w-3 h-3" /></button>
+                            <div className="flex-1 text-center text-[11px] text-foreground/70 font-bold">{fontSize}px</div>
+                            <button onClick={() => setFontSize(s => Math.min(72, s + 2))} className="text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3" /></button>
                           </div>
                         )}
-                        <div className="border-t border-white/8 my-1" />
+                        <div className="border-t border-border my-1" />
                         <div className="flex gap-1">
                           <button onClick={handleUndo} title="בטל ציור אחרון"
-                            className="flex-1 h-7 flex items-center justify-center gap-1 rounded-lg text-[10px] text-white/50 hover:text-white hover:bg-white/10 transition-all">
+                            className="flex-1 h-7 flex items-center justify-center gap-1 rounded-lg text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                             <RotateCcw className="w-3 h-3" /> בטל
                           </button>
                           <button onClick={handleClearAll} title="נקה הכל"
@@ -1878,7 +1878,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         </div>
                         <div className="flex items-center justify-center gap-1.5 mt-1">
                           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: myColor }} />
-                          <span className="text-[9px] text-white/25">הצבע שלך בציורים</span>
+                          <span className="text-[9px] text-muted-foreground/40">הצבע שלך בציורים</span>
                         </div>
                       </motion.div>
                     )}
@@ -1985,7 +1985,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               {isMentor ? (
                 <button onClick={toggleScreenShare} title={screenSharing ? 'הפסק שיתוף' : 'שתף מסך'}
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md ${
-                    screenSharing ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-secondary hover:bg-secondary/80 text-white/60 hover:text-white'
+                    screenSharing ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-secondary hover:bg-secondary/80 text-foreground/60 hover:text-foreground'
                   }`}>
                   {screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
                 </button>
@@ -2004,7 +2004,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   className={`relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md ${
                     screenShareRequested
                       ? 'bg-amber-500/80 text-white cursor-not-allowed'
-                      : 'bg-secondary hover:bg-secondary/80 text-white/60 hover:text-white'
+                      : 'bg-secondary hover:bg-secondary/80 text-foreground/60 hover:text-foreground'
                   }`}>
                   <Monitor className="w-5 h-5" />
                   {screenShareRequested && (
@@ -2013,15 +2013,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 </button>
               )}
 
-              <div className="w-px h-8 bg-white/10 mx-1" />
+              <div className="w-px h-8 bg-muted mx-1" />
 
               {/* Settings */}
               <button onClick={() => { setShowSettings(true); setSettingsTab('mic'); }} title="הגדרות"
-                className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md bg-secondary hover:bg-secondary/80 text-white/50 hover:text-white">
+                className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground">
                 <Settings className="w-5 h-5" />
               </button>
 
-              <div className="w-px h-8 bg-white/10 mx-1" />
+              <div className="w-px h-8 bg-muted mx-1" />
 
               {/* Leave / End */}
               <button onClick={handleLeave} title={isMentor ? 'סיים שידור' : 'עזוב'}
@@ -2042,9 +2042,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {showMembers && (
             <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 260, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }} className="bg-card/95 backdrop-blur-xl border-s border-border flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
-              <div className="px-4 h-12 border-b border-white/8 flex items-center justify-between shrink-0">
-                <p className="text-sm font-semibold text-white/80">משתתפים ({participants.length})</p>
-                <button onClick={() => setShowMembers(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 transition-all">
+              <div className="px-4 h-12 border-b border-border flex items-center justify-between shrink-0">
+                <p className="text-sm font-semibold text-foreground/80">משתתפים ({participants.length})</p>
+                <button onClick={() => setShowMembers(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground/60 hover:bg-muted/50 transition-all">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -2056,7 +2056,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   const isSpeaking = isMe ? speakingUsers.has(userId) : remoteSpeakingUsers.has(p.userId);
                   const userColor = getColorForUser(p.userId);
                   return (
-                    <div key={p.userId} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-colors group">
+                    <div key={p.userId} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors group">
                       <div className="relative shrink-0">
                         {isSpeaking && <span className="absolute -inset-0.5 rounded-full border-2 border-green-500 animate-ping opacity-40" />}
                         <div
@@ -2068,23 +2068,23 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         <div className={`absolute -bottom-0.5 -start-0.5 w-3 h-3 rounded-full border-2 border-card ${p.isMuted ? 'bg-secondary' : 'bg-green-500'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white/80 truncate">
+                        <p className="text-sm font-medium text-foreground/80 truncate">
                           {p.name}
-                          {isMe && <span className="text-[10px] text-white/30 ms-1">(אתה)</span>}
+                          {isMe && <span className="text-[10px] text-muted-foreground/50 ms-1">(אתה)</span>}
                           {isMentorEntry && !isMe && <span className="text-[10px] text-primary ms-1">מנטור</span>}
                         </p>
-                        <p className="text-[10px] text-white/30">
+                        <p className="text-[10px] text-muted-foreground/50">
                           {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : p.isMuted ? 'מיקרופון כבוי' : isSpeaking ? 'מדבר...' : 'מחובר'}
                         </p>
                       </div>
                       {isMentor && !isMe && (
                         <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק'}
-                            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${forceMuted ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-white/40 hover:bg-red-500/20 hover:text-red-400'}`}>
+                            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${forceMuted ? 'bg-orange-500/20 text-orange-400' : 'bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400'}`}>
                             {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
                           </button>
                           <button onClick={() => kickParticipant(p.userId)} title="הסר"
-                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 text-white/40 hover:bg-red-500/20 hover:text-red-400 transition-all">
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400 transition-all">
                             <UserX className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -2102,38 +2102,38 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {showChat && (
             <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 320, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }} className="bg-card/95 backdrop-blur-xl border-s border-border flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
-              <div className="px-4 h-12 border-b border-white/8 flex items-center justify-between shrink-0">
+              <div className="px-4 h-12 border-b border-border flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-white/40" />
-                  <span className="text-sm font-semibold text-white/80">צ'אט</span>
+                  <MessageSquare className="w-4 h-4 text-muted-foreground/70" />
+                  <span className="text-sm font-semibold text-foreground/80">צ'אט</span>
                 </div>
-                <button onClick={() => setShowChat(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 transition-all">
+                <button onClick={() => setShowChat(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground/60 hover:bg-muted/50 transition-all">
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
                 {chatMessages.length === 0 && (
-                  <div className="text-center py-10 text-white/20">
+                  <div className="text-center py-10 text-muted-foreground/30">
                     <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-xs">עוד לא נשלחו הודעות</p>
                   </div>
                 )}
                 {chatMessages.map(msg => (
                   <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.user_id === userId ? 'items-end' : 'items-start'}`}>
-                    <span className="text-[10px] text-white/30 px-1">{msg.user_id === userId ? 'אתה' : msg.display_name}</span>
-                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${msg.user_id === userId ? 'bg-primary text-primary-foreground rounded-ee-sm' : 'bg-secondary text-white/80 rounded-es-sm'}`}>
+                    <span className="text-[10px] text-muted-foreground/50 px-1">{msg.user_id === userId ? 'אתה' : msg.display_name}</span>
+                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${msg.user_id === userId ? 'bg-primary text-primary-foreground rounded-ee-sm' : 'bg-secondary text-foreground/80 rounded-es-sm'}`}>
                       {msg.message}
                     </div>
                   </div>
                 ))}
                 <div ref={chatEndRef} />
               </div>
-              <div className="p-3 border-t border-white/8 shrink-0">
+              <div className="p-3 border-t border-border shrink-0">
                 <div className="flex gap-2 items-center bg-secondary rounded-xl px-3 py-2">
                   <input value={chatInput} onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                     placeholder="הודעה לכולם..." maxLength={300}
-                    className="flex-1 bg-transparent text-xs text-white/80 placeholder:text-white/25 focus:outline-none text-right min-w-0" />
+                    className="flex-1 bg-transparent text-xs text-foreground/80 placeholder:text-muted-foreground/40 focus:outline-none text-right min-w-0" />
                   <button onClick={sendMessage} disabled={!chatInput.trim() || isSendingMsg}
                     className="w-7 h-7 flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg transition-all disabled:opacity-30 shrink-0">
                     <Send className="w-3 h-3" />
@@ -2158,10 +2158,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               exit={{ opacity: 0, scale: 0.93, y: 12 }} transition={{ duration: 0.18 }}
               className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
               <div className="pointer-events-auto w-[520px] bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border overflow-hidden" dir="rtl">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                   <h2 className="text-base font-bold text-white">הגדרות</h2>
                   <button onClick={() => setShowSettings(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white/80 hover:bg-white/8 transition-all">
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground/70 hover:text-foreground/80 hover:bg-muted/30 transition-all">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -2173,7 +2173,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                       { id: 'camera', icon: <Video className="w-4 h-4 shrink-0" />, label: 'מצלמה' },
                     ] as const).map(t => (
                       <button key={t.id} onClick={() => setSettingsTab(t.id)}
-                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right ${settingsTab === t.id ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'}`}>
+                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right ${settingsTab === t.id ? 'bg-muted text-white' : 'text-muted-foreground hover:text-foreground/80 hover:bg-muted/50'}`}>
                         {t.icon}{t.label}
                       </button>
                     ))}
@@ -2182,32 +2182,32 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                     {settingsTab === 'mic' && (
                       <>
                         <div>
-                          <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בחירת מיקרופון</p>
+                          <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest mb-3">בחירת מיקרופון</p>
                           <div className="space-y-2">
-                            {audioDevices.length === 0 && <p className="text-xs text-white/30 italic">לא נמצאו מיקרופונים</p>}
+                            {audioDevices.length === 0 && <p className="text-xs text-muted-foreground/50 italic">לא נמצאו מיקרופונים</p>}
                             {audioDevices.map(d => (
                               <button key={d.deviceId} onClick={() => setSelectedMic(d.deviceId)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedMic === d.deviceId ? 'border-primary/60 bg-primary/10 text-white' : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'}`}>
-                                <Mic className={`w-4 h-4 shrink-0 ${selectedMic === d.deviceId ? 'text-primary' : 'text-white/30'}`} />
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedMic === d.deviceId ? 'border-primary/60 bg-primary/10 text-white' : 'border-border bg-muted/30 text-foreground/60 hover:bg-muted/60 hover:text-foreground/80'}`}>
+                                <Mic className={`w-4 h-4 shrink-0 ${selectedMic === d.deviceId ? 'text-primary' : 'text-muted-foreground/50'}`} />
                                 <span className="truncate">{d.label || `מיקרופון ${d.deviceId.slice(0, 8)}`}</span>
                                 {selectedMic === d.deviceId && <span className="ms-auto text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                               </button>
                             ))}
                           </div>
                         </div>
-                        <div className="border-t border-white/8 pt-5">
-                          <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בדיקת מיקרופון</p>
+                        <div className="border-t border-border pt-5">
+                          <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest mb-3">בדיקת מיקרופון</p>
                           <div className="bg-muted rounded-xl p-4 space-y-3">
-                            <p className="text-xs text-white/50 leading-relaxed">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
                               {micTesting ? 'בדיקה פעילה — אתה שומע את עצמך.' : 'לחץ לבדוק את המיקרופון.'}
                             </p>
                             {micTesting && (
                               <div className="space-y-1.5">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[10px] text-white/30">עוצמת קלט</span>
+                                  <span className="text-[10px] text-muted-foreground/50">עוצמת קלט</span>
                                   <span className="text-[10px] text-green-400 font-bold">{Math.round(micTestLevel)}%</span>
                                 </div>
-                                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                                   <motion.div className="h-full rounded-full"
                                     style={{ width: `${micTestLevel}%`, background: micTestLevel > 70 ? 'linear-gradient(90deg,#22c55e,#ef4444)' : micTestLevel > 35 ? 'linear-gradient(90deg,#22c55e,#eab308)' : '#22c55e' }}
                                     animate={{ width: `${micTestLevel}%` }} transition={{ duration: 0.05 }} />
@@ -2225,13 +2225,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                     {settingsTab === 'audio' && (
                       <>
                         <div>
-                          <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">שמע יוצא</p>
+                          <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest mb-3">שמע יוצא</p>
                           <div className="space-y-2">
-                            {outputDevices.length === 0 && <p className="text-xs text-white/30 italic">הדפדפן לא תומך בבחירת שמע יוצא</p>}
+                            {outputDevices.length === 0 && <p className="text-xs text-muted-foreground/50 italic">הדפדפן לא תומך בבחירת שמע יוצא</p>}
                             {outputDevices.map(d => (
                               <button key={d.deviceId} onClick={() => setSelectedOutput(d.deviceId)}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedOutput === d.deviceId ? 'border-primary/60 bg-primary/10 text-white' : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'}`}>
-                                <Headphones className={`w-4 h-4 shrink-0 ${selectedOutput === d.deviceId ? 'text-primary' : 'text-white/30'}`} />
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedOutput === d.deviceId ? 'border-primary/60 bg-primary/10 text-white' : 'border-border bg-muted/30 text-foreground/60 hover:bg-muted/60 hover:text-foreground/80'}`}>
+                                <Headphones className={`w-4 h-4 shrink-0 ${selectedOutput === d.deviceId ? 'text-primary' : 'text-muted-foreground/50'}`} />
                                 <span className="truncate">{d.label || `התקן ${d.deviceId.slice(0, 8)}`}</span>
                                 {selectedOutput === d.deviceId && <span className="ms-auto text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                               </button>
@@ -2239,18 +2239,18 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           </div>
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">עוצמת שמע</p>
+                          <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest mb-3">עוצמת שמע</p>
                           <div className="flex items-center gap-4 bg-muted rounded-xl px-4 py-3">
-                            <VolumeX className="w-4 h-4 text-white/30 shrink-0" />
+                            <VolumeX className="w-4 h-4 text-muted-foreground/50 shrink-0" />
                             <input type="range" min={0} max={100} value={volume} onChange={e => setVolume(Number(e.target.value))} className="flex-1 accent-primary h-1.5" />
-                            <Volume2 className="w-4 h-4 text-white/60 shrink-0" />
-                            <span className="text-sm font-bold text-white/70 w-10 text-center shrink-0">{volume}%</span>
+                            <Volume2 className="w-4 h-4 text-foreground/60 shrink-0" />
+                            <span className="text-sm font-bold text-foreground/70 w-10 text-center shrink-0">{volume}%</span>
                           </div>
                         </div>
-                        <div className="border-t border-white/8 pt-5">
-                          <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בדיקת שמע</p>
+                        <div className="border-t border-border pt-5">
+                          <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest mb-3">בדיקת שמע</p>
                           <div className="bg-muted rounded-xl p-4 space-y-3">
-                            <p className="text-xs text-white/50 leading-relaxed">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
                               {soundTesting ? 'בדיקה פעילה — צפצופים כל 2 שניות.' : 'לחץ לבדוק את השמע.'}
                             </p>
                             {soundTesting && (
@@ -2275,13 +2275,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                     )}
                     {settingsTab === 'camera' && (
                       <div>
-                        <p className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">בחירת מצלמה</p>
+                        <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest mb-3">בחירת מצלמה</p>
                         <div className="space-y-2">
-                          {videoDevices.length === 0 && <p className="text-xs text-white/30 italic">לא נמצאו מצלמות</p>}
+                          {videoDevices.length === 0 && <p className="text-xs text-muted-foreground/50 italic">לא נמצאו מצלמות</p>}
                           {videoDevices.map(d => (
                             <button key={d.deviceId} onClick={() => setSelectedCamera(d.deviceId)}
-                              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedCamera === d.deviceId ? 'border-primary/60 bg-primary/10 text-white' : 'border-white/8 bg-white/3 text-white/60 hover:bg-white/6 hover:text-white/80'}`}>
-                              <Video className={`w-4 h-4 shrink-0 ${selectedCamera === d.deviceId ? 'text-primary' : 'text-white/30'}`} />
+                              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedCamera === d.deviceId ? 'border-primary/60 bg-primary/10 text-white' : 'border-border bg-muted/30 text-foreground/60 hover:bg-muted/60 hover:text-foreground/80'}`}>
+                              <Video className={`w-4 h-4 shrink-0 ${selectedCamera === d.deviceId ? 'text-primary' : 'text-muted-foreground/50'}`} />
                               <span className="truncate">{d.label || `מצלמה ${d.deviceId.slice(0, 8)}`}</span>
                               {selectedCamera === d.deviceId && <span className="ms-auto text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                             </button>
@@ -2291,7 +2291,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                     )}
                   </div>
                 </div>
-                <div className="px-6 py-3 border-t border-white/8 flex justify-start">
+                <div className="px-6 py-3 border-t border-border flex justify-start">
                   <button onClick={() => setShowSettings(false)}
                     className="h-9 px-5 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground text-sm font-semibold transition-all">סגור</button>
                 </div>
