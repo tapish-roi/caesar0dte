@@ -74,6 +74,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [deafened, setDeafened] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
+  const [sessionEndedByMentor, setSessionEndedByMentor] = useState(false);
   // Is someone else sharing screen?
   const [remoteScreenActive, setRemoteScreenActive] = useState(false);
   const [remoteScreenSharer, setRemoteScreenSharer] = useState<string>('');
@@ -402,8 +403,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
     ch.on('broadcast', { event: 'webrtc' }, async ({ payload }) => {
       const { fromId, toId, type, data } = payload as { fromId: string; toId: string; type: string; data: Record<string, unknown> };
-      // Accept broadcast messages (toId='*') for: presence, media_state, leave, room_lock
-      const broadcastTypes = ['presence', 'media_state', 'leave', 'room_lock'];
+      // Accept broadcast messages (toId='*') for: presence, media_state, leave, room_lock, session_end
+      const broadcastTypes = ['presence', 'media_state', 'leave', 'room_lock', 'session_end'];
       if (toId !== userId && toId !== '*') return;
       if (toId === '*' && !broadcastTypes.includes(type)) return;
 
@@ -564,6 +565,18 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       if (type === 'kicked' && !isMentor) {
         toast({ title: 'הוסרת מהשיחה על ידי המנטור', variant: 'destructive' });
         setTimeout(() => onClose(), 1500);
+        return;
+      }
+      // ── Session end signal (mentor ended the live) ──
+      if (type === 'session_end' && !isMentor) {
+        // Clean up everything and show end dialog
+        peersRef.current.forEach(pc => pc.close());
+        peersRef.current.clear();
+        localStreamRef.current?.getTracks().forEach(t => t.stop());
+        localStreamRef.current = null;
+        cameraStreamRef.current?.getTracks().forEach(t => t.stop());
+        cameraStreamRef.current = null;
+        setSessionEndedByMentor(true);
         return;
       }
       // ── Room lock signal ──
@@ -1702,6 +1715,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       type: 'broadcast', event: 'webrtc',
       payload: { fromId: userId, toId: '*', type: 'leave', data: {} },
     });
+    // If mentor is leaving, also broadcast session_end so students get notified
+    if (isMentor) {
+      webrtcChannelRef.current?.send({
+        type: 'broadcast', event: 'webrtc',
+        payload: { fromId: userId, toId: '*', type: 'session_end', data: {} },
+      });
+    }
     stopScreenShare(); stopSpeakingDetection(); stopMicTest();
     // Stop all remote speaking detections
     remoteAnalysersRef.current.forEach((_, remoteId) => {
@@ -1895,6 +1915,31 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────────
+  // ── Session ended by mentor overlay ──
+  if (sessionEndedByMentor) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" dir="rtl">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-card rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 text-center space-y-4"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
+            <PhoneOff className="w-7 h-7 text-destructive" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">הלייב הסתיים</h2>
+          <p className="text-sm text-muted-foreground">המנטור סיים את השידור החי.</p>
+          <button
+            onClick={onClose}
+            className="h-11 px-8 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-all mx-auto"
+          >
+            חזרה לדף הראשי
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background" dir="rtl">
 
