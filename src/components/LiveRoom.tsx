@@ -184,6 +184,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const recordedChunksRef = useRef<Blob[]>([]);
   const sessionStartRef = useRef<number>(Date.now());
   const recordingStreamRef = useRef<MediaStream | null>(null);
+  // Track which senders are for audio vs video — needed because sender.track is null after replaceTrack(null)
+  const audioSenderMapRef = useRef<Map<RTCPeerConnection, RTCRtpSender>>(new Map());
 
   // ── Screen share frame streaming ──
   const screenFrameChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -276,10 +278,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peersRef.current.set(remoteId, pc);
 
-    // Add existing local tracks
+    // Add existing local tracks and register senders
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current!);
+        const sender = pc.addTrack(track, localStreamRef.current!);
+        if (track.kind === 'audio') {
+          audioSenderMapRef.current.set(pc, sender);
+        }
       });
     }
 
@@ -336,6 +341,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
         peersRef.current.delete(remoteId);
         remoteStreamsRef.current.delete(remoteId);
+        audioSenderMapRef.current.delete(pc);
         setRemoteStreams(new Map(remoteStreamsRef.current));
         stopRemoteSpeakingDetectionRef.current(remoteId);
       }
@@ -1310,18 +1316,25 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     });
   }, [userId]);
 
+  // audioSenderMapRef is declared near other refs above
+
   const toggleMic = useCallback(async () => {
     if (micEnabled) {
-      // Use replaceTrack(null) instead of removeTrack to keep senders stable
+      // Mute: replaceTrack(null) on known audio senders
       peersRef.current.forEach(pc => {
-        pc.getSenders().filter(s => s.track?.kind === 'audio').forEach(s => {
-          s.replaceTrack(null).catch(() => {});
-        });
+        const knownSender = audioSenderMapRef.current.get(pc);
+        if (knownSender) {
+          knownSender.replaceTrack(null).catch(() => {});
+        } else {
+          // Fallback: find by track kind
+          pc.getSenders().filter(s => s.track?.kind === 'audio').forEach(s => {
+            s.replaceTrack(null).catch(() => {});
+            audioSenderMapRef.current.set(pc, s);
+          });
+        }
       });
 
-      localStreamRef.current?.getAudioTracks().forEach(t => {
-        t.stop();
-      });
+      localStreamRef.current?.getAudioTracks().forEach(t => t.stop());
       removeLocalTracks('audio');
 
       localMicStreamForAnalysis.current?.getTracks().forEach(t => t.stop());
@@ -1344,13 +1357,21 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         localStream.getAudioTracks().forEach(t => { t.stop(); localStream.removeTrack(t); });
         localStream.addTrack(newAudioTrack);
 
-        // Try to reuse existing audio sender, otherwise add new
+        // Reuse known audio sender, or find null-track sender, or add new
         peersRef.current.forEach(pc => {
-          const audioSender = pc.getSenders().find(s => s.track?.kind === 'audio' || (s.track === null && s !== pc.getSenders().find(ss => ss.track?.kind === 'video')));
-          if (audioSender) {
-            audioSender.replaceTrack(newAudioTrack).catch(() => {});
+          const knownSender = audioSenderMapRef.current.get(pc);
+          if (knownSender) {
+            knownSender.replaceTrack(newAudioTrack).catch(() => {});
           } else {
-            pc.addTrack(newAudioTrack, localStream);
+            // Try to find a sender with null track that isn't the video sender
+            const nullSender = pc.getSenders().find(s => s.track === null);
+            if (nullSender) {
+              nullSender.replaceTrack(newAudioTrack).catch(() => {});
+              audioSenderMapRef.current.set(pc, nullSender);
+            } else {
+              const sender = pc.addTrack(newAudioTrack, localStream);
+              audioSenderMapRef.current.set(pc, sender);
+            }
           }
         });
 
@@ -1371,13 +1392,37 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const toggleDeafen = useCallback(() => {
     setDeafened(v => {
       const next = !v;
-      if (next && micEnabled) {
-        localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; });
-        setMicEnabled(false);
+      if (next) {
+        // Deafening: mute outgoing mic via WebRTC senders + stop local audio tracks
+        if (micEnabled) {
+          peersRef.current.forEach(pc => {
+            const knownSender = audioSenderMapRef.current.get(pc);
+            if (knownSender) {
+              knownSender.replaceTrack(null).catch(() => {});
+            } else {
+              pc.getSenders().filter(s => s.track?.kind === 'audio').forEach(s => {
+                s.replaceTrack(null).catch(() => {});
+                audioSenderMapRef.current.set(pc, s);
+              });
+            }
+          });
+          localStreamRef.current?.getAudioTracks().forEach(t => { t.stop(); });
+          removeLocalTracks('audio');
+          localMicStreamForAnalysis.current?.getTracks().forEach(t => t.stop());
+          localMicStreamForAnalysis.current = null;
+          stopSpeakingDetection();
+          setMicEnabled(false);
+        }
+        // Broadcast that mic is off
+        broadcastMediaState(false, cameraEnabled);
+        // Incoming audio is muted via volume=0 in the useEffect below
+      } else {
+        // Un-deafening: incoming audio resumes via volume useEffect
+        // Mic stays off — user can re-enable manually
       }
       return next;
     });
-  }, [micEnabled]);
+  }, [micEnabled, cameraEnabled, broadcastMediaState, removeLocalTracks, stopSpeakingDetection]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Screen share
