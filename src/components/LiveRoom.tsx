@@ -1739,13 +1739,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {isMentor && (
             <>
               <button onClick={toggleRoomLock} title={roomLocked ? 'פתח חדר' : 'נעל חדר'}
-                className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${roomLocked ? 'bg-orange-500/20 text-orange-400' : 'text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground/70'}`}>
+                className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${roomLocked ? 'bg-amber-500/20 text-amber-400' : 'text-amber-400/70 hover:bg-amber-500/10 hover:text-amber-400'}`}>
                 {roomLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                 {roomLocked ? 'נעול' : ''}
               </button>
               <button onClick={() => { const link = `${window.location.origin}/livestream?session=${sessionId}`; navigator.clipboard.writeText(link); toast({ title: '🔗 הלינק הועתק!' }); }}
                 title="העתק לינק"
-                className="h-8 px-3 rounded-lg text-xs text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground/70 transition-all flex items-center gap-1.5">
+                className="h-8 px-3 rounded-lg text-xs text-emerald-400/70 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all flex items-center gap-1.5">
                 <Link2 className="w-3.5 h-3.5" />
               </button>
             </>
@@ -1754,17 +1754,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {!isScreenVisible && participants.length > 1 && (
             <button onClick={() => setViewMode(v => v === 'gallery' ? 'speaker' : 'gallery')}
               title={viewMode === 'gallery' ? 'Speaker View' : 'Gallery View'}
-              className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground/70">
+              className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-violet-400/70 hover:bg-violet-500/10 hover:text-violet-400">
               {viewMode === 'gallery' ? <Maximize2 className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{viewMode === 'gallery' ? 'Speaker' : 'Gallery'}</span>
             </button>
           )}
           <button onClick={() => setShowMembers(v => !v)}
-            className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-muted text-white' : 'text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground/70'}`}>
+            className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-sky-500/20 text-sky-400' : 'text-sky-400/70 hover:bg-sky-500/10 hover:text-sky-400'}`}>
             <Users className="w-3.5 h-3.5" />{participants.length}
           </button>
           <button onClick={() => setShowChat(v => !v)}
-            className={`relative h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showChat ? 'bg-muted text-white' : 'text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground/70'}`}>
+            className={`relative h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showChat ? 'bg-cyan-500/20 text-cyan-400' : 'text-cyan-400/70 hover:bg-cyan-500/10 hover:text-cyan-400'}`}>
             <MessageSquare className="w-3.5 h-3.5" />
             {chatMessages.length > 0 && !showChat && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold">
