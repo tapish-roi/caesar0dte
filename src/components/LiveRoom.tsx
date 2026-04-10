@@ -1713,7 +1713,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 if (el) {
                   const localStream = localStreamRef.current;
                   const hasLiveVideo = !!localStream?.getVideoTracks().some(track => track.readyState === 'live');
+                  // Force-reassign to pick up new tracks
+                  el.srcObject = null;
                   el.srcObject = hasLiveVideo ? localStream : null;
+                  if (el.paused && hasLiveVideo) el.play().catch(() => {});
                 }
               }}
               autoPlay playsInline muted className="w-full h-full object-cover"
