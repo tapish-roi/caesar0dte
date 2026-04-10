@@ -276,10 +276,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     peersRef.current.set(remoteId, pc);
 
-    // Add existing local tracks
+    // Add existing local tracks and register senders
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current!);
+        const sender = pc.addTrack(track, localStreamRef.current!);
+        if (track.kind === 'audio') {
+          audioSenderMapRef.current.set(pc, sender);
+        }
       });
     }
 
@@ -336,6 +339,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
         peersRef.current.delete(remoteId);
         remoteStreamsRef.current.delete(remoteId);
+        audioSenderMapRef.current.delete(pc);
         setRemoteStreams(new Map(remoteStreamsRef.current));
         stopRemoteSpeakingDetectionRef.current(remoteId);
       }
