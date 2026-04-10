@@ -1386,10 +1386,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
     }
   }, [cameraEnabled, selectedCamera, toast, ensureLocalStream, removeLocalTracks, syncLocalVideoPreview, renegotiateAll]);
-        toast({ title: 'לא ניתן לגשת למצלמה', variant: 'destructive' });
-      }
-    }
-  }, [cameraEnabled, selectedCamera, toast, renegotiateAll]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Mic test
@@ -1629,7 +1625,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             <video
               ref={el => {
                 localVideoRef.current = el;
-                if (el && cameraStreamRef.current) el.srcObject = cameraStreamRef.current;
+                if (el) {
+                  const localStream = localStreamRef.current;
+                  const hasLiveVideo = !!localStream?.getVideoTracks().some(track => track.readyState === 'live');
+                  el.srcObject = hasLiveVideo ? localStream : null;
+                }
               }}
               autoPlay playsInline muted className="w-full h-full object-cover"
             />
