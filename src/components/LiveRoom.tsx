@@ -2021,7 +2021,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               </button>
 
               {/* Camera */}
-              <button onClick={() => setCameraEnabled(v => !v)} title={cameraEnabled ? 'כבה מצלמה' : 'הפעל מצלמה'}
+              <button onClick={toggleCamera} title={cameraEnabled ? 'כבה מצלמה' : 'הפעל מצלמה'}
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md ${
                   cameraEnabled ? 'bg-secondary hover:bg-secondary/80 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
                 }`}>
