@@ -173,6 +173,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const screenVideoRef = useRef<HTMLVideoElement>(null);       // local sharer
   const remoteScreenCanvasRef = useRef<HTMLCanvasElement>(null); // remote screen display
   const localStreamRef = useRef<MediaStream | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null); // Persists camera stream for video element
   const screenStreamRef = useRef<MediaStream | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
