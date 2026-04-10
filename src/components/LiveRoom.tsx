@@ -1607,6 +1607,28 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     });
   }, [deafened, volume]);
 
+  // ── Mac/Safari autoplay fix: resume audio on first user interaction ──
+  useEffect(() => {
+    const resumeAudio = () => {
+      // Resume any suspended AudioContexts (Safari blocks them without gesture)
+      remoteAnalysersRef.current.forEach(({ ctx }) => {
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      });
+      // Force-play any paused remote audio elements
+      document.querySelectorAll<HTMLAudioElement>('[data-remote-audio]').forEach(el => {
+        if (el.paused && el.srcObject) el.play().catch(() => {});
+      });
+    };
+    document.addEventListener('click', resumeAudio);
+    document.addEventListener('keydown', resumeAudio);
+    document.addEventListener('touchstart', resumeAudio);
+    return () => {
+      document.removeEventListener('click', resumeAudio);
+      document.removeEventListener('keydown', resumeAudio);
+      document.removeEventListener('touchstart', resumeAudio);
+    };
+  }, []);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Screen share request flow
   // ─────────────────────────────────────────────────────────────────────────────
