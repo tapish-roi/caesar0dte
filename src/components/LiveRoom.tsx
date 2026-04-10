@@ -1218,7 +1218,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         renegotiateAll();
       } catch { toast({ title: 'לא ניתן לגשת למיקרופון', variant: 'destructive' }); }
     }
-  }, [micEnabled, selectedMic, deafened, toast, startSpeakingDetection, stopSpeakingDetection, renegotiateAll]);
+  }, [micEnabled, selectedMic, deafened, isForceMuted, toast, startSpeakingDetection, stopSpeakingDetection, renegotiateAll]);
 
   const toggleDeafen = useCallback(() => {
     setDeafened(v => {
