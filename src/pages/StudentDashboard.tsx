@@ -899,7 +899,7 @@ export default function StudentDashboard() {
   const studentNavItems = [
     { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
     { key: 'community' as const, label: 'קהילה', icon: Users },
-    { key: 'live' as const, label: 'לייב', icon: Radio, disabled: true },
+    { key: 'live' as const, label: 'לייב', icon: Radio },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion },
   ];
 
@@ -1137,7 +1137,7 @@ export default function StudentDashboard() {
                 {([
                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                   { key: 'community', label: 'קהילה', icon: Users },
-                  { key: 'live', label: 'לייב', icon: Radio, disabled: true },
+                  { key: 'live', label: 'לייב', icon: Radio },
                   { key: 'questions', label: 'השאלות שלי', icon: MessageCircleQuestion },
                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean }[]).map(({ key, label, icon: Icon, disabled }) => (
                   <button
