@@ -1226,6 +1226,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
     setScreenSharing(false);
     setShowDrawToolbar(false);
+    // Clear pending stream ref
+    if (typeof pendingScreenStreamRef !== 'undefined') pendingScreenStreamRef.current = null;
     // Notify others
     screenFrameChannelRef.current?.send({
       type: 'broadcast', event: 'screen_share_stop',
