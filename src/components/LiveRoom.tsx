@@ -136,6 +136,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [screenShareRequested, setScreenShareRequested] = useState(false); // student sent request
   const [pendingScreenRequests, setPendingScreenRequests] = useState<{ userId: string; userName: string }[]>([]); // mentor sees
 
+  // ── Room lock (mentor only) ──
+  const [roomLocked, setRoomLocked] = useState(false);
+
   // ── Chat ──
   const [showChat, setShowChat] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
