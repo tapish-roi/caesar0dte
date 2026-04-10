@@ -13,6 +13,7 @@ import {
   Monitor, MonitorOff, Settings, X, Users, PhoneOff,
   Pencil, Eraser, RotateCcw, MessageSquare, Send, Headphones,
   FlaskConical, StopCircle, Type, Zap, Minus, Plus,
+  Lock, Unlock, UserX, Copy, Link2,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
