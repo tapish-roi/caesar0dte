@@ -1435,6 +1435,33 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     setParticipants(prev => prev.map(p => p.userId === targetId ? { ...p, isMuted: !muted, isForceMuted: !muted } : p));
   }, [sessionId, userId]);
 
+  // ── Kick participant (mentor only) ──
+  const kickParticipant = useCallback(async (targetId: string) => {
+    webrtcChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'webrtc',
+      payload: { fromId: userId, toId: targetId, type: 'kicked', data: {} },
+    });
+    const pc = peersRef.current.get(targetId);
+    if (pc) { pc.close(); peersRef.current.delete(targetId); }
+    remoteStreamsRef.current.delete(targetId);
+    setRemoteStreams(new Map(remoteStreamsRef.current));
+    setParticipants(prev => prev.filter(p => p.userId !== targetId));
+    toast({ title: 'המשתמש הוסר מהשיחה' });
+  }, [userId, toast]);
+
+  // ── Toggle room lock (mentor only) ──
+  const toggleRoomLock = useCallback(() => {
+    const newLocked = !roomLocked;
+    setRoomLocked(newLocked);
+    webrtcChannelRef.current?.send({
+      type: 'broadcast',
+      event: 'webrtc',
+      payload: { fromId: userId, toId: '*', type: 'room_lock', data: { locked: newLocked } },
+    });
+    toast({ title: newLocked ? '🔒 החדר ננעל' : '🔓 החדר נפתח' });
+  }, [roomLocked, userId, toast]);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Send chat
   // ─────────────────────────────────────────────────────────────────────────────
