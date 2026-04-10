@@ -1715,6 +1715,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       type: 'broadcast', event: 'webrtc',
       payload: { fromId: userId, toId: '*', type: 'leave', data: {} },
     });
+    // If mentor is leaving, also broadcast session_end so students get notified
+    if (isMentor) {
+      webrtcChannelRef.current?.send({
+        type: 'broadcast', event: 'webrtc',
+        payload: { fromId: userId, toId: '*', type: 'session_end', data: {} },
+      });
+    }
     stopScreenShare(); stopSpeakingDetection(); stopMicTest();
     // Stop all remote speaking detections
     remoteAnalysersRef.current.forEach((_, remoteId) => {
