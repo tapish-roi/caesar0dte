@@ -338,12 +338,25 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     };
 
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+      const cleanupPeer = () => {
         peersRef.current.delete(remoteId);
         remoteStreamsRef.current.delete(remoteId);
         audioSenderMapRef.current.delete(pc);
         setRemoteStreams(new Map(remoteStreamsRef.current));
+        setParticipants(prev => prev.filter(p => p.userId !== remoteId));
         stopRemoteSpeakingDetectionRef.current(remoteId);
+        setRemoteSpeakingUsers(prev => { const n = new Set(prev); n.delete(remoteId); return n; });
+      };
+      if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        cleanupPeer();
+      }
+      // Disconnected — wait 5s then clean up if still disconnected (handles unclean exits)
+      if (pc.connectionState === 'disconnected') {
+        setTimeout(() => {
+          if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+            cleanupPeer();
+          }
+        }, 5000);
       }
     };
 
@@ -389,7 +402,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
     ch.on('broadcast', { event: 'webrtc' }, async ({ payload }) => {
       const { fromId, toId, type, data } = payload as { fromId: string; toId: string; type: string; data: Record<string, unknown> };
-      if (toId !== userId && type !== 'presence') return;
+      // Accept broadcast messages (toId='*') for: presence, media_state, leave, room_lock
+      const broadcastTypes = ['presence', 'media_state', 'leave', 'room_lock'];
+      if (toId !== userId && toId !== '*') return;
+      if (toId === '*' && !broadcastTypes.includes(type)) return;
 
       if (type === 'presence') {
         // Add participant if not known
@@ -537,9 +553,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         const pc = peersRef.current.get(fromId);
         if (pc) { pc.close(); peersRef.current.delete(fromId); }
         remoteStreamsRef.current.delete(fromId);
+        audioSenderMapRef.current.forEach((sender, peerPc) => { if (peerPc === pc) audioSenderMapRef.current.delete(peerPc); });
         setRemoteStreams(new Map(remoteStreamsRef.current));
         setParticipants(prev => prev.filter(p => p.userId !== fromId));
         stopRemoteSpeakingDetectionRef.current(fromId);
+        setRemoteSpeakingUsers(prev => { const n = new Set(prev); n.delete(fromId); return n; });
         return;
       }
       // ── Kicked signal ──
@@ -566,7 +584,20 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
     });
 
+    // Broadcast leave on tab close/refresh so others remove us immediately
+    const broadcastLeaveOnUnload = () => {
+      ch.send({
+        type: 'broadcast', event: 'webrtc',
+        payload: { fromId: userId, toId: '*', type: 'leave', data: {} },
+      });
+    };
+    window.addEventListener('beforeunload', broadcastLeaveOnUnload);
+    window.addEventListener('pagehide', broadcastLeaveOnUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', broadcastLeaveOnUnload);
+      window.removeEventListener('pagehide', broadcastLeaveOnUnload);
+      broadcastLeaveOnUnload();
       supabase.removeChannel(ch);
       peersRef.current.forEach(pc => pc.close());
       peersRef.current.clear();
