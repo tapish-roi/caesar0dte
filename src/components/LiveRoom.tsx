@@ -1220,9 +1220,12 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // ─────────────────────────────────────────────────────────────────────────────
   // Screen share
   // ─────────────────────────────────────────────────────────────────────────────
+  const pendingScreenStreamRef = useRef<MediaStream | null>(null);
+
   const stopScreenShare = useCallback(() => {
     screenStreamRef.current?.getTracks().forEach(t => t.stop());
     screenStreamRef.current = null;
+    pendingScreenStreamRef.current = null;
     if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
     setScreenSharing(false);
     setShowDrawToolbar(false);
@@ -1238,17 +1241,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       screenStreamRef.current = stream;
-      // Set state first so the video element becomes visible before srcObject is assigned,
-      // allowing the browser to load metadata and render correctly (no black screen).
-      setScreenSharing(true);
-      // Wait one animation frame so React re-renders the video element as visible
-      requestAnimationFrame(() => {
-        if (screenVideoRef.current) {
-          screenVideoRef.current.srcObject = stream;
-          screenVideoRef.current.play().catch(() => {});
-        }
-      });
+      pendingScreenStreamRef.current = stream;
       stream.getVideoTracks()[0].onended = () => stopScreenShare();
+      // Set state so React renders the video element as visible
+      setScreenSharing(true);
       // Notify others
       screenFrameChannelRef.current?.send({
         type: 'broadcast', event: 'screen_share_start',
@@ -1257,6 +1253,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       toast({ title: 'שיתוף מסך הופעל' });
     } catch { toast({ title: 'שיתוף מסך בוטל', variant: 'destructive' }); }
   }, [screenSharing, stopScreenShare, userId, userName, toast]);
+
+  // Assign srcObject AFTER React has rendered the video element as visible
+  useEffect(() => {
+    if (screenSharing && pendingScreenStreamRef.current && screenVideoRef.current) {
+      screenVideoRef.current.srcObject = pendingScreenStreamRef.current;
+      screenVideoRef.current.play().catch(() => {});
+      pendingScreenStreamRef.current = null;
+    }
+  }, [screenSharing]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Camera
