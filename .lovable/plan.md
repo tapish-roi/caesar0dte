@@ -1,65 +1,55 @@
 
+מטרה: לתקן שתי בעיות בלייב אצל המנטור:
+1. התלמיד עדיין מוצג כמושתק גם כשהמיקרופון שלו פתוח.
+2. כשהתלמיד יוצא/מתנתק הוא עדיין נשאר ברשימת המשתתפים.
 
-# תוכנית: תיקון שמע ב-Mac ושיתוף מסך קופא בהחלפת חלונות
+מה מצאתי בקוד:
+- ב-`src/components/LiveRoom.tsx` יש סינון מוקדם של הודעות ה-WebRTC:
+  `if (toId !== userId && type !== 'presence') return;`
+  בגלל זה המנטור מתעלם מהודעות חדר כלליות שנשלחות עם `toId='*'`, כולל:
+  - `media_state` — לכן סטטוס המיקרופון/מצלמה של התלמיד לא מתעדכן נכון אצל המנטור.
+  - `leave` — לכן יציאה של תלמיד לא מנקה אותו מהרשימה אצל המנטור.
+- בנוסף, ב-`pc.onconnectionstatechange` מנקים משתתף רק ב-`failed` או `closed`, אבל לא ב-`disconnected`. זה משאיר משתתפים “תקועים” אם ההתנתקות לא נסגרה נקי.
+- יש גם לוגיקה של `mute_ack` שמטפלת בעדכון סטטוס, אבל לא מצאתי כרגע נתיב ברור ששולח אותה חזרה, כך שהמערכת נשענת בפועל על `media_state` — וכרגע זה נשבר בגלל הסינון.
 
-## בעיות שזוהו
+תוכנית תיקון:
+1. לפרק את ניתוב הודעות ה-WebRTC לשני מסלולים ברורים:
+   - הודעות אישיות בלבד: `offer`, `answer`, `ice_candidate`, `kicked`, `force_mute`, `force_unmute`
+   - הודעות חדר כלליות (`toId='*'`): `presence`, `media_state`, `leave`, `room_lock`
+2. לעדכן את תנאי הסינון כך שהקליינט יקבל גם הודעות broadcast של כל החדר, ולא רק `presence`.
+3. להשאיר את עדכון ה-UI של המנטור מבוסס `media_state`, אבל לוודא שהוא תמיד מתקבל ומעדכן:
+   - `isMuted`
+   - `hasCamera`
+   - ואם צריך גם `isDeafened`/סטטוס משלים כדי שהבר השמאלי יהיה אמין.
+4. לחזק את לוגיקת היציאה:
+   - `leave` ימשיך להסיר משתתף מיידית.
+   - להוסיף fallback ל-`pagehide` / `beforeunload` כדי לשדר יציאה גם אם המשתמש סוגר טאב/מרענן.
+   - להוסיף ניקוי גם ב-`connectionState === 'disconnected'` עם השהיה קצרה לפני הסרה, כדי לא למחוק בטעות על ניתוק רגעי.
+5. לנקות בצורה אחידה את כל מה ששייך למשתתף שיוצא:
+   - `peersRef`
+   - `remoteStreamsRef`
+   - `remoteSpeakingUsers`
+   - `participants`
+   - כל אינדיקטור משויך נוסף
+6. לבדוק אם צריך גם להשלים שליחת `mute_ack` כשמשתתף פותח/סוגר מיקרופון, כדי שסטטוס “מושתק ע"י מנטור” לא ייתקע בעתיד.
 
-### 1. שמע לא עובד ב-Mac
-הבעיה נובעת מ-**מדיניות autoplay של Safari/Chrome ב-Mac**: דפדפנים חוסמים ניגון אודיו אוטומטי ללא gesture של המשתמש. ה-`<audio autoPlay>` elements מרונדרים מחדש בכל שינוי ב-`remoteStreams` ומאבדים את ה-playback state. בנוסף, ה-`ref` callback מחליף `srcObject` בכל רנדור — מה שמפסיק ניגון קיים.
+ללא שינויי backend:
+- לפי מה שראיתי זו בעיית קליינט/Realtime ב-`LiveRoom.tsx`, ולא נראה שנדרש שינוי במסד הנתונים.
 
-### 2. שיתוף מסך קופא בהחלפת חלונות
-שיתוף המסך מבוסס על `requestAnimationFrame` שנעצר כשהטאב לא בפוקוס (המשתמש עובר חלון). זה גורם לקפיאת השיתוף אצל הצופים.
+בדיקות שאבצע אחרי האישור:
+1. מנטור + תלמיד נכנסים ללייב.
+2. תלמיד פותח מיקרופון:
+   - המנטור צריך לשמוע אותו.
+   - הבר השמאלי אצל המנטור צריך להראות שהתלמיד לא על השתק.
+3. תלמיד סוגר מיקרופון:
+   - הבר השמאלי אצל המנטור צריך להתעדכן מייד.
+4. תלמיד יוצא דרך כפתור היציאה:
+   - הוא צריך להיעלם מיידית אצל המנטור.
+5. תלמיד סוגר טאב / מרענן:
+   - המנטור לא צריך להישאר עם משתתף “תקוע”.
+6. בדיקה חוזרת גם למצלמה כדי לוודא שהתיקון לא שובר את היציבות שכבר סידרנו.
 
-## תיקונים מוצעים
-
-### קובץ: `src/components/LiveRoom.tsx`
-
-**1. תיקון שמע ב-Mac — AudioContext resume + stable ref**
-- להוסיף `useEffect` שעושה `resume()` ל-AudioContext בכל אינטראקציה של המשתמש (click/keydown) — זה מתעורר את ה-AudioContext ש-Safari/Chrome חוסמים.
-- להחליף את ה-`ref` callback של `<audio>` elements כך שלא ידרוס `srcObject` אם הוא כבר מוגדר לאותו stream. כרגע כל רנדור מפעיל מחדש את ה-audio element.
-- להוסיף `el.play().catch(() => {})` ידני אחרי הגדרת srcObject, ולעטוף אותו ב-try/catch כדי לתפוס את החסימה של Safari.
-- להוסיף event listener גלובלי של `click` שמנסה לעשות `play()` לכל `[data-remote-audio]` elements שנמצאים ב-paused — זה פותר את הבעיה של autoplay policy.
-
-**2. תיקון קפיאת שיתוף מסך — מעבר מ-rAF ל-setInterval**
-- להחליף את `requestAnimationFrame` loop ב-`setInterval` (כל 100ms). rAF נעצר כשהטאב לא בפוקוס, אבל `setInterval` ממשיך לרוץ (בקצב מופחת אבל לא נעצר).
-- להוסיף `document.addEventListener('visibilitychange')` — כשהטאב חוזר לפוקוס, לשלוח מיד פריים מרענן.
-
-### פירוט טכני
-
-```typescript
-// 1. Global click listener to resume audio on Mac
-useEffect(() => {
-  const resumeAudio = () => {
-    document.querySelectorAll<HTMLAudioElement>('[data-remote-audio]').forEach(el => {
-      if (el.paused && el.srcObject) el.play().catch(() => {});
-    });
-  };
-  document.addEventListener('click', resumeAudio, { once: false });
-  document.addEventListener('keydown', resumeAudio, { once: false });
-  return () => {
-    document.removeEventListener('click', resumeAudio);
-    document.removeEventListener('keydown', resumeAudio);
-  };
-}, []);
-
-// 2. Stable audio ref — don't overwrite if same stream
-ref={el => {
-  if (el && el.srcObject !== stream) {
-    el.srcObject = stream;
-    el.volume = deafened ? 0 : volume / 100;
-    el.play().catch(() => {});
-  } else if (el) {
-    el.volume = deafened ? 0 : volume / 100;
-  }
-}}
-
-// 3. Screen frame capture — setInterval instead of rAF
-const timer = setInterval(() => {
-  if (!isSendingFrameRef.current) captureFrame();
-}, FRAME_INTERVAL_MS);
-```
-
-### תוצאה צפויה
-- שמע יעבוד ב-Mac אחרי לחיצה ראשונה בממשק (מגבלת דפדפן שלא ניתן לעקוף בלי gesture).
-- שיתוף מסך ימשיך לעבוד גם כשהמשתף עובר חלון.
-
+תוצאה צפויה:
+- המנטור יראה סטטוס מיקרופון נכון של התלמיד בזמן אמת.
+- התלמיד ייעלם מרשימת המשתתפים כשייצא, גם ביציאה רגילה וגם בהתנתקות פחות נקייה.
+- הבר השמאלי יהפוך להיות מקור אמת אמין למצב המשתתפים.
