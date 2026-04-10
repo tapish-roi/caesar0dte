@@ -1896,6 +1896,37 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   </div>
                 )}
               </>
+            ) : viewMode === 'speaker' && participants.length > 1 ? (
+              /* ═══ SPEAKER VIEW ═══ — Active speaker large, others in strip on top */
+              (() => {
+                // Determine the active speaker: prioritize someone currently speaking, fallback to mentor, then first participant
+                const allSpeaking = participants.filter(p => 
+                  (p.userId === userId ? speakingUsers.has(userId) : remoteSpeakingUsers.has(p.userId))
+                );
+                const activeSpeaker = allSpeaking.length > 0
+                  ? allSpeaking[0]
+                  : participants.find(p => p.userId === mentorId) || participants[0];
+                const others = participants.filter(p => p.userId !== activeSpeaker.userId);
+
+                return (
+                  <div className="w-full h-full flex flex-col gap-2">
+                    {/* Top filmstrip — other participants */}
+                    {others.length > 0 && (
+                      <div className="shrink-0 flex gap-2 overflow-x-auto py-1 px-1">
+                        {others.map(p => (
+                          <div key={p.userId} className="group">
+                            {renderParticipantTile(p, 'sm')}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Main — active speaker */}
+                    <div className="flex-1 min-h-0 group">
+                      {renderParticipantTile(activeSpeaker, 'lg')}
+                    </div>
+                  </div>
+                );
+              })()
             ) : (
               /* ═══ GALLERY VIEW ═══ — Zoom-style grid of all participants */
               <div className={`w-full h-full grid gap-2 p-1 ${
