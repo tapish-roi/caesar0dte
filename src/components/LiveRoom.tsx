@@ -397,8 +397,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       // ── Force mute signals (still via broadcast) ──
       if (type === 'force_mute') {
         setIsForceMuted(true); setMicEnabled(false);
+        // Remove audio senders from peers so re-enable works cleanly
+        peersRef.current.forEach(pc => {
+          pc.getSenders().filter(s => s.track?.kind === 'audio').forEach(s => pc.removeTrack(s));
+        });
         localStreamRef.current?.getAudioTracks().forEach(t => { t.enabled = false; t.stop(); });
-        toast({ title: 'הושתקת על ידי המנטור', description: 'אתה יכול להסיר את ההשתקה בעצמך' });
+        localMicStreamForAnalysis.current = null;
+        toast({ title: '🔇 הושתקת על ידי המנטור', description: 'לחץ על כפתור המיקרופון כדי לפתוח מחדש' });
         return;
       }
       if (type === 'force_unmute') {
