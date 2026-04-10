@@ -2035,19 +2035,62 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 );
               })()
             ) : (
-              /* ═══ GALLERY VIEW ═══ — Zoom-style grid of all participants */
-              <div className={`w-full h-full grid gap-2 p-1 ${
-                participants.length === 1 ? 'grid-cols-1' :
-                participants.length <= 4 ? 'grid-cols-2' :
-                participants.length <= 9 ? 'grid-cols-3' :
-                'grid-cols-4'
-              }`}>
-                {participants.map(p => (
-                  <div key={p.userId} className="group min-h-0">
-                    {renderParticipantTile(p, 'lg')}
+              /* ═══ GALLERY VIEW ═══ — 5×2 paginated grid */
+              (() => {
+                const ITEMS_PER_PAGE = 10;
+                const totalPages = Math.max(1, Math.ceil(participants.length / ITEMS_PER_PAGE));
+                const clampedPage = Math.min(galleryPage, totalPages - 1);
+                const pageParticipants = participants.slice(clampedPage * ITEMS_PER_PAGE, (clampedPage + 1) * ITEMS_PER_PAGE);
+                // Determine grid cols based on count on this page
+                const cols = pageParticipants.length <= 2 ? 2 : pageParticipants.length <= 4 ? 2 : 5;
+
+                return (
+                  <div className="w-full h-full flex flex-col">
+                    {/* Swipeable grid area */}
+                    <div
+                      className="flex-1 min-h-0 overflow-hidden relative"
+                      onTouchStart={e => { galleryTouchStartRef.current = e.touches[0].clientX; }}
+                      onTouchEnd={e => {
+                        const dx = galleryTouchStartRef.current - e.changedTouches[0].clientX;
+                        if (Math.abs(dx) > 60) {
+                          // RTL: swipe left = next page, swipe right = prev page (reversed for RTL)
+                          setGalleryPage(p => dx > 0 ? Math.min(p + 1, totalPages - 1) : Math.max(p - 1, 0));
+                        }
+                      }}
+                    >
+                      <div className={`w-full h-full grid gap-2 p-2 content-center`}
+                        style={{
+                          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                          gridTemplateRows: pageParticipants.length > cols ? 'repeat(2, 1fr)' : '1fr',
+                        }}
+                      >
+                        {pageParticipants.map(p => (
+                          <div key={p.userId} className="group min-h-0 min-w-0">
+                            {renderParticipantTile(p, 'lg')}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Page dots */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-1.5 py-2 shrink-0">
+                        {Array.from({ length: totalPages }, (_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setGalleryPage(i)}
+                            className={`rounded-full transition-all ${
+                              i === clampedPage
+                                ? 'w-2.5 h-2.5 bg-white'
+                                : 'w-2 h-2 bg-white/30 hover:bg-white/50'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                );
+              })()
             )}
           </div>
 
