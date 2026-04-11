@@ -212,21 +212,32 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     if (!isMentor) return;
     sessionStartRef.current = Date.now();
     try {
-      let stream: MediaStream;
-      if (typeof (document as unknown as { captureStream?: () => MediaStream }).captureStream === 'function') {
-        stream = (document as unknown as { captureStream: () => MediaStream }).captureStream();
-      } else {
-        const canvas = document.createElement('canvas');
-        canvas.width = 1280; canvas.height = 720;
-        stream = (canvas as unknown as { captureStream: (fps: number) => MediaStream }).captureStream(10);
+      // Create AudioContext mixer to combine local + remote audio
+      const ctx = new AudioContext();
+      const dest = ctx.createMediaStreamDestination();
+      audioMixerCtxRef.current = ctx;
+      audioMixerDestRef.current = dest;
+
+      const recordingStream = dest.stream;
+      recordingStreamRef.current = recordingStream;
+
+      // Try to find a supported mimeType
+      const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+      let mimeType = '';
+      for (const mt of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(mt)) { mimeType = mt; break; }
       }
-      recordingStreamRef.current = stream;
-      const mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+      if (!mimeType) { console.warn('No supported audio mimeType for recording'); return; }
+
+      const mr = new MediaRecorder(recordingStream, { mimeType });
       mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
       mr.start(5000);
       mediaRecorderRef.current = mr;
-    } catch { /* skip */ }
-    return () => { mediaRecorderRef.current?.state !== 'inactive' && mediaRecorderRef.current?.stop(); };
+    } catch (err) { console.warn('Recording init failed:', err); }
+    return () => {
+      mediaRecorderRef.current?.state !== 'inactive' && mediaRecorderRef.current?.stop();
+      audioMixerCtxRef.current?.close();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMentor]);
 
