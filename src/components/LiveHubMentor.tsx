@@ -208,20 +208,18 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
     onError: () => toast({ title: 'שגיאה בפתיחת שידור', variant: 'destructive' }),
   });
 
-  const handleSessionEnd = useCallback(async (recordingBlob: Blob, durationSeconds: number, sessionRef: ActiveSession | null) => {
-    if (!sessionRef) return;
+  const handleSessionEnd = useCallback(async (recordingBlob: Blob, durationSeconds: number, title: string, description: string) => {
     try {
       toast({ title: '⏳ שומר את הלייב המוקלט...' });
       const url = await uploadRecordingBlob(mentorId, recordingBlob);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase.from('live_recordings') as any).insert({
         mentor_id: mentorId,
-        live_session_id: sessionRef.id,
-        title: sessionRef.title,
+        title: title || 'לייב מוקלט',
+        description: description || null,
         recording_url: url,
         duration_minutes: Math.round(durationSeconds / 60) || 1,
       });
-      // Invalidate both mentor and student recording caches
       qc.invalidateQueries({ queryKey: ['live-recordings-mentor', mentorId] });
       qc.invalidateQueries({ queryKey: ['live-recordings-student', mentorId] });
       toast({ title: '✅ הלייב נשמר ב"לייבים מוקלטים"' });
