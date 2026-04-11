@@ -56,7 +56,7 @@ interface Props {
   sessionTitle: string;
   isMentor?: boolean;
   onClose: () => void;
-  onSessionEnd?: (recordingBlob: Blob, durationSeconds: number) => void;
+  onSessionEnd?: (recordingBlob: Blob, durationSeconds: number, title: string, description: string) => void;
 }
 
 const USER_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7','#ec4899','#06b6d4'];
