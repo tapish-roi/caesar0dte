@@ -1742,14 +1742,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       });
     }
     stopScreenShare(); stopSpeakingDetection(); stopMicTest();
-    // Stop all remote speaking detections
     remoteAnalysersRef.current.forEach((_, remoteId) => {
       stopRemoteSpeakingDetectionRef.current(remoteId);
     });
-    // Close all WebRTC peers
     peersRef.current.forEach(pc => pc.close());
     peersRef.current.clear();
-    // Release camera and microphone
     localStreamRef.current?.getTracks().forEach(t => t.stop());
     localStreamRef.current = null;
     cameraStreamRef.current?.getTracks().forEach(t => t.stop());
@@ -1757,18 +1754,29 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     localMicStreamForAnalysis.current?.getTracks().forEach(t => t.stop());
     localMicStreamForAnalysis.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
+
+    // Mentor: stop recording and show save popup
     if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       const mr = mediaRecorderRef.current;
       const dur = Math.round((Date.now() - sessionStartRef.current) / 1000);
       mr.onstop = () => {
-        const blob = new Blob([...recordedChunksRef.current], { type: 'video/webm' });
-        if (blob.size > 0 && onSessionEnd) onSessionEnd(blob, dur);
-        onClose();
+        const blob = new Blob([...recordedChunksRef.current], { type: 'audio/webm' });
+        if (blob.size > 0) {
+          setRecordingBlob(blob);
+          setRecordingDuration(dur);
+          setSaveRecTitle(sessionTitle);
+          setSaveRecDesc('');
+          setShowSaveRecPopup(true);
+        } else {
+          onClose();
+        }
       };
       mr.stop();
-    } else { onClose(); }
+    } else {
+      onClose();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMentor, userId, onClose, onSessionEnd, stopScreenShare, stopSpeakingDetection]);
+  }, [isMentor, userId, onClose, sessionTitle, stopScreenShare, stopSpeakingDetection]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Force mute (mentor)
