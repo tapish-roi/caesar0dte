@@ -56,7 +56,7 @@ interface Props {
   sessionTitle: string;
   isMentor?: boolean;
   onClose: () => void;
-  onSessionEnd?: (recordingBlob: Blob, durationSeconds: number) => void;
+  onSessionEnd?: (recordingBlob: Blob, durationSeconds: number, title: string, description: string) => void;
 }
 
 const USER_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7','#ec4899','#06b6d4'];
@@ -75,6 +75,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
   const [sessionEndedByMentor, setSessionEndedByMentor] = useState(false);
+  // ── Save recording popup (mentor) ──
+  const [showSaveRecPopup, setShowSaveRecPopup] = useState(false);
+  const [saveRecTitle, setSaveRecTitle] = useState('');
+  const [saveRecDesc, setSaveRecDesc] = useState('');
+  const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const audioMixerCtxRef = useRef<AudioContext | null>(null);
+  const audioMixerDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
   // Is someone else sharing screen?
   const [remoteScreenActive, setRemoteScreenActive] = useState(false);
   const [remoteScreenSharer, setRemoteScreenSharer] = useState<string>('');
@@ -204,23 +212,62 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     if (!isMentor) return;
     sessionStartRef.current = Date.now();
     try {
-      let stream: MediaStream;
-      if (typeof (document as unknown as { captureStream?: () => MediaStream }).captureStream === 'function') {
-        stream = (document as unknown as { captureStream: () => MediaStream }).captureStream();
-      } else {
-        const canvas = document.createElement('canvas');
-        canvas.width = 1280; canvas.height = 720;
-        stream = (canvas as unknown as { captureStream: (fps: number) => MediaStream }).captureStream(10);
+      // Create AudioContext mixer to combine local + remote audio
+      const ctx = new AudioContext();
+      const dest = ctx.createMediaStreamDestination();
+      audioMixerCtxRef.current = ctx;
+      audioMixerDestRef.current = dest;
+
+      const recordingStream = dest.stream;
+      recordingStreamRef.current = recordingStream;
+
+      // Try to find a supported mimeType
+      const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+      let mimeType = '';
+      for (const mt of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(mt)) { mimeType = mt; break; }
       }
-      recordingStreamRef.current = stream;
-      const mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+      if (!mimeType) { console.warn('No supported audio mimeType for recording'); return; }
+
+      const mr = new MediaRecorder(recordingStream, { mimeType });
       mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
       mr.start(5000);
       mediaRecorderRef.current = mr;
-    } catch { /* skip */ }
-    return () => { mediaRecorderRef.current?.state !== 'inactive' && mediaRecorderRef.current?.stop(); };
+    } catch (err) { console.warn('Recording init failed:', err); }
+    return () => {
+      mediaRecorderRef.current?.state !== 'inactive' && mediaRecorderRef.current?.stop();
+      audioMixerCtxRef.current?.close();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMentor]);
+
+  // ── Hook local mic into audio mixer for recording ──
+  useEffect(() => {
+    if (!isMentor || !audioMixerCtxRef.current || !audioMixerDestRef.current) return;
+    const ctx = audioMixerCtxRef.current;
+    const dest = audioMixerDestRef.current;
+    const sources: MediaStreamAudioSourceNode[] = [];
+    // Add local mic
+    if (localMicStreamForAnalysis.current && localMicStreamForAnalysis.current.getAudioTracks().length > 0) {
+      try {
+        const src = ctx.createMediaStreamSource(localMicStreamForAnalysis.current);
+        src.connect(dest);
+        sources.push(src);
+      } catch { /* already connected or invalid */ }
+    }
+    // Add remote streams audio
+    remoteStreamsRef.current.forEach((stream) => {
+      if (stream.getAudioTracks().length > 0) {
+        try {
+          const src = ctx.createMediaStreamSource(stream);
+          src.connect(dest);
+          sources.push(src);
+        } catch { /* already connected */ }
+      }
+    });
+    return () => { sources.forEach(s => { try { s.disconnect(); } catch {} }); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMentor, micEnabled, remoteStreams]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Device enumeration
@@ -1723,14 +1770,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       });
     }
     stopScreenShare(); stopSpeakingDetection(); stopMicTest();
-    // Stop all remote speaking detections
     remoteAnalysersRef.current.forEach((_, remoteId) => {
       stopRemoteSpeakingDetectionRef.current(remoteId);
     });
-    // Close all WebRTC peers
     peersRef.current.forEach(pc => pc.close());
     peersRef.current.clear();
-    // Release camera and microphone
     localStreamRef.current?.getTracks().forEach(t => t.stop());
     localStreamRef.current = null;
     cameraStreamRef.current?.getTracks().forEach(t => t.stop());
@@ -1738,18 +1782,29 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     localMicStreamForAnalysis.current?.getTracks().forEach(t => t.stop());
     localMicStreamForAnalysis.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
+
+    // Mentor: stop recording and show save popup
     if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       const mr = mediaRecorderRef.current;
       const dur = Math.round((Date.now() - sessionStartRef.current) / 1000);
       mr.onstop = () => {
-        const blob = new Blob([...recordedChunksRef.current], { type: 'video/webm' });
-        if (blob.size > 0 && onSessionEnd) onSessionEnd(blob, dur);
-        onClose();
+        const blob = new Blob([...recordedChunksRef.current], { type: 'audio/webm' });
+        if (blob.size > 0) {
+          setRecordingBlob(blob);
+          setRecordingDuration(dur);
+          setSaveRecTitle(sessionTitle);
+          setSaveRecDesc('');
+          setShowSaveRecPopup(true);
+        } else {
+          onClose();
+        }
       };
       mr.stop();
-    } else { onClose(); }
+    } else {
+      onClose();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMentor, userId, onClose, onSessionEnd, stopScreenShare, stopSpeakingDetection]);
+  }, [isMentor, userId, onClose, sessionTitle, stopScreenShare, stopSpeakingDetection]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Force mute (mentor)
@@ -2719,6 +2774,83 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 <div className="px-6 py-3 border-t border-border flex justify-start">
                   <button onClick={() => setShowSettings(false)}
                     className="h-9 px-5 rounded-lg bg-primary hover:bg-primary/80 text-primary-foreground text-sm font-semibold transition-all">סגור</button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Save Recording Popup (mentor) ── */}
+      <AnimatePresence>
+        {showSaveRecPopup && (
+          <>
+            <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed inset-0 z-[201] flex items-center justify-center p-4"
+            >
+              <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden" dir="rtl">
+                <div className="p-6 space-y-5">
+                  <div className="text-center space-y-2">
+                    <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
+                      <Video className="w-7 h-7 text-primary" />
+                    </div>
+                    <h2 className="text-lg font-bold text-foreground">שמירת לייב מוקלט</h2>
+                    <p className="text-sm text-muted-foreground">האם ברצונך לשמור את ההקלטה ולהעלות אותה ללייבים מוקלטים?</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-semibold text-foreground/80 block mb-1.5">כותרת</label>
+                      <input
+                        value={saveRecTitle}
+                        onChange={e => setSaveRecTitle(e.target.value)}
+                        className="w-full h-10 px-3 rounded-lg border border-border bg-muted/30 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        placeholder="שם הלייב המוקלט"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-foreground/80 block mb-1.5">תיאור (אופציונלי)</label>
+                      <textarea
+                        value={saveRecDesc}
+                        onChange={e => setSaveRecDesc(e.target.value)}
+                        rows={3}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-muted/30 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                        placeholder="תיאור קצר של הלייב..."
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      משך ההקלטה: {Math.floor(recordingDuration / 60)} דקות
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        if (recordingBlob && onSessionEnd) {
+                          onSessionEnd(recordingBlob, recordingDuration, saveRecTitle || sessionTitle, saveRecDesc);
+                        }
+                        setShowSaveRecPopup(false);
+                        onClose();
+                      }}
+                      className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary/80 text-primary-foreground font-semibold text-sm transition-all"
+                    >
+                      שמור והעלה
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSaveRecPopup(false);
+                        setRecordingBlob(null);
+                        onClose();
+                      }}
+                      className="flex-1 h-11 rounded-xl border border-border bg-muted/30 hover:bg-muted/60 text-foreground/70 font-semibold text-sm transition-all"
+                    >
+                      לא, תודה
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
