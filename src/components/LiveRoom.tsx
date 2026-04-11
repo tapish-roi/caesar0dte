@@ -241,6 +241,34 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMentor]);
 
+  // ── Hook local mic into audio mixer for recording ──
+  useEffect(() => {
+    if (!isMentor || !audioMixerCtxRef.current || !audioMixerDestRef.current) return;
+    const ctx = audioMixerCtxRef.current;
+    const dest = audioMixerDestRef.current;
+    const sources: MediaStreamAudioSourceNode[] = [];
+    // Add local mic
+    if (localMicStreamForAnalysis.current && localMicStreamForAnalysis.current.getAudioTracks().length > 0) {
+      try {
+        const src = ctx.createMediaStreamSource(localMicStreamForAnalysis.current);
+        src.connect(dest);
+        sources.push(src);
+      } catch { /* already connected or invalid */ }
+    }
+    // Add remote streams audio
+    remoteStreamsRef.current.forEach((stream) => {
+      if (stream.getAudioTracks().length > 0) {
+        try {
+          const src = ctx.createMediaStreamSource(stream);
+          src.connect(dest);
+          sources.push(src);
+        } catch { /* already connected */ }
+      }
+    });
+    return () => { sources.forEach(s => { try { s.disconnect(); } catch {} }); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMentor, micEnabled, remoteStreams]);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Device enumeration
   // ─────────────────────────────────────────────────────────────────────────────
