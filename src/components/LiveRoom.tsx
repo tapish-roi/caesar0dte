@@ -2781,6 +2781,83 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         )}
       </AnimatePresence>
 
+      {/* ── Save Recording Popup (mentor) ── */}
+      <AnimatePresence>
+        {showSaveRecPopup && (
+          <>
+            <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed inset-0 z-[201] flex items-center justify-center p-4"
+            >
+              <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden" dir="rtl">
+                <div className="p-6 space-y-5">
+                  <div className="text-center space-y-2">
+                    <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
+                      <Video className="w-7 h-7 text-primary" />
+                    </div>
+                    <h2 className="text-lg font-bold text-foreground">שמירת לייב מוקלט</h2>
+                    <p className="text-sm text-muted-foreground">האם ברצונך לשמור את ההקלטה ולהעלות אותה ללייבים מוקלטים?</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-semibold text-foreground/80 block mb-1.5">כותרת</label>
+                      <input
+                        value={saveRecTitle}
+                        onChange={e => setSaveRecTitle(e.target.value)}
+                        className="w-full h-10 px-3 rounded-lg border border-border bg-muted/30 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        placeholder="שם הלייב המוקלט"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-foreground/80 block mb-1.5">תיאור (אופציונלי)</label>
+                      <textarea
+                        value={saveRecDesc}
+                        onChange={e => setSaveRecDesc(e.target.value)}
+                        rows={3}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-muted/30 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                        placeholder="תיאור קצר של הלייב..."
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      משך ההקלטה: {Math.floor(recordingDuration / 60)} דקות
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        if (recordingBlob && onSessionEnd) {
+                          onSessionEnd(recordingBlob, recordingDuration, saveRecTitle || sessionTitle, saveRecDesc);
+                        }
+                        setShowSaveRecPopup(false);
+                        onClose();
+                      }}
+                      className="flex-1 h-11 rounded-xl bg-primary hover:bg-primary/80 text-primary-foreground font-semibold text-sm transition-all"
+                    >
+                      שמור והעלה
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowSaveRecPopup(false);
+                        setRecordingBlob(null);
+                        onClose();
+                      }}
+                      className="flex-1 h-11 rounded-xl border border-border bg-muted/30 hover:bg-muted/60 text-foreground/70 font-semibold text-sm transition-all"
+                    >
+                      לא, תודה
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
