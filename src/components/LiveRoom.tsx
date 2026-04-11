@@ -75,6 +75,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
   const [sessionEndedByMentor, setSessionEndedByMentor] = useState(false);
+  // ── Save recording popup (mentor) ──
+  const [showSaveRecPopup, setShowSaveRecPopup] = useState(false);
+  const [saveRecTitle, setSaveRecTitle] = useState('');
+  const [saveRecDesc, setSaveRecDesc] = useState('');
+  const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const audioMixerCtxRef = useRef<AudioContext | null>(null);
+  const audioMixerDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
   // Is someone else sharing screen?
   const [remoteScreenActive, setRemoteScreenActive] = useState(false);
   const [remoteScreenSharer, setRemoteScreenSharer] = useState<string>('');
