@@ -1874,7 +1874,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       const mr = mediaRecorderRef.current;
       const dur = Math.round((Date.now() - sessionStartRef.current) / 1000);
       mr.onstop = () => {
-        const blob = new Blob([...recordedChunksRef.current], { type: 'audio/webm' });
+        const blob = new Blob([...recordedChunksRef.current], { type: 'video/webm' });
         if (blob.size > 0) {
           setRecordingBlob(blob);
           setRecordingDuration(dur);
