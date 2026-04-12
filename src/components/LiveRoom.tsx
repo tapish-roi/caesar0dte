@@ -221,23 +221,106 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       audioMixerCtxRef.current = ctx;
       audioMixerDestRef.current = dest;
 
-      const recordingStream = dest.stream;
-      recordingStreamRef.current = recordingStream;
+      // Create offscreen canvas for video compositing (720p)
+      const recCanvas = document.createElement('canvas');
+      recCanvas.width = 1280;
+      recCanvas.height = 720;
+      recCanvasRef.current = recCanvas;
 
-      // Try to find a supported mimeType
-      const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+      // Combine canvas video stream + mixed audio into one MediaStream
+      const canvasStream = recCanvas.captureStream(15); // 15fps
+      const combinedStream = new MediaStream();
+      canvasStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
+      dest.stream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
+      recordingStreamRef.current = combinedStream;
+
+      // Try to find a supported video mimeType
+      const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
       let mimeType = '';
       for (const mt of mimeTypes) {
         if (MediaRecorder.isTypeSupported(mt)) { mimeType = mt; break; }
       }
-      if (!mimeType) { console.warn('No supported audio mimeType for recording'); return; }
+      if (!mimeType) { console.warn('No supported video mimeType for recording'); return; }
 
-      const mr = new MediaRecorder(recordingStream, { mimeType });
+      const mr = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 1_500_000 });
       mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
       mr.start(5000);
       mediaRecorderRef.current = mr;
+
+      // Start compositing loop — draw all participant videos onto the recording canvas
+      const compositeLoop = () => {
+        const cvs = recCanvasRef.current;
+        if (!cvs) return;
+        const c = cvs.getContext('2d');
+        if (!c) return;
+        c.fillStyle = '#111';
+        c.fillRect(0, 0, cvs.width, cvs.height);
+
+        // Collect all video sources: local camera, remote cameras, screen share
+        const videoSources: { video: HTMLVideoElement | HTMLCanvasElement; label: string }[] = [];
+
+        // Screen share takes priority (full canvas if active)
+        const remoteScreenCvs = remoteScreenCanvasRef.current;
+        const hasRemoteScreen = remoteScreenCvs && remoteScreenCvs.width > 0 && remoteScreenActive;
+        const localScreenVid = screenVideoRef.current;
+        const hasLocalScreen = localScreenVid && screenSharing && localScreenVid.videoWidth > 0;
+
+        if (hasRemoteScreen || hasLocalScreen) {
+          // Draw screen share full-width on top portion
+          const screenEl = hasLocalScreen ? localScreenVid! : remoteScreenCvs!;
+          const sw = screenEl instanceof HTMLVideoElement ? screenEl.videoWidth : screenEl.width;
+          const sh = screenEl instanceof HTMLVideoElement ? screenEl.videoHeight : screenEl.height;
+          if (sw > 0 && sh > 0) {
+            const screenAreaH = cvs.height - 120; // leave 120px strip at bottom for cameras
+            const scale = Math.min(cvs.width / sw, screenAreaH / sh);
+            const dw = sw * scale;
+            const dh = sh * scale;
+            c.drawImage(screenEl, (cvs.width - dw) / 2, (screenAreaH - dh) / 2, dw, dh);
+          }
+          // Draw participant cameras in bottom strip
+          const allVideos: HTMLVideoElement[] = [];
+          if (localVideoRef.current && cameraEnabled && localVideoRef.current.videoWidth > 0) allVideos.push(localVideoRef.current);
+          recVideoElementsRef.current.forEach(v => { if (v.videoWidth > 0) allVideos.push(v); });
+          const stripY = cvs.height - 110;
+          const tileW = allVideos.length > 0 ? Math.min(160, (cvs.width - 20) / allVideos.length) : 0;
+          const tileH = 100;
+          const totalW = tileW * allVideos.length;
+          let startX = (cvs.width - totalW) / 2;
+          allVideos.forEach(v => {
+            c.drawImage(v, startX, stripY, tileW - 4, tileH);
+            startX += tileW;
+          });
+        } else {
+          // No screen share — grid layout for cameras
+          const allVideos: HTMLVideoElement[] = [];
+          if (localVideoRef.current && cameraEnabled && localVideoRef.current.videoWidth > 0) allVideos.push(localVideoRef.current);
+          recVideoElementsRef.current.forEach(v => { if (v.videoWidth > 0) allVideos.push(v); });
+
+          if (allVideos.length > 0) {
+            const cols = Math.ceil(Math.sqrt(allVideos.length));
+            const rows = Math.ceil(allVideos.length / cols);
+            const tileW = cvs.width / cols;
+            const tileH = cvs.height / rows;
+            allVideos.forEach((v, i) => {
+              const col = i % cols;
+              const row = Math.floor(i / cols);
+              c.drawImage(v, col * tileW, row * tileH, tileW, tileH);
+            });
+          } else {
+            // No video — show "audio only" text
+            c.fillStyle = '#666';
+            c.font = '24px sans-serif';
+            c.textAlign = 'center';
+            c.fillText('שיחת אודיו', cvs.width / 2, cvs.height / 2);
+          }
+        }
+      };
+
+      recCompositeTimerRef.current = window.setInterval(compositeLoop, 1000 / 15); // 15fps
+
     } catch (err) { console.warn('Recording init failed:', err); }
     return () => {
+      if (recCompositeTimerRef.current) clearInterval(recCompositeTimerRef.current);
       mediaRecorderRef.current?.state !== 'inactive' && mediaRecorderRef.current?.stop();
       audioMixerCtxRef.current?.close();
     };
