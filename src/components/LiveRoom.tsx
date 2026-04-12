@@ -264,10 +264,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         const videoSources: { video: HTMLVideoElement | HTMLCanvasElement; label: string }[] = [];
 
         // Screen share takes priority (full canvas if active)
-        const remoteScreenCvs = remoteScreenCanvasRef.current;
-        const hasRemoteScreen = remoteScreenCvs && remoteScreenCvs.width > 0 && remoteScreenActive;
+        const hasRemoteScreen = remoteScreenCvs && remoteScreenCvs.width > 0 && recRemoteScreenActiveRef.current;
         const localScreenVid = screenVideoRef.current;
-        const hasLocalScreen = localScreenVid && screenSharing && localScreenVid.videoWidth > 0;
+        const hasLocalScreen = localScreenVid && recScreenSharingRef.current && localScreenVid.videoWidth > 0;
 
         if (hasRemoteScreen || hasLocalScreen) {
           // Draw screen share full-width on top portion
