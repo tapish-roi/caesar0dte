@@ -1997,6 +1997,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 if (el.srcObject !== remoteStream) {
                   el.srcObject = remoteStream ?? null;
                 }
+                // Track for recording compositor
+                recVideoElementsRef.current.set(p.userId, el);
               }}
               className="w-full h-full object-cover"
             />
