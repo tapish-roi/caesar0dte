@@ -403,7 +403,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             audioEl.muted = false;
             audioEl.defaultMuted = false;
             audioEl.autoplay = true;
-            audioEl.playsInline = true;
             if (selectedOutput && 'setSinkId' in audioEl) {
               (audioEl as HTMLAudioElement & { setSinkId?: (sinkId: string) => Promise<void> }).setSinkId?.(selectedOutput).catch(() => {});
             }
