@@ -1803,6 +1803,37 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         payload: { fromId: userId, toId: '*', type: 'session_end', data: {} },
       });
     }
+
+    // ── IMPORTANT: Stop recorder FIRST, before killing tracks ──
+    // Stopping tracks first causes MediaRecorder to auto-stop and lose the onstop handler
+    if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      const mr = mediaRecorderRef.current;
+      const dur = Math.round((Date.now() - sessionStartRef.current) / 1000);
+      // Request final chunk before stopping
+      try { mr.requestData(); } catch {}
+      mr.onstop = () => {
+        const blob = new Blob([...recordedChunksRef.current], { type: 'video/webm' });
+        // Now clean up tracks and streams
+        cleanupMediaTracks();
+        if (blob.size > 0) {
+          setRecordingBlob(blob);
+          setRecordingDuration(dur);
+          setSaveRecTitle(sessionTitle);
+          setSaveRecDesc('');
+          setShowSaveRecPopup(true);
+        } else {
+          onClose();
+        }
+      };
+      mr.stop();
+    } else {
+      cleanupMediaTracks();
+      onClose();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMentor, userId, onClose, sessionTitle, stopScreenShare, stopSpeakingDetection]);
+
+  const cleanupMediaTracks = useCallback(() => {
     stopScreenShare(); stopSpeakingDetection(); stopMicTest();
     remoteAnalysersRef.current.forEach((_, remoteId) => {
       stopRemoteSpeakingDetectionRef.current(remoteId);
@@ -1816,31 +1847,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     localMicStreamForAnalysis.current?.getTracks().forEach(t => t.stop());
     localMicStreamForAnalysis.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
-
     // Stop screen capture stream
     recScreenCaptureRef.current?.getTracks().forEach(t => t.stop());
     recScreenCaptureRef.current = null;
-
-    // Mentor: stop recording and show save popup
-    if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      const mr = mediaRecorderRef.current;
-      const dur = Math.round((Date.now() - sessionStartRef.current) / 1000);
-      mr.onstop = () => {
-        const blob = new Blob([...recordedChunksRef.current], { type: 'video/webm' });
-        if (blob.size > 0) {
-          setRecordingBlob(blob);
-          setRecordingDuration(dur);
-          setSaveRecTitle(sessionTitle);
-          setSaveRecDesc('');
-          setShowSaveRecPopup(true);
-        } else {
-          onClose();
-        }
-      };
-      mr.stop();
-    } else {
-      onClose();
-    }
+    // Close audio mixer
+    audioMixerCtxRef.current?.close();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stopScreenShare, stopSpeakingDetection]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMentor, userId, onClose, sessionTitle, stopScreenShare, stopSpeakingDetection]);
 
