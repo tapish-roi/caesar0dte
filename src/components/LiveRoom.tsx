@@ -83,13 +83,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [recordingDuration, setRecordingDuration] = useState(0);
   const audioMixerCtxRef = useRef<AudioContext | null>(null);
   const audioMixerDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-  const recCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const recCompositeTimerRef = useRef<number | null>(null);
-  const recVideoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
-  // Refs for recording compositor closure to read current state
-  const recCameraEnabledRef = useRef(false);
-  const recScreenSharingRef = useRef(false);
-  const recRemoteScreenActiveRef = useRef(false);
+  const recScreenCaptureRef = useRef<MediaStream | null>(null);
+  const [recPromptVisible, setRecPromptVisible] = useState(false);
   // Is someone else sharing screen?
   const [remoteScreenActive, setRemoteScreenActive] = useState(false);
   const [remoteScreenSharer, setRemoteScreenSharer] = useState<string>('');
