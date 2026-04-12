@@ -331,6 +331,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMentor]);
 
+  // ── Keep recording refs in sync ──
+  useEffect(() => { recCameraEnabledRef.current = cameraEnabled; }, [cameraEnabled]);
+  useEffect(() => { recScreenSharingRef.current = screenSharing; }, [screenSharing]);
+  useEffect(() => { recRemoteScreenActiveRef.current = remoteScreenActive; }, [remoteScreenActive]);
+
   // ── Hook local mic into audio mixer for recording ──
   useEffect(() => {
     if (!isMentor || !audioMixerCtxRef.current || !audioMixerDestRef.current) return;
