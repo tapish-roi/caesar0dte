@@ -393,6 +393,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       if (stream.getAudioTracks().length > 0) {
         startRemoteSpeakingDetectionRef.current(remoteId, stream);
       }
+      // Force audio element to play when a new audio track arrives
+      if (track.kind === 'audio') {
+        setTimeout(() => {
+          const audioEl = document.querySelector<HTMLAudioElement>(`[data-remote-audio="${remoteId}"]`);
+          if (audioEl) {
+            // Re-assign srcObject to ensure browser picks up the new track
+            audioEl.srcObject = stream!;
+            audioEl.play().catch(() => {});
+          }
+        }, 100);
+      }
       // Detect when remote turns camera off
       track.onended = () => {
         const s = remoteStreamsRef.current.get(remoteId);
