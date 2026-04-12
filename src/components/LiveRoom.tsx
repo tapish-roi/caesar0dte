@@ -83,6 +83,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [recordingDuration, setRecordingDuration] = useState(0);
   const audioMixerCtxRef = useRef<AudioContext | null>(null);
   const audioMixerDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const recCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const recCompositeTimerRef = useRef<number | null>(null);
+  const recVideoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+  // Refs for recording compositor closure to read current state
+  const recCameraEnabledRef = useRef(false);
+  const recScreenSharingRef = useRef(false);
+  const recRemoteScreenActiveRef = useRef(false);
   // Is someone else sharing screen?
   const [remoteScreenActive, setRemoteScreenActive] = useState(false);
   const [remoteScreenSharer, setRemoteScreenSharer] = useState<string>('');
@@ -218,28 +225,116 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       audioMixerCtxRef.current = ctx;
       audioMixerDestRef.current = dest;
 
-      const recordingStream = dest.stream;
-      recordingStreamRef.current = recordingStream;
+      // Create offscreen canvas for video compositing (720p)
+      const recCanvas = document.createElement('canvas');
+      recCanvas.width = 1280;
+      recCanvas.height = 720;
+      recCanvasRef.current = recCanvas;
 
-      // Try to find a supported mimeType
-      const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+      // Combine canvas video stream + mixed audio into one MediaStream
+      const canvasStream = recCanvas.captureStream(15); // 15fps
+      const combinedStream = new MediaStream();
+      canvasStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
+      dest.stream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
+      recordingStreamRef.current = combinedStream;
+
+      // Try to find a supported video mimeType
+      const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
       let mimeType = '';
       for (const mt of mimeTypes) {
         if (MediaRecorder.isTypeSupported(mt)) { mimeType = mt; break; }
       }
-      if (!mimeType) { console.warn('No supported audio mimeType for recording'); return; }
+      if (!mimeType) { console.warn('No supported video mimeType for recording'); return; }
 
-      const mr = new MediaRecorder(recordingStream, { mimeType });
+      const mr = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 1_500_000 });
       mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
       mr.start(5000);
       mediaRecorderRef.current = mr;
+
+      // Start compositing loop — draw all participant videos onto the recording canvas
+      const compositeLoop = () => {
+        const cvs = recCanvasRef.current;
+        if (!cvs) return;
+        const c = cvs.getContext('2d');
+        if (!c) return;
+        c.fillStyle = '#111';
+        c.fillRect(0, 0, cvs.width, cvs.height);
+
+        // Collect all video sources: local camera, remote cameras, screen share
+        const videoSources: { video: HTMLVideoElement | HTMLCanvasElement; label: string }[] = [];
+
+        // Screen share takes priority (full canvas if active)
+        const remoteScreenCvs = remoteScreenCanvasRef.current;
+        const hasRemoteScreen = remoteScreenCvs && remoteScreenCvs.width > 0 && recRemoteScreenActiveRef.current;
+        const localScreenVid = screenVideoRef.current;
+        const hasLocalScreen = localScreenVid && recScreenSharingRef.current && localScreenVid.videoWidth > 0;
+
+        if (hasRemoteScreen || hasLocalScreen) {
+          // Draw screen share full-width on top portion
+          const screenEl = hasLocalScreen ? localScreenVid! : remoteScreenCvs!;
+          const sw = screenEl instanceof HTMLVideoElement ? screenEl.videoWidth : screenEl.width;
+          const sh = screenEl instanceof HTMLVideoElement ? screenEl.videoHeight : screenEl.height;
+          if (sw > 0 && sh > 0) {
+            const screenAreaH = cvs.height - 120; // leave 120px strip at bottom for cameras
+            const scale = Math.min(cvs.width / sw, screenAreaH / sh);
+            const dw = sw * scale;
+            const dh = sh * scale;
+            c.drawImage(screenEl, (cvs.width - dw) / 2, (screenAreaH - dh) / 2, dw, dh);
+          }
+          // Draw participant cameras in bottom strip
+          const allVideos: HTMLVideoElement[] = [];
+          if (localVideoRef.current && recCameraEnabledRef.current && localVideoRef.current.videoWidth > 0) allVideos.push(localVideoRef.current);
+          recVideoElementsRef.current.forEach(v => { if (v.videoWidth > 0) allVideos.push(v); });
+          const stripY = cvs.height - 110;
+          const tileW = allVideos.length > 0 ? Math.min(160, (cvs.width - 20) / allVideos.length) : 0;
+          const tileH = 100;
+          const totalW = tileW * allVideos.length;
+          let startX = (cvs.width - totalW) / 2;
+          allVideos.forEach(v => {
+            c.drawImage(v, startX, stripY, tileW - 4, tileH);
+            startX += tileW;
+          });
+        } else {
+          // No screen share — grid layout for cameras
+          const allVideos: HTMLVideoElement[] = [];
+          if (localVideoRef.current && recCameraEnabledRef.current && localVideoRef.current.videoWidth > 0) allVideos.push(localVideoRef.current);
+          recVideoElementsRef.current.forEach(v => { if (v.videoWidth > 0) allVideos.push(v); });
+
+          if (allVideos.length > 0) {
+            const cols = Math.ceil(Math.sqrt(allVideos.length));
+            const rows = Math.ceil(allVideos.length / cols);
+            const tileW = cvs.width / cols;
+            const tileH = cvs.height / rows;
+            allVideos.forEach((v, i) => {
+              const col = i % cols;
+              const row = Math.floor(i / cols);
+              c.drawImage(v, col * tileW, row * tileH, tileW, tileH);
+            });
+          } else {
+            // No video — show "audio only" text
+            c.fillStyle = '#666';
+            c.font = '24px sans-serif';
+            c.textAlign = 'center';
+            c.fillText('שיחת אודיו', cvs.width / 2, cvs.height / 2);
+          }
+        }
+      };
+
+      recCompositeTimerRef.current = window.setInterval(compositeLoop, 1000 / 15); // 15fps
+
     } catch (err) { console.warn('Recording init failed:', err); }
     return () => {
+      if (recCompositeTimerRef.current) clearInterval(recCompositeTimerRef.current);
       mediaRecorderRef.current?.state !== 'inactive' && mediaRecorderRef.current?.stop();
       audioMixerCtxRef.current?.close();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMentor]);
+
+  // ── Keep recording refs in sync ──
+  useEffect(() => { recCameraEnabledRef.current = cameraEnabled; }, [cameraEnabled]);
+  useEffect(() => { recScreenSharingRef.current = screenSharing; }, [screenSharing]);
+  useEffect(() => { recRemoteScreenActiveRef.current = remoteScreenActive; }, [remoteScreenActive]);
 
   // ── Hook local mic into audio mixer for recording ──
   useEffect(() => {
@@ -389,6 +484,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       const cleanupPeer = () => {
         peersRef.current.delete(remoteId);
         remoteStreamsRef.current.delete(remoteId);
+        recVideoElementsRef.current.delete(remoteId);
         audioSenderMapRef.current.delete(pc);
         setRemoteStreams(new Map(remoteStreamsRef.current));
         setParticipants(prev => prev.filter(p => p.userId !== remoteId));
@@ -601,6 +697,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         const pc = peersRef.current.get(fromId);
         if (pc) { pc.close(); peersRef.current.delete(fromId); }
         remoteStreamsRef.current.delete(fromId);
+        recVideoElementsRef.current.delete(fromId);
         audioSenderMapRef.current.forEach((sender, peerPc) => { if (peerPc === pc) audioSenderMapRef.current.delete(peerPc); });
         setRemoteStreams(new Map(remoteStreamsRef.current));
         setParticipants(prev => prev.filter(p => p.userId !== fromId));
@@ -1783,12 +1880,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     localMicStreamForAnalysis.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
+    // Stop composite timer
+    if (recCompositeTimerRef.current) { clearInterval(recCompositeTimerRef.current); recCompositeTimerRef.current = null; }
+    recVideoElementsRef.current.clear();
+
     // Mentor: stop recording and show save popup
     if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       const mr = mediaRecorderRef.current;
       const dur = Math.round((Date.now() - sessionStartRef.current) / 1000);
       mr.onstop = () => {
-        const blob = new Blob([...recordedChunksRef.current], { type: 'audio/webm' });
+        const blob = new Blob([...recordedChunksRef.current], { type: 'video/webm' });
         if (blob.size > 0) {
           setRecordingBlob(blob);
           setRecordingDuration(dur);
@@ -1829,6 +1930,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const pc = peersRef.current.get(targetId);
     if (pc) { pc.close(); peersRef.current.delete(targetId); }
     remoteStreamsRef.current.delete(targetId);
+    recVideoElementsRef.current.delete(targetId);
     setRemoteStreams(new Map(remoteStreamsRef.current));
     setParticipants(prev => prev.filter(p => p.userId !== targetId));
     toast({ title: 'המשתמש הוסר מהשיחה' });
@@ -1911,6 +2013,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 if (el.srcObject !== remoteStream) {
                   el.srcObject = remoteStream ?? null;
                 }
+                // Track for recording compositor
+                recVideoElementsRef.current.set(p.userId, el);
               }}
               className="w-full h-full object-cover"
             />
