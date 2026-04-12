@@ -398,8 +398,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         setTimeout(() => {
           const audioEl = document.querySelector<HTMLAudioElement>(`[data-remote-audio="${remoteId}"]`);
           if (audioEl) {
-            // Re-assign srcObject to ensure browser picks up the new track
+            audioEl.srcObject = null;
             audioEl.srcObject = stream!;
+            audioEl.muted = false;
+            audioEl.defaultMuted = false;
+            audioEl.autoplay = true;
+            audioEl.playsInline = true;
+            if (selectedOutput && 'setSinkId' in audioEl) {
+              (audioEl as HTMLAudioElement & { setSinkId?: (sinkId: string) => Promise<void> }).setSinkId?.(selectedOutput).catch(() => {});
+            }
             audioEl.play().catch(() => {});
           }
         }, 100);
@@ -2067,15 +2074,20 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
            autoPlay
            playsInline
            data-remote-audio={remoteId}
-           ref={el => {
-             if (el) {
-               if (el.srcObject !== stream) {
-                 el.srcObject = stream;
-               }
-               el.volume = deafened ? 0 : volume / 100;
-               if (el.paused && el.srcObject) el.play().catch(() => {});
-             }
-           }}
+            ref={el => {
+              if (el) {
+                if (el.srcObject !== stream) {
+                  el.srcObject = stream;
+                }
+                el.muted = false;
+                el.defaultMuted = false;
+                el.volume = deafened ? 0 : volume / 100;
+                if (selectedOutput && 'setSinkId' in el) {
+                  (el as HTMLAudioElement & { setSinkId?: (sinkId: string) => Promise<void> }).setSinkId?.(selectedOutput).catch(() => {});
+                }
+                if (el.paused && el.srcObject) el.play().catch(() => {});
+              }
+            }}
            style={{ visibility: 'hidden', position: 'absolute', width: 0, height: 0 }}
          />
        ))}
