@@ -1869,6 +1869,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     localMicStreamForAnalysis.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
+    // Stop composite timer
+    if (recCompositeTimerRef.current) { clearInterval(recCompositeTimerRef.current); recCompositeTimerRef.current = null; }
+    recVideoElementsRef.current.clear();
+
     // Mentor: stop recording and show save popup
     if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       const mr = mediaRecorderRef.current;
