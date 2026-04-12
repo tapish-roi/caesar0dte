@@ -49,7 +49,20 @@ function LoadingSpinner({ text = "טוען..." }: { text?: string }) {
 }
 
 function AppRoutes() {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, session } = useAuth();
+  const queryClient = useQueryClient();
+  const prevUserIdRef = useRef<string | null>(null);
+
+  // Invalidate all cached queries when auth state changes (login/logout/session refresh)
+  useEffect(() => {
+    const currentUserId = user?.id ?? null;
+    if (prevUserIdRef.current !== currentUserId) {
+      if (prevUserIdRef.current !== null || currentUserId !== null) {
+        queryClient.invalidateQueries();
+      }
+      prevUserIdRef.current = currentUserId;
+    }
+  }, [user?.id, session?.access_token, queryClient]);
 
   if (loading) return <LoadingSpinner />;
 
