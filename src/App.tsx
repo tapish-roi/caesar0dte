@@ -1,10 +1,11 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LayoutGroup, AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef } from "react";
 import DashboardReveal from "@/components/DashboardReveal";
 import AuthPage from "./pages/AuthPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
@@ -48,7 +49,22 @@ function LoadingSpinner({ text = "טוען..." }: { text?: string }) {
 }
 
 function AppRoutes() {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, session } = useAuth();
+  const queryClient = useQueryClient();
+  const prevTokenRef = useRef<string | null>(null);
+
+  // Invalidate all cached queries when the access token changes (login/logout/session refresh)
+  useEffect(() => {
+    const token = session?.access_token ?? null;
+    if (prevTokenRef.current !== null && prevTokenRef.current !== token) {
+      queryClient.invalidateQueries();
+    }
+    if (token !== null && prevTokenRef.current === null) {
+      // First time we get a real token — invalidate stale anon-key results
+      queryClient.invalidateQueries();
+    }
+    prevTokenRef.current = token;
+  }, [session?.access_token, queryClient]);
 
   if (loading) return <LoadingSpinner />;
 
