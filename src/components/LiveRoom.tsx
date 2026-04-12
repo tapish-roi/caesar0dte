@@ -421,7 +421,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       const cleanupPeer = () => {
         peersRef.current.delete(remoteId);
         remoteStreamsRef.current.delete(remoteId);
-        recVideoElementsRef.current.delete(remoteId);
+        
         audioSenderMapRef.current.delete(pc);
         setRemoteStreams(new Map(remoteStreamsRef.current));
         setParticipants(prev => prev.filter(p => p.userId !== remoteId));
@@ -634,7 +634,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         const pc = peersRef.current.get(fromId);
         if (pc) { pc.close(); peersRef.current.delete(fromId); }
         remoteStreamsRef.current.delete(fromId);
-        recVideoElementsRef.current.delete(fromId);
+        
         audioSenderMapRef.current.forEach((sender, peerPc) => { if (peerPc === pc) audioSenderMapRef.current.delete(peerPc); });
         setRemoteStreams(new Map(remoteStreamsRef.current));
         setParticipants(prev => prev.filter(p => p.userId !== fromId));
@@ -1817,9 +1817,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     localMicStreamForAnalysis.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
 
-    // Stop composite timer
-    if (recCompositeTimerRef.current) { clearInterval(recCompositeTimerRef.current); recCompositeTimerRef.current = null; }
-    recVideoElementsRef.current.clear();
+    // Stop screen capture stream
+    recScreenCaptureRef.current?.getTracks().forEach(t => t.stop());
+    recScreenCaptureRef.current = null;
 
     // Mentor: stop recording and show save popup
     if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -1867,7 +1867,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const pc = peersRef.current.get(targetId);
     if (pc) { pc.close(); peersRef.current.delete(targetId); }
     remoteStreamsRef.current.delete(targetId);
-    recVideoElementsRef.current.delete(targetId);
+    
     setRemoteStreams(new Map(remoteStreamsRef.current));
     setParticipants(prev => prev.filter(p => p.userId !== targetId));
     toast({ title: 'המשתמש הוסר מהשיחה' });
@@ -1950,8 +1950,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 if (el.srcObject !== remoteStream) {
                   el.srcObject = remoteStream ?? null;
                 }
-                // Track for recording compositor
-                recVideoElementsRef.current.set(p.userId, el);
+              
               }}
               className="w-full h-full object-cover"
             />
