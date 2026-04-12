@@ -2834,6 +2834,42 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
       {/* ── Save Recording Popup (mentor) ── */}
       <AnimatePresence>
+        {/* Recording prompt — asks mentor to allow screen capture */}
+        {recPromptVisible && (
+          <>
+            <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="fixed inset-0 z-[201] flex items-center justify-center p-4"
+            >
+              <div className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl overflow-hidden" dir="rtl">
+                <div className="p-6 space-y-4 text-center">
+                  <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center mx-auto">
+                    <Monitor className="w-7 h-7 text-red-400" />
+                  </div>
+                  <h2 className="text-lg font-bold text-foreground">הקלטת הלייב</h2>
+                  <p className="text-sm text-muted-foreground">לחץ כדי להתחיל הקלטת מסך של הלייב. ההקלטה תכלול את כל מה שמופיע על המסך — כולל וידאו, שיתוף מסך ופאנל משתתפים.</p>
+                  <div className="flex gap-3 justify-center pt-2">
+                    <button
+                      onClick={startScreenRecording}
+                      className="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm transition-colors"
+                    >
+                      התחל הקלטה
+                    </button>
+                    <button
+                      onClick={() => setRecPromptVisible(false)}
+                      className="px-5 py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-semibold text-sm transition-colors"
+                    >
+                      דלג
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+
         {showSaveRecPopup && (
           <>
             <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm" />
