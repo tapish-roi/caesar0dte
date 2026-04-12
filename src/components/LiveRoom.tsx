@@ -83,13 +83,8 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const [recordingDuration, setRecordingDuration] = useState(0);
   const audioMixerCtxRef = useRef<AudioContext | null>(null);
   const audioMixerDestRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-  const recCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const recCompositeTimerRef = useRef<number | null>(null);
-  const recVideoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
-  // Refs for recording compositor closure to read current state
-  const recCameraEnabledRef = useRef(false);
-  const recScreenSharingRef = useRef(false);
-  const recRemoteScreenActiveRef = useRef(false);
+  const recScreenCaptureRef = useRef<MediaStream | null>(null);
+  const [recPromptVisible, setRecPromptVisible] = useState(false);
   // Is someone else sharing screen?
   const [remoteScreenActive, setRemoteScreenActive] = useState(false);
   const [remoteScreenSharer, setRemoteScreenSharer] = useState<string>('');
@@ -213,10 +208,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Recording (mentor only)
+  // Recording — screen capture (mentor only)
   // ─────────────────────────────────────────────────────────────────────────────
+  // Show prompt for mentor to start screen capture recording
   useEffect(() => {
-    if (!isMentor) return;
+    if (isMentor) setRecPromptVisible(true);
+  }, [isMentor]);
+
+  const startScreenRecording = useCallback(async () => {
+    setRecPromptVisible(false);
     sessionStartRef.current = Date.now();
     try {
       // Create AudioContext mixer to combine local + remote audio
@@ -225,20 +225,35 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       audioMixerCtxRef.current = ctx;
       audioMixerDestRef.current = dest;
 
-      // Create offscreen canvas for video compositing (720p)
-      const recCanvas = document.createElement('canvas');
-      recCanvas.width = 1280;
-      recCanvas.height = 720;
-      recCanvasRef.current = recCanvas;
+      // Capture the current tab (screen + audio of everything visible)
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { displaySurface: 'browser' as any, frameRate: 15, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false, // We mix audio ourselves for better control
+        // @ts-ignore — preferCurrentTab is supported in Chrome 109+
+        preferCurrentTab: true,
+      });
+      recScreenCaptureRef.current = displayStream;
 
-      // Combine canvas video stream + mixed audio into one MediaStream
-      const canvasStream = recCanvas.captureStream(15); // 15fps
+      // If user cancels the picker
+      if (!displayStream.getVideoTracks().length) {
+        console.warn('No display track selected');
+        return;
+      }
+
+      // Stop recording if user stops sharing via browser UI
+      displayStream.getVideoTracks()[0].onended = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+      };
+
+      // Combine display video + mixed audio
       const combinedStream = new MediaStream();
-      canvasStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
+      displayStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
       dest.stream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
       recordingStreamRef.current = combinedStream;
 
-      // Try to find a supported video mimeType
+      // Find supported mimeType
       const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
       let mimeType = '';
       for (const mt of mimeTypes) {
@@ -246,95 +261,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       }
       if (!mimeType) { console.warn('No supported video mimeType for recording'); return; }
 
-      const mr = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 1_500_000 });
+      const mr = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond: 3_000_000 });
       mr.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
-      mr.start(5000);
+      mr.start(2000); // Collect chunks every 2 seconds for reliability
       mediaRecorderRef.current = mr;
 
-      // Start compositing loop — draw all participant videos onto the recording canvas
-      const compositeLoop = () => {
-        const cvs = recCanvasRef.current;
-        if (!cvs) return;
-        const c = cvs.getContext('2d');
-        if (!c) return;
-        c.fillStyle = '#111';
-        c.fillRect(0, 0, cvs.width, cvs.height);
+    } catch (err) {
+      console.warn('Screen recording init failed:', err);
+      // Don't block the session — just won't record
+    }
+  }, []);
 
-        // Collect all video sources: local camera, remote cameras, screen share
-        const videoSources: { video: HTMLVideoElement | HTMLCanvasElement; label: string }[] = [];
-
-        // Screen share takes priority (full canvas if active)
-        const remoteScreenCvs = remoteScreenCanvasRef.current;
-        const hasRemoteScreen = remoteScreenCvs && remoteScreenCvs.width > 0 && recRemoteScreenActiveRef.current;
-        const localScreenVid = screenVideoRef.current;
-        const hasLocalScreen = localScreenVid && recScreenSharingRef.current && localScreenVid.videoWidth > 0;
-
-        if (hasRemoteScreen || hasLocalScreen) {
-          // Draw screen share full-width on top portion
-          const screenEl = hasLocalScreen ? localScreenVid! : remoteScreenCvs!;
-          const sw = screenEl instanceof HTMLVideoElement ? screenEl.videoWidth : screenEl.width;
-          const sh = screenEl instanceof HTMLVideoElement ? screenEl.videoHeight : screenEl.height;
-          if (sw > 0 && sh > 0) {
-            const screenAreaH = cvs.height - 120; // leave 120px strip at bottom for cameras
-            const scale = Math.min(cvs.width / sw, screenAreaH / sh);
-            const dw = sw * scale;
-            const dh = sh * scale;
-            c.drawImage(screenEl, (cvs.width - dw) / 2, (screenAreaH - dh) / 2, dw, dh);
-          }
-          // Draw participant cameras in bottom strip
-          const allVideos: HTMLVideoElement[] = [];
-          if (localVideoRef.current && recCameraEnabledRef.current && localVideoRef.current.videoWidth > 0) allVideos.push(localVideoRef.current);
-          recVideoElementsRef.current.forEach(v => { if (v.videoWidth > 0) allVideos.push(v); });
-          const stripY = cvs.height - 110;
-          const tileW = allVideos.length > 0 ? Math.min(160, (cvs.width - 20) / allVideos.length) : 0;
-          const tileH = 100;
-          const totalW = tileW * allVideos.length;
-          let startX = (cvs.width - totalW) / 2;
-          allVideos.forEach(v => {
-            c.drawImage(v, startX, stripY, tileW - 4, tileH);
-            startX += tileW;
-          });
-        } else {
-          // No screen share — grid layout for cameras
-          const allVideos: HTMLVideoElement[] = [];
-          if (localVideoRef.current && recCameraEnabledRef.current && localVideoRef.current.videoWidth > 0) allVideos.push(localVideoRef.current);
-          recVideoElementsRef.current.forEach(v => { if (v.videoWidth > 0) allVideos.push(v); });
-
-          if (allVideos.length > 0) {
-            const cols = Math.ceil(Math.sqrt(allVideos.length));
-            const rows = Math.ceil(allVideos.length / cols);
-            const tileW = cvs.width / cols;
-            const tileH = cvs.height / rows;
-            allVideos.forEach((v, i) => {
-              const col = i % cols;
-              const row = Math.floor(i / cols);
-              c.drawImage(v, col * tileW, row * tileH, tileW, tileH);
-            });
-          } else {
-            // No video — show "audio only" text
-            c.fillStyle = '#666';
-            c.font = '24px sans-serif';
-            c.textAlign = 'center';
-            c.fillText('שיחת אודיו', cvs.width / 2, cvs.height / 2);
-          }
-        }
-      };
-
-      recCompositeTimerRef.current = window.setInterval(compositeLoop, 1000 / 15); // 15fps
-
-    } catch (err) { console.warn('Recording init failed:', err); }
-    return () => {
-      if (recCompositeTimerRef.current) clearInterval(recCompositeTimerRef.current);
-      mediaRecorderRef.current?.state !== 'inactive' && mediaRecorderRef.current?.stop();
-      audioMixerCtxRef.current?.close();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMentor]);
-
-  // ── Keep recording refs in sync ──
-  useEffect(() => { recCameraEnabledRef.current = cameraEnabled; }, [cameraEnabled]);
-  useEffect(() => { recScreenSharingRef.current = screenSharing; }, [screenSharing]);
-  useEffect(() => { recRemoteScreenActiveRef.current = remoteScreenActive; }, [remoteScreenActive]);
 
   // ── Hook local mic into audio mixer for recording ──
   useEffect(() => {
@@ -484,7 +421,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       const cleanupPeer = () => {
         peersRef.current.delete(remoteId);
         remoteStreamsRef.current.delete(remoteId);
-        recVideoElementsRef.current.delete(remoteId);
+        
         audioSenderMapRef.current.delete(pc);
         setRemoteStreams(new Map(remoteStreamsRef.current));
         setParticipants(prev => prev.filter(p => p.userId !== remoteId));
@@ -697,7 +634,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         const pc = peersRef.current.get(fromId);
         if (pc) { pc.close(); peersRef.current.delete(fromId); }
         remoteStreamsRef.current.delete(fromId);
-        recVideoElementsRef.current.delete(fromId);
+        
         audioSenderMapRef.current.forEach((sender, peerPc) => { if (peerPc === pc) audioSenderMapRef.current.delete(peerPc); });
         setRemoteStreams(new Map(remoteStreamsRef.current));
         setParticipants(prev => prev.filter(p => p.userId !== fromId));
@@ -1866,6 +1803,37 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         payload: { fromId: userId, toId: '*', type: 'session_end', data: {} },
       });
     }
+
+    // ── IMPORTANT: Stop recorder FIRST, before killing tracks ──
+    // Stopping tracks first causes MediaRecorder to auto-stop and lose the onstop handler
+    if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      const mr = mediaRecorderRef.current;
+      const dur = Math.round((Date.now() - sessionStartRef.current) / 1000);
+      // Request final chunk before stopping
+      try { mr.requestData(); } catch {}
+      mr.onstop = () => {
+        const blob = new Blob([...recordedChunksRef.current], { type: 'video/webm' });
+        // Now clean up tracks and streams
+        cleanupMediaTracks();
+        if (blob.size > 0) {
+          setRecordingBlob(blob);
+          setRecordingDuration(dur);
+          setSaveRecTitle(sessionTitle);
+          setSaveRecDesc('');
+          setShowSaveRecPopup(true);
+        } else {
+          onClose();
+        }
+      };
+      mr.stop();
+    } else {
+      cleanupMediaTracks();
+      onClose();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMentor, userId, onClose, sessionTitle, stopScreenShare, stopSpeakingDetection]);
+
+  const cleanupMediaTracks = useCallback(() => {
     stopScreenShare(); stopSpeakingDetection(); stopMicTest();
     remoteAnalysersRef.current.forEach((_, remoteId) => {
       stopRemoteSpeakingDetectionRef.current(remoteId);
@@ -1879,33 +1847,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     localMicStreamForAnalysis.current?.getTracks().forEach(t => t.stop());
     localMicStreamForAnalysis.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
-
-    // Stop composite timer
-    if (recCompositeTimerRef.current) { clearInterval(recCompositeTimerRef.current); recCompositeTimerRef.current = null; }
-    recVideoElementsRef.current.clear();
-
-    // Mentor: stop recording and show save popup
-    if (isMentor && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      const mr = mediaRecorderRef.current;
-      const dur = Math.round((Date.now() - sessionStartRef.current) / 1000);
-      mr.onstop = () => {
-        const blob = new Blob([...recordedChunksRef.current], { type: 'video/webm' });
-        if (blob.size > 0) {
-          setRecordingBlob(blob);
-          setRecordingDuration(dur);
-          setSaveRecTitle(sessionTitle);
-          setSaveRecDesc('');
-          setShowSaveRecPopup(true);
-        } else {
-          onClose();
-        }
-      };
-      mr.stop();
-    } else {
-      onClose();
-    }
+    // Stop screen capture stream
+    recScreenCaptureRef.current?.getTracks().forEach(t => t.stop());
+    recScreenCaptureRef.current = null;
+    // Close audio mixer
+    audioMixerCtxRef.current?.close();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMentor, userId, onClose, sessionTitle, stopScreenShare, stopSpeakingDetection]);
+  }, [stopScreenShare, stopSpeakingDetection]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Force mute (mentor)
@@ -1930,7 +1878,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     const pc = peersRef.current.get(targetId);
     if (pc) { pc.close(); peersRef.current.delete(targetId); }
     remoteStreamsRef.current.delete(targetId);
-    recVideoElementsRef.current.delete(targetId);
+    
     setRemoteStreams(new Map(remoteStreamsRef.current));
     setParticipants(prev => prev.filter(p => p.userId !== targetId));
     toast({ title: 'המשתמש הוסר מהשיחה' });
@@ -2013,8 +1961,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 if (el.srcObject !== remoteStream) {
                   el.srcObject = remoteStream ?? null;
                 }
-                // Track for recording compositor
-                recVideoElementsRef.current.set(p.userId, el);
+              
               }}
               className="w-full h-full object-cover"
             />
@@ -2887,6 +2834,42 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
       {/* ── Save Recording Popup (mentor) ── */}
       <AnimatePresence>
+        {/* Recording prompt — asks mentor to allow screen capture */}
+        {recPromptVisible && (
+          <>
+            <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="fixed inset-0 z-[201] flex items-center justify-center p-4"
+            >
+              <div className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl overflow-hidden" dir="rtl">
+                <div className="p-6 space-y-4 text-center">
+                  <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center mx-auto">
+                    <Monitor className="w-7 h-7 text-red-400" />
+                  </div>
+                  <h2 className="text-lg font-bold text-foreground">הקלטת הלייב</h2>
+                  <p className="text-sm text-muted-foreground">לחץ כדי להתחיל הקלטת מסך של הלייב. ההקלטה תכלול את כל מה שמופיע על המסך — כולל וידאו, שיתוף מסך ופאנל משתתפים.</p>
+                  <div className="flex gap-3 justify-center pt-2">
+                    <button
+                      onClick={startScreenRecording}
+                      className="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm transition-colors"
+                    >
+                      התחל הקלטה
+                    </button>
+                    <button
+                      onClick={() => setRecPromptVisible(false)}
+                      className="px-5 py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-semibold text-sm transition-colors"
+                    >
+                      דלג
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+
         {showSaveRecPopup && (
           <>
             <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm" />
