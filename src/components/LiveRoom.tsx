@@ -1854,8 +1854,6 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     audioMixerCtxRef.current?.close();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopScreenShare, stopSpeakingDetection]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMentor, userId, onClose, sessionTitle, stopScreenShare, stopSpeakingDetection]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Force mute (mentor)
