@@ -2061,24 +2061,24 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
     <div className="fixed inset-0 z-50 flex flex-col bg-background" dir="rtl">
 
       {/* ── Hidden remote audio elements ── */}
-      {Array.from(remoteStreams.entries()).map(([remoteId, stream]) => (
-        <audio
-          key={remoteId}
-          autoPlay
-          playsInline
-          data-remote-audio={remoteId}
-          ref={el => {
-            if (el && el.srcObject !== stream) {
-              el.srcObject = stream;
-              el.volume = deafened ? 0 : volume / 100;
-              el.play().catch(() => {});
-            } else if (el) {
-              el.volume = deafened ? 0 : volume / 100;
-            }
-          }}
-          style={{ display: 'none' }}
-        />
-      ))}
+       {Array.from(remoteStreams.entries()).map(([remoteId, stream]) => (
+         <audio
+           key={remoteId}
+           autoPlay
+           playsInline
+           data-remote-audio={remoteId}
+           ref={el => {
+             if (el) {
+               if (el.srcObject !== stream) {
+                 el.srcObject = stream;
+               }
+               el.volume = deafened ? 0 : volume / 100;
+               if (el.paused && el.srcObject) el.play().catch(() => {});
+             }
+           }}
+           style={{ visibility: 'hidden', position: 'absolute', width: 0, height: 0 }}
+         />
+       ))}
 
       {/* ══════════════════════════════════════════════════════════════════════
           TOP HEADER — Zoom-style minimal
