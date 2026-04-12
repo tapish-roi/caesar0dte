@@ -51,18 +51,20 @@ function LoadingSpinner({ text = "טוען..." }: { text?: string }) {
 function AppRoutes() {
   const { user, role, loading, session } = useAuth();
   const queryClient = useQueryClient();
-  const prevUserIdRef = useRef<string | null>(null);
+  const prevTokenRef = useRef<string | null>(null);
 
-  // Invalidate all cached queries when auth state changes (login/logout/session refresh)
+  // Invalidate all cached queries when the access token changes (login/logout/session refresh)
   useEffect(() => {
-    const currentUserId = user?.id ?? null;
-    if (prevUserIdRef.current !== currentUserId) {
-      if (prevUserIdRef.current !== null || currentUserId !== null) {
-        queryClient.invalidateQueries();
-      }
-      prevUserIdRef.current = currentUserId;
+    const token = session?.access_token ?? null;
+    if (prevTokenRef.current !== null && prevTokenRef.current !== token) {
+      queryClient.invalidateQueries();
     }
-  }, [user?.id, session?.access_token, queryClient]);
+    if (token !== null && prevTokenRef.current === null) {
+      // First time we get a real token — invalidate stale anon-key results
+      queryClient.invalidateQueries();
+    }
+    prevTokenRef.current = token;
+  }, [session?.access_token, queryClient]);
 
   if (loading) return <LoadingSpinner />;
 
