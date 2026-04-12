@@ -283,7 +283,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           }
           // Draw participant cameras in bottom strip
           const allVideos: HTMLVideoElement[] = [];
-          if (localVideoRef.current && cameraEnabled && localVideoRef.current.videoWidth > 0) allVideos.push(localVideoRef.current);
+          if (localVideoRef.current && recCameraEnabledRef.current && localVideoRef.current.videoWidth > 0) allVideos.push(localVideoRef.current);
           recVideoElementsRef.current.forEach(v => { if (v.videoWidth > 0) allVideos.push(v); });
           const stripY = cvs.height - 110;
           const tileW = allVideos.length > 0 ? Math.min(160, (cvs.width - 20) / allVideos.length) : 0;
@@ -297,7 +297,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         } else {
           // No screen share — grid layout for cameras
           const allVideos: HTMLVideoElement[] = [];
-          if (localVideoRef.current && cameraEnabled && localVideoRef.current.videoWidth > 0) allVideos.push(localVideoRef.current);
+          if (localVideoRef.current && recCameraEnabledRef.current && localVideoRef.current.videoWidth > 0) allVideos.push(localVideoRef.current);
           recVideoElementsRef.current.forEach(v => { if (v.videoWidth > 0) allVideos.push(v); });
 
           if (allVideos.length > 0) {
