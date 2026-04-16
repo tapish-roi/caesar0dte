@@ -1453,8 +1453,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, []);
 
   useEffect(() => {
-    syncLocalVideoPreview();
-  }, [cameraEnabled, syncLocalVideoPreview]);
+    // Re-sync local preview when camera state OR layout changes (screen-share toggles
+    // remount the local <video> tile). force=true to overcome any stale srcObject.
+    syncLocalVideoPreview(true);
+  }, [cameraEnabled, screenSharing, remoteScreenActive, syncLocalVideoPreview]);
 
   const broadcastMediaState = useCallback((mic: boolean, cam: boolean) => {
     webrtcChannelRef.current?.send({
