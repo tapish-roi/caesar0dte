@@ -69,15 +69,19 @@ export default function AuthPage() {
             await supabase.auth.signOut();
             setEmail('');
             setPassword('');
+            setLoading(false);
             setTab('mentor');
-            throw new Error('חשבון זה שייך למנטור. מעביר אותך ללשונית המנטור.');
+            toast({ title: 'שגיאה', description: 'חשבון זה שייך למנטור. מעביר אותך ללשונית המנטור.', variant: 'destructive' });
+            return;
           }
           if (tab === 'mentor' && userRole !== 'mentor') {
             await supabase.auth.signOut();
             setEmail('');
             setPassword('');
+            setLoading(false);
             setTab('student');
-            throw new Error('חשבון זה שייך לתלמיד. מעביר אותך ללשונית התלמיד.');
+            toast({ title: 'שגיאה', description: 'חשבון זה שייך לתלמיד. מעביר אותך ללשונית התלמיד.', variant: 'destructive' });
+            return;
           }
         }
       }
