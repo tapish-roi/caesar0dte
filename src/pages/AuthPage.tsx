@@ -67,11 +67,17 @@ export default function AuthPage() {
 
           if (tab === 'student' && userRole !== 'student') {
             await supabase.auth.signOut();
-            throw new Error('חשבון זה שייך למנטור. יש להתחבר דרך לשונית המנטור.');
+            setEmail('');
+            setPassword('');
+            setTab('mentor');
+            throw new Error('חשבון זה שייך למנטור. מעביר אותך ללשונית המנטור.');
           }
           if (tab === 'mentor' && userRole !== 'mentor') {
             await supabase.auth.signOut();
-            throw new Error('חשבון זה שייך לתלמיד. יש להתחבר דרך לשונית התלמיד.');
+            setEmail('');
+            setPassword('');
+            setTab('student');
+            throw new Error('חשבון זה שייך לתלמיד. מעביר אותך ללשונית התלמיד.');
           }
         }
       }
