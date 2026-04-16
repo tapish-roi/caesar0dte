@@ -52,6 +52,23 @@ function AppRoutes() {
   const { user, role, loading, session } = useAuth();
   const queryClient = useQueryClient();
   const prevTokenRef = useRef<string | null>(null);
+  const [roleCheckPending, setRoleCheckPending] = useState(() =>
+    typeof window !== 'undefined' && sessionStorage.getItem('auth_role_check') === 'pending'
+  );
+
+  // Listen for role-check guard changes
+  useEffect(() => {
+    const handler = () => {
+      setRoleCheckPending(sessionStorage.getItem('auth_role_check') === 'pending');
+    };
+    window.addEventListener('storage', handler);
+    // Also poll briefly since sessionStorage events don't fire in same tab
+    const interval = setInterval(handler, 200);
+    return () => {
+      window.removeEventListener('storage', handler);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Invalidate all cached queries when the access token changes (login/logout/session refresh)
   useEffect(() => {
