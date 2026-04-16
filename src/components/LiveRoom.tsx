@@ -1967,6 +1967,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             <video
               ref={el => {
                 localVideoRef.current = el;
+                // Re-attach camera stream on mount/remount (e.g. when layout switches due to screen sharing).
+                // Without this, starting a screen share remounts this <video> with srcObject=null,
+                // making the camera appear "off" until manually toggled.
+                if (el && localStreamRef.current) {
+                  const hasLiveVideo = localStreamRef.current.getVideoTracks().some(t => t.readyState === 'live');
+                  const nextStream = hasLiveVideo ? localStreamRef.current : null;
+                  if (el.srcObject !== nextStream) {
+                    el.srcObject = nextStream;
+                    if (nextStream) el.play().catch(() => {});
+                  }
+                }
               }}
               autoPlay playsInline muted className="w-full h-full object-cover"
             />
