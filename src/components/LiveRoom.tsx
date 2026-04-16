@@ -584,10 +584,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       if (type === 'request_screen_share' && isMentor) {
         const requesterName = String(data.userName || 'תלמיד');
         const requesterId = String(fromId);
+        console.log('[ScreenShare] 📥 Mentor received request from', requesterId, requesterName);
+        // Deduplicate: if we already have a pending request from this user, don't show another toast
+        let alreadyPending = false;
         setPendingScreenRequests(prev => {
-          if (prev.find(r => r.userId === requesterId)) return prev;
+          if (prev.find(r => r.userId === requesterId)) { alreadyPending = true; return prev; }
           return [...prev, { userId: requesterId, userName: requesterName }];
         });
+        if (alreadyPending) {
+          console.log('[ScreenShare] ↩️ Duplicate request ignored for', requesterId);
+          return;
+        }
         // Fire a prominent toast with approve/deny action buttons
         toast({
           title: `📺 בקשת שיתוף מסך`,
@@ -596,11 +603,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           action: (
             <div className="flex gap-2 mt-1">
               <button
-                onClick={async () => {
-                  await (supabase.from('live_signals') as any).insert({
-                    session_id: sessionId, from_user_id: userId, to_user_id: requesterId,
-                    signal_type: 'screen_share_approved', payload: {},
-                  });
+                onClick={() => {
+                  console.log('[ScreenShare] ✅ Mentor approving', requesterId);
+                  sendSignal(requesterId, 'screen_share_approved', {});
                   setPendingScreenRequests(prev => prev.filter(r => r.userId !== requesterId));
                   toast({ title: `✅ אישרת את ${requesterName} לשתף מסך` });
                 }}
@@ -609,11 +614,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 אשר
               </button>
               <button
-                onClick={async () => {
-                  await (supabase.from('live_signals') as any).insert({
-                    session_id: sessionId, from_user_id: userId, to_user_id: requesterId,
-                    signal_type: 'screen_share_denied', payload: {},
-                  });
+                onClick={() => {
+                  console.log('[ScreenShare] ❌ Mentor denying', requesterId);
+                  sendSignal(requesterId, 'screen_share_denied', {});
                   setPendingScreenRequests(prev => prev.filter(r => r.userId !== requesterId));
                 }}
                 className="px-3 py-1 text-xs font-semibold rounded-lg bg-red-500/80 text-white hover:bg-red-500 transition-colors"
@@ -626,12 +629,14 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         return;
       }
       if (type === 'screen_share_approved' && !isMentor) {
+        console.log('[ScreenShare] 🎉 Student received APPROVAL');
         setScreenShareRequested(false);
         setStudentScreenShareApproved(true);
         toast({ title: 'המנטור אישר את בקשתך לשתף מסך!' });
         return;
       }
       if (type === 'screen_share_denied' && !isMentor) {
+        console.log('[ScreenShare] 🚫 Student received DENIAL');
         setScreenShareRequested(false);
         setStudentScreenShareApproved(false);
         toast({ title: 'הבקשה לשיתוף מסך נדחתה', variant: 'destructive' });
@@ -1772,37 +1777,32 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Screen share request flow
+  // Screen share request flow — uses WebRTC broadcast channel (not DB) so the
+  // mentor's broadcast listener actually receives it.
   // ─────────────────────────────────────────────────────────────────────────────
-  const requestScreenShare = useCallback(async () => {
-    if (screenShareRequested) return;
+  const requestScreenShare = useCallback(() => {
+    if (screenShareRequested) {
+      console.log('[ScreenShare] ⏭️ Request already pending, skipping duplicate');
+      return;
+    }
+    console.log('[ScreenShare] 📤 Student sending request to mentor', mentorId);
     setScreenShareRequested(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('live_signals') as any).insert({
-      session_id: sessionId, from_user_id: userId, to_user_id: mentorId,
-      signal_type: 'request_screen_share', payload: { userName },
-    });
+    sendSignal(mentorId, 'request_screen_share', { userName });
     toast({ title: 'בקשת שיתוף מסך נשלחה למנטור' });
-  }, [screenShareRequested, sessionId, userId, mentorId, userName, toast]);
+  }, [screenShareRequested, mentorId, userName, sendSignal, toast]);
 
-  const approveScreenShare = useCallback(async (targetId: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('live_signals') as any).insert({
-      session_id: sessionId, from_user_id: userId, to_user_id: targetId,
-      signal_type: 'screen_share_approved', payload: {},
-    });
+  const approveScreenShare = useCallback((targetId: string) => {
+    console.log('[ScreenShare] ✅ Mentor approving (panel)', targetId);
+    sendSignal(targetId, 'screen_share_approved', {});
     setPendingScreenRequests(prev => prev.filter(r => r.userId !== targetId));
     toast({ title: 'אישרת בקשת שיתוף מסך' });
-  }, [sessionId, userId, toast]);
+  }, [sendSignal, toast]);
 
-  const denyScreenShare = useCallback(async (targetId: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('live_signals') as any).insert({
-      session_id: sessionId, from_user_id: userId, to_user_id: targetId,
-      signal_type: 'screen_share_denied', payload: {},
-    });
+  const denyScreenShare = useCallback((targetId: string) => {
+    console.log('[ScreenShare] ❌ Mentor denying (panel)', targetId);
+    sendSignal(targetId, 'screen_share_denied', {});
     setPendingScreenRequests(prev => prev.filter(r => r.userId !== targetId));
-  }, [sessionId, userId]);
+  }, [sendSignal]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Leave
