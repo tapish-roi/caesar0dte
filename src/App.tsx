@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LayoutGroup, AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import DashboardReveal from "@/components/DashboardReveal";
 import AuthPage from "./pages/AuthPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
@@ -52,6 +52,23 @@ function AppRoutes() {
   const { user, role, loading, session } = useAuth();
   const queryClient = useQueryClient();
   const prevTokenRef = useRef<string | null>(null);
+  const [roleCheckPending, setRoleCheckPending] = useState(() =>
+    typeof window !== 'undefined' && sessionStorage.getItem('auth_role_check') === 'pending'
+  );
+
+  // Listen for role-check guard changes
+  useEffect(() => {
+    const handler = () => {
+      setRoleCheckPending(sessionStorage.getItem('auth_role_check') === 'pending');
+    };
+    window.addEventListener('storage', handler);
+    // Also poll briefly since sessionStorage events don't fire in same tab
+    const interval = setInterval(handler, 200);
+    return () => {
+      window.removeEventListener('storage', handler);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Invalidate all cached queries when the access token changes (login/logout/session refresh)
   useEffect(() => {
@@ -78,7 +95,7 @@ function AppRoutes() {
   }
 
   // Determine the current "phase" for shared layout animation
-  const phase = !user ? 'auth' : !role ? 'loading-role' : 'dashboard';
+  const phase = (!user || roleCheckPending) ? 'auth' : !role ? 'loading-role' : 'dashboard';
 
   return (
     <LayoutGroup>

@@ -26,6 +26,9 @@ export default function AuthPage() {
     setLoading(true);
 
     try {
+      // Set guard flag to prevent AuthContext from navigating away during role check
+      sessionStorage.setItem('auth_role_check', 'pending');
+
       if (tab === 'mentor' && mentorMode === 'signup') {
         // Mentor signup — use Edge Function to create user + profile + role atomically
         const res = await fetch(`${SUPABASE_URL}/functions/v1/create-mentor`, {
@@ -89,6 +92,8 @@ export default function AuthPage() {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
       toast({ title: 'שגיאה', description: message, variant: 'destructive' });
       setLoading(false);
+    } finally {
+      sessionStorage.removeItem('auth_role_check');
     }
   };
 
