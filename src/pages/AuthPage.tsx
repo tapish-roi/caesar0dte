@@ -92,6 +92,8 @@ export default function AuthPage() {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
       toast({ title: 'שגיאה', description: message, variant: 'destructive' });
       setLoading(false);
+    } finally {
+      sessionStorage.removeItem('auth_role_check');
     }
   };
 
