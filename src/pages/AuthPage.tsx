@@ -41,7 +41,7 @@ export default function AuthPage() {
         if (signInError) throw signInError;
       } else {
         // Mentor login OR Student login — plain signIn
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           if (error.message.toLowerCase().includes('invalid login credentials')) {
             throw new Error(
@@ -52,7 +52,28 @@ export default function AuthPage() {
           }
           throw error;
         }
-        // Auth state change will trigger the layout animation automatically
+
+        // Verify role matches the selected tab
+        const userId = data.user?.id;
+        if (userId) {
+          const metaRole = data.user?.user_metadata?.role as string | undefined;
+          let userRole = metaRole;
+
+          // If no metadata role, check DB
+          if (userRole !== 'mentor' && userRole !== 'student') {
+            const { data: dbRole } = await supabase.rpc('get_user_role', { _user_id: userId });
+            userRole = dbRole ?? undefined;
+          }
+
+          if (tab === 'student' && userRole !== 'student') {
+            await supabase.auth.signOut();
+            throw new Error('חשבון זה שייך למנטור. יש להתחבר דרך לשונית המנטור.');
+          }
+          if (tab === 'mentor' && userRole !== 'mentor') {
+            await supabase.auth.signOut();
+            throw new Error('חשבון זה שייך לתלמיד. יש להתחבר דרך לשונית התלמיד.');
+          }
+        }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
