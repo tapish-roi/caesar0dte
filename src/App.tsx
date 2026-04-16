@@ -95,8 +95,6 @@ function AppRoutes() {
   }
 
   // Determine the current "phase" for shared layout animation
-  // Stay on auth if a role check is pending (prevents race condition on wrong-tab login)
-  const roleCheckPending = typeof window !== 'undefined' && sessionStorage.getItem('auth_role_check') === 'pending';
   const phase = (!user || roleCheckPending) ? 'auth' : !role ? 'loading-role' : 'dashboard';
 
   return (
