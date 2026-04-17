@@ -1606,6 +1606,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   const toggleScreenShare = useCallback(async () => {
     if (screenSharing) { stopScreenShare(); return; }
+    // Mobile / unsupported browser guard — must come BEFORE any await
+    if (!isScreenShareSupported()) {
+      console.warn('[ScreenShare] getDisplayMedia not supported in this browser/device');
+      toast({
+        title: 'שיתוף מסך לא נתמך',
+        description: 'שיתוף מסך אינו נתמך במכשיר נייד. נא להשתמש במחשב.',
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       screenStreamRef.current = stream;
@@ -1619,7 +1629,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         payload: { sharerId: userId, sharerName: userName },
       });
       toast({ title: 'שיתוף מסך הופעל' });
-    } catch { toast({ title: 'שיתוף מסך בוטל', variant: 'destructive' }); }
+    } catch (err) {
+      const name = (err as Error)?.name;
+      console.error('[ScreenShare] getDisplayMedia failed:', name, err);
+      if (name === 'NotAllowedError') {
+        toast({ title: 'שיתוף מסך נדחה', description: 'נדרש אישור הדפדפן לשיתוף מסך', variant: 'destructive' });
+      } else {
+        toast({ title: 'שיתוף מסך בוטל', variant: 'destructive' });
+      }
+    }
   }, [screenSharing, stopScreenShare, userId, userName, toast]);
 
   // Assign srcObject AFTER React has rendered the video element as visible
