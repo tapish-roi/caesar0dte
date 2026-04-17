@@ -1143,16 +1143,16 @@ export default function StudentDashboard() {
                   <button
                     key={key}
                     onClick={() => { if (disabled) { toast({ title: 'בקרוב', description: 'פיצ׳ר הלייב יהיה זמין בקרוב' }); return; } setActiveTab(key); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    className={`sidebar-tab-glow w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
                       disabled
-                        ? 'text-muted-foreground/40 cursor-not-allowed'
+                        ? 'is-disabled text-muted-foreground/40 cursor-not-allowed'
                         : activeTab === key
-                          ? 'bg-sidebar-accent text-sidebar-foreground'
+                          ? 'is-active bg-sidebar-accent text-sidebar-foreground'
                           : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
-                    {label}
+                    <span className="sidebar-tab-label">{label}</span>
                     {disabled && <Lock className="w-3 h-3 text-muted-foreground/40" />}
                   </button>
                 ))}
