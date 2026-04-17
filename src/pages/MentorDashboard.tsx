@@ -988,16 +988,16 @@ export default function MentorDashboard() {
                    <button
                      key={key}
                      onClick={() => { if (disabled) { toast({ title: 'בקרוב', description: 'פיצ׳ר הלייב יהיה זמין בקרוב' }); return; } setActiveTab(key); if (key !== 'quizzes') setQuizNavLessonId(null); }}
-                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                     className={`sidebar-tab-glow w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
                        disabled
-                         ? 'text-muted-foreground/40 cursor-not-allowed'
+                         ? 'is-disabled text-muted-foreground/40 cursor-not-allowed'
                          : activeTab === key
-                           ? 'bg-sidebar-accent text-sidebar-foreground'
+                           ? 'is-active bg-sidebar-accent text-sidebar-foreground'
                            : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                      }`}
                    >
                      <Icon className="w-4 h-4" />
-                     <span className="flex-1 text-right">{label}</span>
+                     <span className="sidebar-tab-label flex-1 text-right">{label}</span>
                      {disabled && <Lock className="w-3 h-3 text-muted-foreground/40" />}
                      {key === 'questions' && unansweredCount > 0 && (
                        <span className="min-w-[20px] h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
