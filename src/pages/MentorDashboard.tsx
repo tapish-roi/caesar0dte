@@ -1742,7 +1742,7 @@ export default function MentorDashboard() {
 
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">סוג תוכן</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
                       {lessonTypes.map(({ key, label, icon: Icon }) => (
                         <button key={key} onClick={() => setLessonForm(f => ({ ...f, lesson_type: key, video_url: '' }))}
                           className={`p-3 rounded-lg border text-xs font-medium flex flex-col items-center gap-1.5 transition-all ${
