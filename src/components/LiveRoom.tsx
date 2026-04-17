@@ -62,6 +62,18 @@ interface Props {
 const USER_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7','#ec4899','#06b6d4'];
 const getColorForUser = (uid: string) => USER_COLORS[uid.charCodeAt(0) % USER_COLORS.length];
 
+// Mobile / browser screen-share capability detection.
+// iOS Safari, most Android browsers, and in-app webviews do not expose getDisplayMedia.
+const isScreenShareSupported = (): boolean => {
+  try {
+    return typeof navigator !== 'undefined'
+      && !!navigator.mediaDevices
+      && typeof navigator.mediaDevices.getDisplayMedia === 'function';
+  } catch {
+    return false;
+  }
+};
+
 // How many ms between screen-share frame broadcasts
 const FRAME_INTERVAL_MS = 100; // ~10fps — reduced to avoid blocking main thread and causing audio jitter
 
@@ -368,12 +380,28 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       });
     }
 
+    // ── CRITICAL: Pre-reserve an audio sendrecv transceiver if no audio track exists yet.
+    // Without this, a peer created while the user is muted will have NO audio sender,
+    // and unmuting later requires a full renegotiation. By reserving the transceiver up
+    // front, replaceTrack() on unmute is enough — no SDP collision, audio flows immediately.
+    const hasAudioSender = pc.getSenders().some(s => s.track?.kind === 'audio')
+      || pc.getTransceivers().some(t => t.sender.track?.kind === 'audio' || (t as RTCRtpTransceiver & { kind?: string }).kind === 'audio');
+    if (!hasAudioSender) {
+      try {
+        const audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
+        audioSenderMapRef.current.set(pc, audioTransceiver.sender);
+      } catch (err) {
+        console.warn('[WebRTC] Could not pre-add audio transceiver:', err);
+      }
+    }
+
     pc.onicecandidate = (e) => {
       if (e.candidate) sendSignal(remoteId, 'ice_candidate', { candidate: e.candidate.toJSON() });
     };
 
     pc.ontrack = (e) => {
       const track = e.track;
+      console.log('[WebRTC] 📥 ontrack', { remoteId, kind: track.kind, id: track.id });
       // Use a stable MediaStream per participant — don't overwrite on each new track
       let stream = remoteStreamsRef.current.get(remoteId);
       if (!stream) {
@@ -1594,6 +1622,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
   const toggleScreenShare = useCallback(async () => {
     if (screenSharing) { stopScreenShare(); return; }
+    // Mobile / unsupported browser guard — must come BEFORE any await
+    if (!isScreenShareSupported()) {
+      console.warn('[ScreenShare] getDisplayMedia not supported in this browser/device');
+      toast({
+        title: 'שיתוף מסך לא נתמך',
+        description: 'שיתוף מסך אינו נתמך במכשיר נייד. נא להשתמש במחשב.',
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
       screenStreamRef.current = stream;
@@ -1607,7 +1645,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         payload: { sharerId: userId, sharerName: userName },
       });
       toast({ title: 'שיתוף מסך הופעל' });
-    } catch { toast({ title: 'שיתוף מסך בוטל', variant: 'destructive' }); }
+    } catch (err) {
+      const name = (err as Error)?.name;
+      console.error('[ScreenShare] getDisplayMedia failed:', name, err);
+      if (name === 'NotAllowedError') {
+        toast({ title: 'שיתוף מסך נדחה', description: 'נדרש אישור הדפדפן לשיתוף מסך', variant: 'destructive' });
+      } else {
+        toast({ title: 'שיתוף מסך בוטל', variant: 'destructive' });
+      }
+    }
   }, [screenSharing, stopScreenShare, userId, userName, toast]);
 
   // Assign srcObject AFTER React has rendered the video element as visible
@@ -1785,6 +1831,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   const requestScreenShare = useCallback(() => {
     if (screenShareRequested) {
       console.log('[ScreenShare] ⏭️ Request already pending, skipping duplicate');
+      return;
+    }
+    // Mobile / unsupported browser guard — block the request before bothering the mentor.
+    if (!isScreenShareSupported()) {
+      console.warn('[ScreenShare] Student tried to request share on unsupported device');
+      toast({
+        title: 'שיתוף מסך לא נתמך',
+        description: 'שיתוף מסך אינו נתמך במכשיר נייד. נא להשתמש במחשב.',
+        variant: 'destructive',
+      });
       return;
     }
     console.log('[ScreenShare] 📤 Student sending request to mentor', mentorId);
