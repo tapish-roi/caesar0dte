@@ -854,7 +854,8 @@ export default function MentorDashboard() {
   ];
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
+    <div className="flex h-screen bg-background overflow-hidden relative" dir="rtl">
+      <SpaceBackground />
       {/* Draft lesson alert */}
       <AlertDialog open={!!draftAlertLessonId} onOpenChange={(open) => { if (!open) setDraftAlertLessonId(null); }}>
         <AlertDialogContent dir="rtl" className="text-white">
