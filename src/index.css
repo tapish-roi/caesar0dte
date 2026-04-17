@@ -161,7 +161,7 @@
      the ambient parallax background show through subtly. Sidebar uses
      `bg-sidebar` (not `bg-card`), so it is untouched. */
   .bg-card {
-    background-color: hsl(var(--card) / 0.9) !important;
+    background-color: hsl(var(--card) / 0.96) !important;
     backdrop-filter: blur(14px) saturate(120%);
     -webkit-backdrop-filter: blur(14px) saturate(120%);
     border: 1px solid hsla(0, 0%, 100%, 0.06);
