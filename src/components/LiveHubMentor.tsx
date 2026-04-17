@@ -311,21 +311,21 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
               <div className="bg-card rounded-2xl card-shadow p-6">
                 <h2 className="font-semibold text-foreground mb-1">פתח לייב חדש</h2>
                 <p className="text-sm text-muted-foreground mb-4">תן שם ללייב ופתח שידור — התלמידים יראו את הלייב ויוכלו להצטרף</p>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 min-w-0">
                   <input
                     value={newLiveTitle}
                     onChange={e => setNewLiveTitle(e.target.value)}
                     placeholder="שם השידור (לדוגמה: ניתוח שבועי)"
-                    className="flex-1 h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent text-right"
+                    className="w-full sm:flex-1 min-w-0 h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent text-right"
                     onKeyDown={e => e.key === 'Enter' && newLiveTitle.trim() && startLiveSession.mutate(newLiveTitle)}
                   />
                   <button
                     onClick={() => newLiveTitle.trim() && startLiveSession.mutate(newLiveTitle)}
                     disabled={!newLiveTitle.trim() || startLiveSession.isPending}
-                    className="h-11 px-5 bg-destructive text-destructive-foreground rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2 shrink-0"
+                    className="w-full sm:w-auto min-h-11 sm:h-11 px-5 py-2 bg-destructive text-destructive-foreground rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 sm:shrink-0 text-center break-words"
                   >
-                    <Radio className="w-4 h-4" />
-                    {startLiveSession.isPending ? 'מתחיל...' : 'התחל שידור'}
+                    <Radio className="w-4 h-4 shrink-0" />
+                    <span className="break-words">{startLiveSession.isPending ? 'מתחיל...' : 'התחל שידור'}</span>
                   </button>
                 </div>
               </div>
@@ -335,16 +335,16 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                   const shareLink = `${window.location.origin}/livestream?session=${session.id}`;
                   return (
                     <div key={session.id} className="bg-card rounded-2xl card-shadow p-5 border border-destructive/20">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
-                        <span className="font-bold text-foreground">{session.title}</span>
-                        <span className="text-xs text-destructive font-bold mr-auto">LIVE</span>
+                      <div className="flex items-center gap-3 mb-3 min-w-0">
+                        <span className="w-3 h-3 rounded-full bg-destructive animate-pulse shrink-0" />
+                        <span className="font-bold text-foreground truncate min-w-0 flex-1">{session.title}</span>
+                        <span className="text-xs text-destructive font-bold shrink-0">LIVE</span>
                       </div>
 
                       {/* Shareable link */}
-                      <div className="flex items-center gap-2 mb-4 bg-muted/40 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2 mb-4 bg-muted/40 rounded-lg px-3 py-2 min-w-0">
                         <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-xs text-muted-foreground truncate flex-1 select-all font-mono" dir="ltr">{shareLink}</span>
+                        <span className="text-xs text-muted-foreground truncate flex-1 min-w-0 select-all font-mono" dir="ltr">{shareLink}</span>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(shareLink);
@@ -356,16 +356,16 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                         </button>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <button
                           onClick={() => setActiveSession(session)}
-                          className="flex-1 h-10 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                          className="w-full sm:flex-1 min-h-10 sm:h-10 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
                         >
-                          <Radio className="w-4 h-4" />פתח שידור
+                          <Radio className="w-4 h-4 shrink-0" /><span className="break-words">פתח שידור</span>
                         </button>
                         <button
                           onClick={() => endLiveSession(session.id)}
-                          className="h-10 px-4 border border-destructive/30 text-destructive rounded-xl text-sm font-medium hover:bg-destructive/10 transition-all"
+                          className="w-full sm:w-auto min-h-10 sm:h-10 px-4 py-2 border border-destructive/30 text-destructive rounded-xl text-sm font-medium hover:bg-destructive/10 transition-all break-words"
                         >
                           סיים שידור
                         </button>
