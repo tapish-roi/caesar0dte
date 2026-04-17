@@ -13,7 +13,7 @@ export default function SpaceBackground() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-[5] overflow-hidden"
     >
       {/* Far layer — faint distant stars, drifts very slowly diagonally */}
       <div className="space-layer space-layer-far" />
