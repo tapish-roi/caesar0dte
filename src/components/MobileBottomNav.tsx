@@ -34,8 +34,12 @@ export default function MobileBottomNav({ items, activeTab, onTabChange }: Mobil
               onTabChange(key);
             }}
             className={cn(
-              'flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors',
-              disabled ? 'text-muted-foreground/30' : isActive ? 'text-primary' : 'text-muted-foreground'
+              'sidebar-tab-glow flex-1 flex flex-col items-center justify-center gap-0.5',
+              disabled
+                ? 'is-disabled text-muted-foreground/30'
+                : isActive
+                  ? 'is-active text-primary'
+                  : 'text-muted-foreground'
             )}
           >
             <div className="relative">
@@ -46,7 +50,7 @@ export default function MobileBottomNav({ items, activeTab, onTabChange }: Mobil
                 </span>
               )}
             </div>
-            <span className="text-[9px] font-medium leading-tight truncate max-w-full px-0.5">{label}</span>
+            <span className="sidebar-tab-label text-[9px] font-medium leading-tight truncate max-w-full px-0.5">{label}</span>
           </button>
         );
       })}
