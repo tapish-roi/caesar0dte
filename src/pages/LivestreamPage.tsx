@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Radio, ArrowRight, Users, Wifi, WifiOff } from 'lucide-react';
 import LiveRoom from '@/components/LiveRoom';
+import LiveRoomLK from '@/components/LiveRoomLK';
 
 interface ActiveSession {
   id: string;
@@ -102,22 +103,25 @@ export default function LivestreamPage() {
   const isMentor = role === 'mentor';
   const userName = profile?.full_name || user?.email || 'משתמש';
 
-  // If in a session, show LiveRoom
+  // If in a session, show LiveRoom (LiveKit version when ?lk=1, classic mesh otherwise)
   if (joinedSession && user) {
-    return (
-      <LiveRoom
-        sessionId={joinedSession.id}
-        mentorId={joinedSession.mentor_id}
-        userId={user.id}
-        userName={userName}
-        sessionTitle={joinedSession.title}
-        isMentor={isMentor && joinedSession.mentor_id === user.id}
-        onClose={() => {
-          setJoinedSession(null);
-          navigate('/');
-        }}
-        onSessionEnd={undefined}
-      />
+    const useLiveKit = searchParams.get('lk') === '1';
+    const commonProps = {
+      sessionId: joinedSession.id,
+      mentorId: joinedSession.mentor_id,
+      userId: user.id,
+      userName,
+      sessionTitle: joinedSession.title,
+      isMentor: isMentor && joinedSession.mentor_id === user.id,
+      onClose: () => {
+        setJoinedSession(null);
+        navigate('/');
+      },
+    };
+    return useLiveKit ? (
+      <LiveRoomLK {...commonProps} />
+    ) : (
+      <LiveRoom {...commonProps} onSessionEnd={undefined} />
     );
   }
 
