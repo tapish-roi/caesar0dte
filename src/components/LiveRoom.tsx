@@ -62,6 +62,18 @@ interface Props {
 const USER_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7','#ec4899','#06b6d4'];
 const getColorForUser = (uid: string) => USER_COLORS[uid.charCodeAt(0) % USER_COLORS.length];
 
+// Mobile / browser screen-share capability detection.
+// iOS Safari, most Android browsers, and in-app webviews do not expose getDisplayMedia.
+const isScreenShareSupported = (): boolean => {
+  try {
+    return typeof navigator !== 'undefined'
+      && !!navigator.mediaDevices
+      && typeof navigator.mediaDevices.getDisplayMedia === 'function';
+  } catch {
+    return false;
+  }
+};
+
 // How many ms between screen-share frame broadcasts
 const FRAME_INTERVAL_MS = 100; // ~10fps — reduced to avoid blocking main thread and causing audio jitter
 
