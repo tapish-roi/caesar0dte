@@ -2633,11 +2633,23 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             SIDE PANELS — Members & Chat (Zoom-style slide-in)
             ══════════════════════════════════════════════════════════════════ */}
 
-        {/* Members panel */}
+        {/* Members panel — overlay drawer on mobile, side panel on desktop */}
         <AnimatePresence>
           {showMembers && (
-            <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 260, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }} className="bg-card/95 backdrop-blur-xl border-s border-border flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
+            <>
+              {/* Mobile backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setShowMembers(false)}
+                className="md:hidden fixed inset-0 bg-black/50 z-40"
+              />
+              <motion.div
+                initial={{ x: '100%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '100%', opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="md:hidden fixed inset-y-0 end-0 w-[85vw] max-w-[320px] bg-card/95 backdrop-blur-xl border-s border-border flex flex-col z-50 overflow-hidden"
+              >
               <div className="px-4 h-12 border-b border-border flex items-center justify-between shrink-0">
                 <p className="text-sm font-semibold text-foreground/80">משתתפים ({participants.length})</p>
                 <button onClick={() => setShowMembers(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground/60 hover:bg-muted/50 transition-all">
