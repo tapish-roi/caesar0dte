@@ -98,6 +98,10 @@
 
   html {
     direction: rtl;
+    /* Prevent any element from forcing horizontal scroll on mobile */
+    overflow-x: hidden;
+    /* Disable iOS auto text size adjust on orientation change */
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -105,20 +109,36 @@
     font-family: 'IBM Plex Sans Hebrew', 'Segoe UI', system-ui, sans-serif;
     background: hsl(220, 30%, 14%);
     min-height: 100vh;
-    min-height: 100vh;
+    min-height: 100dvh;
     font-feature-settings: "tnum";
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    /* Avoid iOS rubber-band horizontal flicker */
+    overscroll-behavior-x: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     letter-spacing: -0.02em;
     text-align: right;
+    /* Prevent long Hebrew/English headings from spilling out of cards */
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   p, li, span {
     text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  /* Inputs/textareas/selects: ensure ≥16px on mobile so iOS Safari does NOT zoom on focus */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
   }
 
   /* Numbers always tabular */
