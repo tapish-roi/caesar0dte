@@ -204,6 +204,26 @@
       0 0 10px hsl(var(--primary) / 0.42),
       0 0 22px hsl(var(--primary) / 0.22),
       0 0 36px hsl(var(--primary) / 0.10);
+    animation: sidebar-tab-pulse 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes sidebar-tab-pulse {
+    0%, 100% {
+      text-shadow:
+        0 0 10px hsl(var(--primary) / 0.42),
+        0 0 22px hsl(var(--primary) / 0.22),
+        0 0 36px hsl(var(--primary) / 0.10);
+    }
+    50% {
+      text-shadow:
+        0 0 14px hsl(var(--primary) / 0.55),
+        0 0 28px hsl(var(--primary) / 0.32),
+        0 0 48px hsl(var(--primary) / 0.16);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sidebar-tab-glow.is-active {
+      animation: none;
+    }
   }
   .sidebar-tab-glow.is-disabled {
     text-shadow: none;
