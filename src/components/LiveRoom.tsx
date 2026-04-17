@@ -1817,6 +1817,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       console.log('[ScreenShare] ⏭️ Request already pending, skipping duplicate');
       return;
     }
+    // Mobile / unsupported browser guard — block the request before bothering the mentor.
+    if (!isScreenShareSupported()) {
+      console.warn('[ScreenShare] Student tried to request share on unsupported device');
+      toast({
+        title: 'שיתוף מסך לא נתמך',
+        description: 'שיתוף מסך אינו נתמך במכשיר נייד. נא להשתמש במחשב.',
+        variant: 'destructive',
+      });
+      return;
+    }
     console.log('[ScreenShare] 📤 Student sending request to mentor', mentorId);
     setScreenShareRequested(true);
     sendSignal(mentorId, 'request_screen_share', { userName });
