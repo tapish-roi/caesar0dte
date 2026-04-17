@@ -2727,6 +2727,93 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   );
                 })}
               </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Members panel — desktop side panel */}
+        <AnimatePresence>
+          {showMembers && (
+            <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 260, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }} className="hidden md:flex bg-card/95 backdrop-blur-xl border-s border-border flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
+              <div className="px-4 h-12 border-b border-border flex items-center justify-between shrink-0">
+                <p className="text-sm font-semibold text-foreground/80">משתתפים ({participants.length})</p>
+                <button onClick={() => setShowMembers(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground/60 hover:bg-muted/50 transition-all">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
+                {participants.map(p => {
+                  const isMe = p.userId === userId;
+                  const isMentorEntry = p.userId === mentorId;
+                  const forceMuted = forceMutedUsers.has(p.userId);
+                  const isSpeaking = isMe ? speakingUsers.has(userId) : remoteSpeakingUsers.has(p.userId);
+                  const isMuted = isMe ? !micEnabled : p.isMuted;
+                  const userColor = getColorForUser(p.userId);
+                  return (
+                    <div key={p.userId} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors group">
+                      <div className="relative shrink-0">
+                        {isSpeaking && <span className="absolute -inset-0.5 rounded-full border-2 border-green-500 animate-ping opacity-40" />}
+                        <div
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white ${isSpeaking ? 'ring-2 ring-green-500 ring-offset-1 ring-offset-card' : ''}`}
+                          style={{ background: `linear-gradient(135deg, ${userColor}bb, ${userColor})` }}
+                        >
+                          {initials(p.name)}
+                        </div>
+                        <div className={`absolute -bottom-0.5 -start-0.5 w-3 h-3 rounded-full border-2 border-card ${isMuted ? 'bg-secondary' : 'bg-green-500'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground/80 truncate flex items-center gap-1">
+                          {p.name}
+                          {isMe && <span className="text-[10px] text-muted-foreground/50 ms-1">(אתה)</span>}
+                          {isMentorEntry && !isMe && <span className="text-[10px] text-primary ms-1">מנטור</span>}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {isMuted ? <MicOff className="w-3 h-3 text-red-400/70" /> : (
+                            <span className="relative inline-flex">
+                              <Mic className={`w-3 h-3 ${isSpeaking ? 'text-green-400' : 'text-muted-foreground/50'}`} />
+                              {isSpeaking && <span className="absolute inset-0 rounded-full animate-ping bg-green-400/40" />}
+                            </span>
+                          )}
+                          {(isMe ? cameraEnabled : p.hasCamera) ? <Video className="w-3 h-3 text-muted-foreground/50" /> : <VideoOff className="w-3 h-3 text-red-400/70" />}
+                          {(isMe ? screenSharing : p.hasScreen) && <Monitor className="w-3 h-3 text-blue-400" />}
+                          {p.isDeafened && <VolumeX className="w-3 h-3 text-red-400/70" />}
+                          <span className="text-[10px] text-muted-foreground/50 ms-0.5">
+                            {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : isMuted ? 'מיקרופון כבוי' : isSpeaking ? 'מדבר...' : 'מחובר'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {isMentor && !isMe && pendingScreenRequests.some(r => r.userId === p.userId) && (
+                          <motion.button
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            onClick={() => approveScreenShare(p.userId)}
+                            className="h-7 px-2.5 rounded-lg bg-green-500/20 text-green-400 text-[10px] font-semibold hover:bg-green-500/30 border border-green-500/40 transition-all flex items-center gap-1 whitespace-nowrap"
+                          >
+                            <Monitor className="w-3 h-3" />
+                            אשר שיתוף
+                          </motion.button>
+                        )}
+                        {isMentor && !isMe && (
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק'}
+                              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${forceMuted ? 'bg-orange-500/20 text-orange-400' : 'bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400'}`}>
+                              {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                            </button>
+                            <button onClick={() => kickParticipant(p.userId)} title="הסר"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400 transition-all">
+                              <UserX className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
