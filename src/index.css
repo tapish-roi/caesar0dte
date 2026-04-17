@@ -120,11 +120,25 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
-    letter-spacing: -0.02em;
+    /* Tighter letter-spacing + slightly brighter text for premium hierarchy */
+    letter-spacing: -0.022em;
+    color: hsl(var(--foreground));
     text-align: right;
     /* Prevent long Hebrew/English headings from spilling out of cards */
     overflow-wrap: anywhere;
     word-break: break-word;
+  }
+
+  /* Slightly soften secondary text everywhere for clearer hierarchy */
+  .text-muted-foreground {
+    opacity: 0.92;
+  }
+
+  /* Tabular, denser key numbers (P&L, stats, prices) */
+  .stat-number {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    font-weight: 700;
   }
 
   p, li, span {
