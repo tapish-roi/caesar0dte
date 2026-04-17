@@ -904,7 +904,8 @@ export default function StudentDashboard() {
   ];
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden" dir="rtl">
+    <div className="flex h-screen bg-background overflow-hidden relative" dir="rtl">
+      <SpaceBackground />
       {/* Mobile Header */}
       {isMobile && !lessonViewMode && (
         <div className="fixed top-0 left-0 right-0 z-30">
