@@ -120,11 +120,25 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
-    letter-spacing: -0.02em;
+    /* Tighter letter-spacing + slightly brighter text for premium hierarchy */
+    letter-spacing: -0.022em;
+    color: hsl(var(--foreground));
     text-align: right;
     /* Prevent long Hebrew/English headings from spilling out of cards */
     overflow-wrap: anywhere;
     word-break: break-word;
+  }
+
+  /* Slightly soften secondary text everywhere for clearer hierarchy */
+  .text-muted-foreground {
+    opacity: 0.92;
+  }
+
+  /* Tabular, denser key numbers (P&L, stats, prices) */
+  .stat-number {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    font-weight: 700;
   }
 
   p, li, span {
@@ -159,20 +173,82 @@
      Reduce excessive transparency on all main content containers (anything
      using `bg-card`) so text remains highly readable while still letting
      the ambient parallax background show through subtly. Sidebar uses
-     `bg-sidebar` (not `bg-card`), so it is untouched. */
+     `bg-sidebar` (not `bg-card`), so it is untouched.
+
+     Layered effects:
+       • Top light gradient    — subtle "light catches the edge" highlight
+       • Solid card color      — ~96% opacity for readability
+       • Inner highlight       — 1px inset stroke at the very top (surface)
+       • Soft border + shadow  — clean separation from background */
   .bg-card {
+    background-image:
+      linear-gradient(to bottom, hsla(0, 0%, 100%, 0.04), transparent 35%);
     background-color: hsl(var(--card) / 0.96) !important;
     backdrop-filter: blur(14px) saturate(120%);
     -webkit-backdrop-filter: blur(14px) saturate(120%);
     border: 1px solid hsla(0, 0%, 100%, 0.06);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    box-shadow:
+      0 8px 30px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 hsla(0, 0%, 100%, 0.05);
+    transition:
+      transform 200ms ease,
+      box-shadow 200ms ease,
+      border-color 200ms ease;
   }
   .bg-popover {
+    background-image:
+      linear-gradient(to bottom, hsla(0, 0%, 100%, 0.04), transparent 35%);
     background-color: hsl(var(--popover) / 0.97) !important;
     backdrop-filter: blur(14px) saturate(120%);
     -webkit-backdrop-filter: blur(14px) saturate(120%);
     border: 1px solid hsla(0, 0%, 100%, 0.06);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    box-shadow:
+      0 8px 30px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 hsla(0, 0%, 100%, 0.05);
+  }
+
+  /* Opt-in: subtle hover lift for interactive cards/tiles. Apply
+     `lift-on-hover` to any clickable card to get the premium feel without
+     redesigning. Honors prefers-reduced-motion. */
+  .lift-on-hover {
+    transition:
+      transform 200ms ease,
+      box-shadow 200ms ease,
+      border-color 200ms ease;
+  }
+  .lift-on-hover:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 14px 40px rgba(0, 0, 0, 0.32),
+      inset 0 1px 0 hsla(0, 0%, 100%, 0.07);
+    border-color: hsla(0, 0%, 100%, 0.1);
+  }
+  .lift-on-hover:active {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 120ms;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lift-on-hover,
+    .lift-on-hover:hover,
+    .lift-on-hover:active {
+      transform: none;
+      transition: none;
+    }
+  }
+
+  /* Global micro-interaction smoothing for buttons & links — a calm,
+     150–250ms ease on color/opacity/shadow only. We deliberately avoid
+     `transition: all` so it never interferes with layout or background
+     animations elsewhere. */
+  button,
+  a {
+    transition:
+      color 180ms ease,
+      background-color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      opacity 180ms ease,
+      transform 180ms ease;
   }
   /* Main content gradient background — preserved as the "Mid anchor" wash */
   .main-content-gradient {
