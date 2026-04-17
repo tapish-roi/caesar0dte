@@ -380,12 +380,28 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       });
     }
 
+    // ── CRITICAL: Pre-reserve an audio sendrecv transceiver if no audio track exists yet.
+    // Without this, a peer created while the user is muted will have NO audio sender,
+    // and unmuting later requires a full renegotiation. By reserving the transceiver up
+    // front, replaceTrack() on unmute is enough — no SDP collision, audio flows immediately.
+    const hasAudioSender = pc.getSenders().some(s => s.track?.kind === 'audio')
+      || pc.getTransceivers().some(t => t.sender.track?.kind === 'audio' || (t as RTCRtpTransceiver & { kind?: string }).kind === 'audio');
+    if (!hasAudioSender) {
+      try {
+        const audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
+        audioSenderMapRef.current.set(pc, audioTransceiver.sender);
+      } catch (err) {
+        console.warn('[WebRTC] Could not pre-add audio transceiver:', err);
+      }
+    }
+
     pc.onicecandidate = (e) => {
       if (e.candidate) sendSignal(remoteId, 'ice_candidate', { candidate: e.candidate.toJSON() });
     };
 
     pc.ontrack = (e) => {
       const track = e.track;
+      console.log('[WebRTC] 📥 ontrack', { remoteId, kind: track.kind, id: track.id });
       // Use a stable MediaStream per participant — don't overwrite on each new track
       let stream = remoteStreamsRef.current.get(remoteId);
       if (!stream) {
