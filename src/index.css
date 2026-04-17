@@ -171,10 +171,9 @@
   }
 
   /* === Space Background — 3-Layer Parallax + Noise =========================
-     Three fixed full-viewport layers + a static noise overlay. All sit at
-     z-index: 0 (behind UI which is z-10+). Stars rendered via radial
-     gradient sprites tiled with background-size; movement is pure
-     transform: translate3d(...) so the GPU does the work. */
+     The wrapper is fixed full-viewport. Layers paint ABOVE the page UI but
+     are pointer-events:none and use additive blend modes (screen / soft-light)
+     so they only add subtle light/texture and never obscure content. */
   .space-layer {
     position: absolute;
     inset: -50%;
