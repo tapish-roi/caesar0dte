@@ -278,23 +278,23 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
   };
 
   return (
-    <div className="p-8 max-w-3xl" dir="rtl">
+    <div className="p-4 md:p-8 max-w-3xl" dir="rtl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">ניהול לייב</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-foreground">ניהול לייב</h1>
         <p className="text-sm text-muted-foreground mt-1">נהל שידורים, לוח מודעות והקלטות</p>
       </div>
 
-      {/* Sub-tabs */}
-      <div className="flex gap-2 mb-6 bg-muted/40 p-1 rounded-xl w-fit">
+      {/* Sub-tabs — horizontal scroll on mobile to prevent overflow */}
+      <div className="flex gap-2 mb-6 bg-muted/40 p-1 rounded-xl w-fit max-w-full overflow-x-auto scrollbar-hide">
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setSubTab(key)}
-            className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`relative flex items-center gap-2 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
               subTab === key ? 'bg-card shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="w-4 h-4 shrink-0" />
             {label}
             {key === 'live' && activeSessions.length > 0 && (
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />

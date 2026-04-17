@@ -261,7 +261,7 @@ function QuizBuilder({
               className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
             />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">קטגוריה (אופציונלי)</label>
               <select
@@ -654,7 +654,7 @@ function QuizDetail({
                 className="w-full h-11 px-4 bg-surface ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">קטגוריה</label>
                 <select

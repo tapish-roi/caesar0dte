@@ -2107,32 +2107,32 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
       {/* ══════════════════════════════════════════════════════════════════════
           TOP HEADER — Zoom-style minimal
           ══════════════════════════════════════════════════════════════════════ */}
-      <div className="shrink-0 h-12 bg-[#1a1a1a] border-b border-border flex items-center justify-between px-4">
+      <div className="shrink-0 h-12 bg-[#1a1a1a] border-b border-border flex items-center justify-between gap-2 px-2 sm:px-4 min-w-0">
         {/* Left: Session info */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
             <span className="text-[11px] font-bold text-red-400 tracking-wider">LIVE</span>
           </div>
-          <span className="w-px h-5 bg-muted" />
-          <span className="text-sm font-semibold text-foreground truncate max-w-[200px]">{sessionTitle}</span>
+          <span className="hidden sm:inline w-px h-5 bg-muted shrink-0" />
+          <span className="text-xs sm:text-sm font-semibold text-foreground truncate min-w-0">{sessionTitle}</span>
           {connectionStatus === 'connected' && (
-            <span className="text-[10px] text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full font-medium">מחובר</span>
+            <span className="hidden sm:inline-block text-[10px] text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full font-medium shrink-0">מחובר</span>
           )}
         </div>
 
-        {/* Right: Quick actions */}
-        <div className="flex items-center gap-1">
+        {/* Right: Quick actions — collapse to icon-only on mobile */}
+        <div className="flex items-center gap-1 shrink-0">
           {isMentor && (
             <>
               <button onClick={toggleRoomLock} title={roomLocked ? 'פתח חדר' : 'נעל חדר'}
-                className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${roomLocked ? 'bg-amber-500/20 text-amber-400' : 'text-amber-400/70 hover:bg-amber-500/10 hover:text-amber-400'}`}>
+                className={`h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${roomLocked ? 'bg-amber-500/20 text-amber-400' : 'text-amber-400/70 hover:bg-amber-500/10 hover:text-amber-400'}`}>
                 {roomLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-                {roomLocked ? 'נעול' : ''}
+                <span className="hidden sm:inline">{roomLocked ? 'נעול' : ''}</span>
               </button>
               <button onClick={() => { const link = `${window.location.origin}/livestream?session=${sessionId}`; navigator.clipboard.writeText(link); toast({ title: '🔗 הלינק הועתק!' }); }}
                 title="העתק לינק"
-                className="h-8 px-3 rounded-lg text-xs text-emerald-400/70 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all flex items-center gap-1.5">
+                className="h-8 px-2 sm:px-3 rounded-lg text-xs text-emerald-400/70 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all flex items-center gap-1.5">
                 <Link2 className="w-3.5 h-3.5" />
               </button>
             </>
@@ -2141,17 +2141,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {!isScreenVisible && participants.length > 1 && (
             <button onClick={() => setViewMode(v => v === 'gallery' ? 'speaker' : 'gallery')}
               title={viewMode === 'gallery' ? 'Speaker View' : 'Gallery View'}
-              className="h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-violet-400/70 hover:bg-violet-500/10 hover:text-violet-400">
+              className="h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-violet-400/70 hover:bg-violet-500/10 hover:text-violet-400">
               {viewMode === 'gallery' ? <Maximize2 className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{viewMode === 'gallery' ? 'Speaker' : 'Gallery'}</span>
             </button>
           )}
           <button onClick={() => setShowMembers(v => !v)}
-            className={`h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-sky-500/20 text-sky-400' : 'text-sky-400/70 hover:bg-sky-500/10 hover:text-sky-400'}`}>
+            className={`h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-sky-500/20 text-sky-400' : 'text-sky-400/70 hover:bg-sky-500/10 hover:text-sky-400'}`}>
             <Users className="w-3.5 h-3.5" />{participants.length}
           </button>
           <button onClick={() => setShowChat(v => !v)}
-            className={`relative h-8 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showChat ? 'bg-cyan-500/20 text-cyan-400' : 'text-cyan-400/70 hover:bg-cyan-500/10 hover:text-cyan-400'}`}>
+            className={`relative h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showChat ? 'bg-cyan-500/20 text-cyan-400' : 'text-cyan-400/70 hover:bg-cyan-500/10 hover:text-cyan-400'}`}>
             <MessageSquare className="w-3.5 h-3.5" />
             {chatMessages.length > 0 && !showChat && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold">
@@ -2381,9 +2381,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   </AnimatePresence>
                 </div>
 
-                {/* Participant filmstrip (side) — Zoom style */}
+                {/* Participant filmstrip (side) — Zoom style. Hidden on mobile (gallery handles small screens). */}
                 {participants.length > 0 && (
-                  <div className="w-44 shrink-0 flex flex-col gap-2 overflow-y-auto">
+                  <div className="hidden md:flex w-44 shrink-0 flex-col gap-2 overflow-y-auto">
                     {participants.map(p => (
                       <div key={p.userId} className="group">
                         {renderParticipantTile(p, 'sm')}
@@ -2722,29 +2722,30 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               className="fixed inset-0 z-[60] bg-card/80 backdrop-blur-sm" onClick={() => setShowSettings(false)} />
             <motion.div initial={{ opacity: 0, scale: 0.93, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.93, y: 12 }} transition={{ duration: 0.18 }}
-              className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none">
-              <div className="pointer-events-auto w-[520px] bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border overflow-hidden" dir="rtl">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              className="fixed inset-0 z-[61] flex items-center justify-center pointer-events-none p-3">
+              <div className="pointer-events-auto w-full max-w-[520px] max-h-[calc(100dvh-2rem)] overflow-y-auto bg-card/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-border" dir="rtl">
+                <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border sticky top-0 bg-card/95 backdrop-blur-xl z-10">
                   <h2 className="text-base font-bold text-white">הגדרות</h2>
                   <button onClick={() => setShowSettings(false)}
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground/70 hover:text-foreground/80 hover:bg-muted/30 transition-all">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                <div className="flex min-h-0">
-                  <div className="w-44 bg-muted p-3 flex flex-col gap-1 shrink-0">
+                <div className="flex flex-col sm:flex-row min-h-0">
+                  {/* Sub-tabs: horizontal strip on mobile, vertical sidebar on sm+ */}
+                  <div className="flex sm:flex-col flex-row sm:w-44 w-full bg-muted p-2 sm:p-3 gap-1 shrink-0 overflow-x-auto sm:overflow-visible scrollbar-hide">
                     {([
                       { id: 'mic', icon: <Mic className="w-4 h-4 shrink-0" />, label: 'מיקרופון' },
                       { id: 'audio', icon: <Headphones className="w-4 h-4 shrink-0" />, label: 'שמע' },
                       { id: 'camera', icon: <Video className="w-4 h-4 shrink-0" />, label: 'מצלמה' },
                     ] as const).map(t => (
                       <button key={t.id} onClick={() => setSettingsTab(t.id)}
-                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right ${settingsTab === t.id ? 'bg-muted text-white' : 'text-muted-foreground hover:text-foreground/80 hover:bg-muted/50'}`}>
+                        className={`flex items-center gap-2 sm:gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right whitespace-nowrap shrink-0 sm:w-full ${settingsTab === t.id ? 'bg-muted text-white' : 'text-muted-foreground hover:text-foreground/80 hover:bg-muted/50'}`}>
                         {t.icon}{t.label}
                       </button>
                     ))}
                   </div>
-                  <div className="flex-1 p-6 space-y-5">
+                  <div className="flex-1 p-4 sm:p-6 space-y-5 min-w-0">
                     {settingsTab === 'mic' && (
                       <>
                         <div>
