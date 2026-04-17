@@ -24,6 +24,7 @@ import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
 import LessonStudentProgress from '@/components/LessonStudentProgress';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import SpaceBackground from '@/components/SpaceBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ChevronLeft } from 'lucide-react';
