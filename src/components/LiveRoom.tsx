@@ -2818,11 +2818,70 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           )}
         </AnimatePresence>
 
-        {/* Chat panel */}
+        {/* Chat panel — mobile drawer */}
+        <AnimatePresence>
+          {showChat && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setShowChat(false)}
+                className="md:hidden fixed inset-0 bg-black/50 z-40"
+              />
+              <motion.div
+                initial={{ x: '100%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '100%', opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="md:hidden fixed inset-y-0 end-0 w-[85vw] max-w-[360px] bg-card/95 backdrop-blur-xl border-s border-border flex flex-col z-50 overflow-hidden"
+              >
+                <div className="px-4 h-12 border-b border-border flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-muted-foreground/70" />
+                    <span className="text-sm font-semibold text-foreground/80">צ'אט</span>
+                  </div>
+                  <button onClick={() => setShowChat(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground/60 hover:bg-muted/50 transition-all">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+                  {chatMessages.length === 0 && (
+                    <div className="text-center py-10 text-muted-foreground/30">
+                      <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-xs">עוד לא נשלחו הודעות</p>
+                    </div>
+                  )}
+                  {chatMessages.map(msg => (
+                    <div key={msg.id} className={`flex flex-col gap-0.5 ${msg.user_id === userId ? 'items-end' : 'items-start'}`}>
+                      <span className="text-[10px] text-muted-foreground/50 px-1">{msg.user_id === userId ? 'אתה' : msg.display_name}</span>
+                      <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${msg.user_id === userId ? 'bg-primary text-primary-foreground rounded-ee-sm' : 'bg-secondary text-foreground/80 rounded-es-sm'}`}>
+                        {msg.message}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={chatEndRef} />
+                </div>
+                <div className="p-3 border-t border-border shrink-0">
+                  <div className="flex gap-2 items-center bg-secondary rounded-xl px-3 py-2">
+                    <input value={chatInput} onChange={e => setChatInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                      placeholder="הודעה לכולם..." maxLength={300}
+                      className="flex-1 bg-transparent text-xs text-foreground/80 placeholder:text-muted-foreground/40 focus:outline-none text-right min-w-0" />
+                    <button onClick={sendMessage} disabled={!chatInput.trim() || isSendingMsg}
+                      className="w-7 h-7 flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg transition-all disabled:opacity-30 shrink-0">
+                      <Send className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Chat panel — desktop side panel */}
         <AnimatePresence>
           {showChat && (
             <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 320, opacity: 1 }} exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }} className="bg-card/95 backdrop-blur-xl border-s border-border flex flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
+              transition={{ duration: 0.2 }} className="hidden md:flex bg-card/95 backdrop-blur-xl border-s border-border flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
               <div className="px-4 h-12 border-b border-border flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-muted-foreground/70" />
