@@ -26,6 +26,7 @@ import LiveHubStudent from '@/components/LiveHubStudent';
 import LessonQA from '@/components/LessonQA';
 import StudentMyQuestions from '@/components/StudentMyQuestions';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import SpaceBackground from '@/components/SpaceBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
