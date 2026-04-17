@@ -208,16 +208,18 @@
   .sidebar-tab-glow.is-disabled {
     text-shadow: none;
   }
-  /* Optional subtle gradient text on the active tab label only */
-  .sidebar-tab-glow.is-active .sidebar-tab-label {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--sidebar-foreground)) 0%,
-      hsl(var(--primary) / 0.92) 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+  /* Optional subtle gradient text on the active tab label only (desktop sidebar) */
+  @media (min-width: 768px) {
+    .sidebar-tab-glow.is-active .sidebar-tab-label {
+      background: linear-gradient(
+        180deg,
+        hsl(var(--sidebar-foreground)) 0%,
+        hsl(var(--primary) / 0.92) 100%
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
   }
 
   /* Auth page background */
