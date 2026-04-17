@@ -154,7 +154,7 @@
   .card-shadow-hover {
     box-shadow: var(--card-shadow-hover);
   }
-  /* Main content gradient background */
+  /* Main content gradient background — preserved as the "Mid anchor" wash */
   .main-content-gradient {
     background: linear-gradient(
       160deg,
@@ -164,7 +164,99 @@
       hsl(210, 40%, 20%) 80%,
       hsl(230, 35%, 16%) 100%
     );
+    /* Allow the fixed SpaceBackground (z-0) to show through faintly via
+       semi-transparent gradient stops — keep the wash itself opaque so
+       readability never drops. The parallax layers live behind it. */
+    position: relative;
   }
+
+  /* === Space Background — 3-Layer Parallax + Noise =========================
+     Three fixed full-viewport layers + a static noise overlay. All sit at
+     z-index: 0 (behind UI which is z-10+). Stars rendered via radial
+     gradient sprites tiled with background-size; movement is pure
+     transform: translate3d(...) so the GPU does the work. */
+  .space-layer {
+    position: absolute;
+    inset: -50%;
+    width: 200%;
+    height: 200%;
+    will-change: transform;
+    pointer-events: none;
+  }
+
+  /* Far layer — many tiny faint stars, slowest, lowest contrast */
+  .space-layer-far {
+    opacity: 0.45;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, hsla(195, 30%, 85%, 0.55) 50%, transparent 100%),
+      radial-gradient(1px 1px at 70% 80%, hsla(195, 30%, 85%, 0.45) 50%, transparent 100%),
+      radial-gradient(1px 1px at 40% 60%, hsla(195, 30%, 85%, 0.5) 50%, transparent 100%),
+      radial-gradient(1px 1px at 90% 15%, hsla(195, 30%, 85%, 0.4) 50%, transparent 100%),
+      radial-gradient(1px 1px at 10% 85%, hsla(195, 30%, 85%, 0.5) 50%, transparent 100%),
+      radial-gradient(1px 1px at 55% 5%, hsla(195, 30%, 85%, 0.45) 50%, transparent 100%);
+    background-size: 220px 220px;
+    background-repeat: repeat;
+    animation: space-drift-far 150s linear infinite;
+  }
+
+  /* Mid layer — soft nebula glows, slow drift, the depth "anchor" */
+  .space-layer-mid {
+    opacity: 0.35;
+    background-image:
+      radial-gradient(circle at 25% 30%, hsla(200, 60%, 40%, 0.18), transparent 45%),
+      radial-gradient(circle at 75% 70%, hsla(220, 50%, 35%, 0.16), transparent 50%),
+      radial-gradient(circle at 50% 90%, hsla(190, 55%, 38%, 0.12), transparent 55%);
+    background-size: 100% 100%;
+    animation: space-drift-mid 75s linear infinite;
+  }
+
+  /* Near layer — sparse, slightly brighter foreground stars */
+  .space-layer-near {
+    opacity: 0.55;
+    background-image:
+      radial-gradient(1.5px 1.5px at 30% 40%, hsla(42, 80%, 75%, 0.7) 50%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 80% 20%, hsla(195, 50%, 90%, 0.65) 50%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 60% 75%, hsla(38, 75%, 70%, 0.6) 50%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 15% 65%, hsla(195, 50%, 90%, 0.55) 50%, transparent 100%);
+    background-size: 480px 480px;
+    background-repeat: repeat;
+    animation: space-drift-near 38s linear infinite;
+  }
+
+  /* Static noise overlay — fine grain SVG, soft-light blend, ~4% opacity */
+  .space-noise {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    background-size: 160px 160px;
+  }
+
+  /* Diagonal drifts — different vectors per layer for natural depth.
+     Each animation translates by exactly one tile of background-size so
+     the loop is invisible. */
+  @keyframes space-drift-far {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-220px, -220px, 0); }
+  }
+  @keyframes space-drift-mid {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(60px, -40px, 0); }
+  }
+  @keyframes space-drift-near {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-480px, 240px, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .space-layer-far,
+    .space-layer-mid,
+    .space-layer-near {
+      animation: none;
+    }
+  }
+
   .text-balance {
     text-wrap: balance;
   }
