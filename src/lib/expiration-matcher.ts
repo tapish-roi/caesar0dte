@@ -10,7 +10,7 @@
  *   entry_date = first fill (preserved)
  * NEVER create a new trade from expiration rows.
  */
-import type { NormalizedTrade } from './types';
+import type { NormalizedTrade } from './parsers/types';
 import type { TradeRow, TradeInsert } from '@/contexts/TradesContext';
 
 interface Reconciled {

@@ -1,7 +1,11 @@
-import { parseIbkrTrades } from '../ibkr-import';
+import { parseIbkrFlexCsv } from '../ibkr-import';
 import type { ParseResult, NormalizedTrade } from './types';
 
 export function parseIbkr(csvText: string): ParseResult {
-  const trades = parseIbkrTrades(csvText) as unknown as NormalizedTrade[];
-  return { broker: 'ibkr', trades, errors: [] };
+  const result = parseIbkrFlexCsv(csvText);
+  return {
+    broker: 'ibkr',
+    trades: result.trades as unknown as NormalizedTrade[],
+    errors: (result.errors ?? []).map((m, i) => ({ row: i, message: m })),
+  };
 }
