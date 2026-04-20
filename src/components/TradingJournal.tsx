@@ -23,6 +23,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import type { DateRange } from 'react-day-picker';
+import ImportIbkrDialog from './ImportIbkrDialog';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types
@@ -112,6 +113,7 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
   const [editingTrade, setEditingTrade] = useState<TradeRow | null>(null);
   const [creatingTrade, setCreatingTrade] = useState(false);
   const [detailTrade, setDetailTrade] = useState<TradeRow | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [clearAllOpen, setClearAllOpen] = useState(false);
   const [bulkTagOpen, setBulkTagOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -287,6 +289,10 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
               </Button>
               {!showTrash && (
                 <>
+                  <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="h-9 gap-2">
+                    <Upload className="w-4 h-4" />
+                    ייבוא IBKR
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => setClearAllOpen(true)} className="h-9 gap-2 text-destructive hover:text-destructive">
                     <AlertTriangle className="w-4 h-4" />
                     מחק הכל
