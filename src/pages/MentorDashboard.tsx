@@ -349,7 +349,7 @@ export default function MentorDashboard() {
       );
       return enriched;
     },
-    enabled: !!user && activeTab === 'students',
+    enabled: !!user && (activeTab === 'students' || activeTab === 'journal'),
   });
 
   const { data: invites = [] } = useQuery<{ id: string; contact: string; created_at: string }[]>({
@@ -990,6 +990,7 @@ export default function MentorDashboard() {
                    { key: 'live', label: 'לייב', icon: Radio },
                    { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
                    { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
+                   { key: 'journal', label: 'יומן מסחר', icon: LineChart },
                  ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean }[]).map(({ key, label, icon: Icon, disabled }) => (
                    <button
                      key={key}
