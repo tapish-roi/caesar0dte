@@ -8,17 +8,15 @@ import {
   RefreshCw,
   Loader2,
   RotateCcw,
-  Plus,
-  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import PageToggle, { type CalcSection } from './trading-calculator/PageToggle';
 import TickerCard from './trading-calculator/TickerCard';
 import TickerInputTable from './trading-calculator/TickerInputTable';
+import PositionCalculatorSection from './position-calculator/PositionCalculatorSection';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Trading Calculator (מחשבון מסחר) — 3 sections via PageToggle:
