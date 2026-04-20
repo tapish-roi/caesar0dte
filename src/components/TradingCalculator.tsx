@@ -433,51 +433,120 @@ export default function TradingCalculator() {
             animate="animate"
             exit="exit"
             transition={{ duration: 0.2 }}
-            className="bg-card rounded-2xl card-shadow border border-border p-5"
+            className="space-y-4"
           >
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <FieldNum label="גודל חשבון ($)" value={accountSize} onChange={setAccountSize} />
-              <FieldNum label="סיכון לעסקה (%)" value={riskPct} onChange={setRiskPct} step="0.1" />
-              <FieldNum label="מחיר כניסה ($)" value={entryPrice} onChange={setEntryPrice} step="0.01" />
-              <FieldNum label="מרחק סטופ ($)" value={stopDistance} onChange={setStopDistance} step="0.01" />
-              <FieldNum label="יחס יעד (R)" value={rMultiple} onChange={setRMultiple} step="0.5" />
+            {/* Shared account-level inputs (persisted across sessions) */}
+            <div className="bg-card rounded-2xl card-shadow border border-border p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <FieldNum label="גודל חשבון ($)" value={accountSize} onChange={setAccountSize} />
+                <FieldNum label="סיכון לעסקה (%)" value={riskPct} onChange={setRiskPct} step="0.1" />
+              </div>
             </div>
 
-            {calc ? (
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
-                <ResultCard label="סיכון בדולרים" value={fmtMoney(calc.riskDollars)} tone="warn" />
-                <ResultCard label="כמות מניות" value={calc.shares.toLocaleString('he-IL')} tone="primary" big />
-                {calc.positionValue !== null && (
-                  <ResultCard label="שווי פוזיציה" value={fmtMoney(calc.positionValue)} />
-                )}
-                {calc.leverage !== null && (
-                  <ResultCard label="מינוף" value={`${calc.leverage.toFixed(2)}x`} />
-                )}
-                {calc.stopPrice !== null && (
-                  <ResultCard label="מחיר סטופ" value={`$${fmtNum(calc.stopPrice)}`} tone="danger" />
-                )}
-                {calc.targetPrice !== null && (
-                  <ResultCard
-                    label={`מחיר יעד (${rMultiple}R)`}
-                    value={`$${fmtNum(calc.targetPrice)}`}
-                    tone="success"
-                  />
-                )}
-                {calc.potentialProfit !== null && (
-                  <ResultCard
-                    label="רווח פוטנציאלי"
-                    value={fmtMoney(calc.potentialProfit)}
-                    tone="success"
-                    className="col-span-2"
-                  />
-                )}
-              </div>
-            ) : (
-              <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
-                <Info className="w-4 h-4 shrink-0" />
-                מלא את שדות החובה: גודל חשבון, סיכון % ומרחק סטופ
-              </div>
-            )}
+            {/* One card per calculator instance */}
+            {posCalcs.map((c, idx) => {
+              const calc = computeCalc(c);
+              return (
+                <div
+                  key={c.id}
+                  className="bg-card rounded-2xl card-shadow border border-border p-5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      פוזיציה #{idx + 1}
+                    </h3>
+                    {posCalcs.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeCalc(c.id)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="מחק מחשבון"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <FieldNum
+                      label="מחיר כניסה ($)"
+                      value={c.entryPrice}
+                      onChange={(v) => updateCalc(c.id, { entryPrice: v })}
+                      step="0.01"
+                    />
+                    <FieldNum
+                      label="מרחק סטופ ($)"
+                      value={c.stopDistance}
+                      onChange={(v) => updateCalc(c.id, { stopDistance: v })}
+                      step="0.01"
+                    />
+                    <FieldNum
+                      label="יחס יעד (R)"
+                      value={c.rMultiple}
+                      onChange={(v) => updateCalc(c.id, { rMultiple: v })}
+                      step="0.5"
+                    />
+                  </div>
+
+                  {calc && (
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <ResultCard
+                        label="סיכון בדולרים"
+                        value={fmtMoney(calc.riskDollars)}
+                        tone="warn"
+                      />
+                      <ResultCard
+                        label="כמות מניות"
+                        value={calc.shares.toLocaleString('he-IL')}
+                        tone="primary"
+                        big
+                      />
+                      {calc.positionValue !== null && (
+                        <ResultCard
+                          label="שווי פוזיציה"
+                          value={fmtMoney(calc.positionValue)}
+                        />
+                      )}
+                      {calc.leverage !== null && (
+                        <ResultCard label="מינוף" value={`${calc.leverage.toFixed(2)}x`} />
+                      )}
+                      {calc.stopPrice !== null && (
+                        <ResultCard
+                          label="מחיר סטופ"
+                          value={`$${fmtNum(calc.stopPrice)}`}
+                          tone="danger"
+                        />
+                      )}
+                      {calc.targetPrice !== null && (
+                        <ResultCard
+                          label={`מחיר יעד (${c.rMultiple}R)`}
+                          value={`$${fmtNum(calc.targetPrice)}`}
+                          tone="success"
+                        />
+                      )}
+                      {calc.potentialProfit !== null && (
+                        <ResultCard
+                          label="רווח פוטנציאלי"
+                          value={fmtMoney(calc.potentialProfit)}
+                          tone="success"
+                          className="col-span-2"
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <Button
+              onClick={addCalc}
+              variant="outline"
+              className="w-full border-dashed"
+            >
+              <Plus className="w-4 h-4" />
+              הוסף מחשבון פוזיציה
+            </Button>
           </motion.div>
         )}
 
