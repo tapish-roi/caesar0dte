@@ -133,6 +133,8 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
   const [creatingTrade, setCreatingTrade] = useState(false);
   const [detailTrade, setDetailTrade] = useState<TradeRow | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [view, setView] = useState<'journal' | 'analytics'>('journal');
   const [clearAllOpen, setClearAllOpen] = useState(false);
   const [bulkTagOpen, setBulkTagOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
