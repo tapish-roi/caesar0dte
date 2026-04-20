@@ -36,6 +36,7 @@ const fmtNum = (n: number, d = 2) =>
 
 export default function TradingCalculator() {
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<CalcTab>('atr');
 
   // ── ATR lookup ─────────────────────────────────────────────────────────────
   const [ticker, setTicker] = useState('');
