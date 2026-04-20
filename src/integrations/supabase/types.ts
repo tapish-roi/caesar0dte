@@ -855,25 +855,31 @@ export type Database = {
       }
       stock_atr_data: {
         Row: {
-          atr: number | null
-          date: string
-          fetched_at: string
-          price: number | null
+          atr: number
+          close_price: number
+          created_at: string
+          data_date: string
+          id: string
           ticker: string
+          updated_at: string
         }
         Insert: {
-          atr?: number | null
-          date?: string
-          fetched_at?: string
-          price?: number | null
+          atr: number
+          close_price: number
+          created_at?: string
+          data_date: string
+          id?: string
           ticker: string
+          updated_at?: string
         }
         Update: {
-          atr?: number | null
-          date?: string
-          fetched_at?: string
-          price?: number | null
+          atr?: number
+          close_price?: number
+          created_at?: string
+          data_date?: string
+          id?: string
           ticker?: string
+          updated_at?: string
         }
         Relationships: []
       }

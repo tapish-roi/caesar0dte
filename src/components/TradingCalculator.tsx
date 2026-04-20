@@ -1,84 +1,229 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Calculator, Search, TrendingUp, AlertCircle, Loader2, CalendarRange, Info } from 'lucide-react';
+import {
+  Activity,
+  Calculator,
+  CalendarRange,
+  RefreshCw,
+  Loader2,
+  RotateCcw,
+  Info,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-
-type CalcTab = 'atr' | 'position' | 'calendar';
-
-const TABS: { id: CalcTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'atr', label: 'ATR ומחיר', icon: TrendingUp },
-  { id: 'position', label: 'גודל פוזיציה', icon: Calculator },
-  { id: 'calendar', label: 'לוח אירועים', icon: CalendarRange },
-];
+import PageToggle, { type CalcSection } from './trading-calculator/PageToggle';
+import TickerCard from './trading-calculator/TickerCard';
+import TickerInputTable from './trading-calculator/TickerInputTable';
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Trading Calculator (מחשבון מסחר)
-//   • ATR & price lookup (Finviz via edge function, cached daily)
-//   • Position size calculator (account size, risk %, stop distance, R)
-//   • Investing.com economic calendar (embedded)
+// Trading Calculator (מחשבון מסחר) — 3 sections via PageToggle:
+//   • atr       — 6 editable ticker cards from Finviz (cached)
+//   • position  — Position-size calculator
+//   • calendar  — Investing.com economic calendar
 // ──────────────────────────────────────────────────────────────────────────────
 
-interface AtrResult {
+const DEFAULT_TICKERS = ['NFLX', 'ORCL', 'GOOG', 'PLTR', 'PANW', 'OKLO'];
+const TICKERS_KEY = 'atr-tickers';
+const LONGS_KEY = 'atr-longs';
+const SHORTS_KEY = 'atr-shorts';
+const SLOTS = 6;
+
+interface AtrRow {
   ticker: string;
-  price: number | null;
-  atr: number | null;
-  date: string;
-  source: 'cache' | 'finviz';
+  close_price: number;
+  atr: number;
+  data_date: string;
 }
 
 const fmtMoney = (n: number) =>
   n.toLocaleString('he-IL', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 const fmtNum = (n: number, d = 2) =>
-  n.toLocaleString('he-IL', { maximumFractionDigits: d, minimumFractionDigits: d });
+  n.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
+
+function readTickers(): string[] {
+  try {
+    const raw = localStorage.getItem(TICKERS_KEY);
+    if (!raw) return [...DEFAULT_TICKERS];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const cleaned = parsed
+        .map((t) => String(t ?? '').trim().toUpperCase())
+        .filter((t) => /^[A-Z]{1,5}$/.test(t))
+        .slice(0, 6);
+      if (cleaned.length > 0) {
+        // Pad to 6
+        while (cleaned.length < 6) cleaned.push(DEFAULT_TICKERS[cleaned.length]);
+        return cleaned;
+      }
+    }
+  } catch {
+    /* noop */
+  }
+  return [...DEFAULT_TICKERS];
+}
 
 export default function TradingCalculator() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<CalcTab>('atr');
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<CalcSection>('atr');
 
-  // ── ATR lookup ─────────────────────────────────────────────────────────────
-  const [ticker, setTicker] = useState('');
-  const [atrLoading, setAtrLoading] = useState(false);
-  const [atrResult, setAtrResult] = useState<AtrResult | null>(null);
-  const [atrError, setAtrError] = useState<string | null>(null);
+  // ── ATR section state ──────────────────────────────────────────────────────
+  const [tickers, setTickers] = useState<string[]>(() => readTickers());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const initialFetchRef = useRef(false);
 
-  const fetchAtr = async () => {
-    const t = ticker.trim().toUpperCase();
-    if (!t) {
-      setAtrError('הזן סימול מניה');
-      return;
+  useEffect(() => {
+    localStorage.setItem(TICKERS_KEY, JSON.stringify(tickers));
+  }, [tickers]);
+
+  const { data: atrRows = [], isLoading, refetch } = useQuery({
+    queryKey: ['stock-atr-data', tickers],
+    queryFn: async () => {
+      if (tickers.length === 0) return [] as AtrRow[];
+      const { data, error } = await supabase
+        .from('stock_atr_data')
+        .select('ticker, close_price, atr, data_date')
+        .in('ticker', tickers)
+        .order('data_date', { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((r) => ({
+        ticker: r.ticker,
+        close_price: Number(r.close_price),
+        atr: Number(r.atr),
+        data_date: r.data_date,
+      })) as AtrRow[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Reduce to latest row per ticker
+  const latestByTicker = useMemo(() => {
+    const map: Record<string, AtrRow> = {};
+    for (const row of atrRows) {
+      if (!map[row.ticker]) map[row.ticker] = row;
     }
-    setAtrLoading(true);
-    setAtrError(null);
-    setAtrResult(null);
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-atr', {
-        body: { ticker: t },
+    return map;
+  }, [atrRows]);
+
+  const latestDate = useMemo(() => {
+    let max = '';
+    for (const r of atrRows) if (r.data_date > max) max = r.data_date;
+    return max;
+  }, [atrRows]);
+
+  const invokeFinviz = useCallback(
+    async (forTickers: string[]) => {
+      const { error } = await supabase.functions.invoke('fetch-finviz-data', {
+        body: { tickers: forTickers },
       });
       if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-      setAtrResult(data as AtrResult);
+    },
+    [],
+  );
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await invokeFinviz(tickers);
+      await refetch();
+      queryClient.invalidateQueries({ queryKey: ['stock-atr-data'] });
+      toast({ title: 'נתונים עודכנו', description: 'נמשכו מ-Finviz בהצלחה' });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'שגיאה בטעינת נתונים';
-      setAtrError(msg);
-      toast({ title: 'שגיאה', description: msg, variant: 'destructive' });
+      toast({
+        title: 'שגיאה',
+        description: err instanceof Error ? err.message : 'נכשל לעדכן נתונים',
+        variant: 'destructive',
+      });
     } finally {
-      setAtrLoading(false);
+      setIsRefreshing(false);
     }
-  };
+  }, [tickers, invokeFinviz, refetch, queryClient, toast]);
 
-  // Push ATR result into the position-size calculator.
-  const useAtrAsStop = () => {
-    if (!atrResult?.atr) return;
-    setStopDistance(String(atrResult.atr.toFixed(2)));
-    if (atrResult.price) setEntryPrice(String(atrResult.price.toFixed(2)));
-    setActiveTab('position');
-    toast({ title: 'הוזן למחשבון', description: `ATR ${atrResult.atr.toFixed(2)} הועבר כמרחק סטופ` });
-  };
+  // First-load auto-populate when cache empty
+  useEffect(() => {
+    if (initialFetchRef.current) return;
+    if (isLoading) return;
+    if (atrRows.length === 0 && tickers.length > 0) {
+      initialFetchRef.current = true;
+      handleRefresh();
+    } else if (atrRows.length > 0) {
+      initialFetchRef.current = true;
+    }
+  }, [isLoading, atrRows.length, tickers.length, handleRefresh]);
 
-  // ── Position-size calculator ───────────────────────────────────────────────
+  const handleTickerChange = useCallback(
+    async (index: number, newTicker: string) => {
+      const v = newTicker.trim().toUpperCase();
+      if (!/^[A-Z]{1,5}$/.test(v)) return;
+      setTickers((prev) => {
+        const next = [...prev];
+        next[index] = v;
+        return next;
+      });
+      try {
+        await invokeFinviz([v]);
+        queryClient.invalidateQueries({ queryKey: ['stock-atr-data'] });
+      } catch (err) {
+        toast({
+          title: 'שגיאה',
+          description: err instanceof Error ? err.message : 'נכשל לטעון סימול',
+          variant: 'destructive',
+        });
+      }
+    },
+    [invokeFinviz, queryClient, toast],
+  );
+
+  const handleReset = useCallback(() => {
+    setTickers([...DEFAULT_TICKERS]);
+    toast({ title: 'אופס', description: 'רשימת הסימולים שוחזרה לברירת מחדל' });
+  }, [toast]);
+
+  const handleAddToList = useCallback(
+    (ticker: string, side: 'long' | 'short') => {
+      const key = side === 'long' ? LONGS_KEY : SHORTS_KEY;
+      const empty = Array.from({ length: SLOTS }, () => '');
+      let arr = empty;
+      try {
+        const raw = sessionStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length === SLOTS) {
+            arr = parsed.map((s) => String(s ?? ''));
+          }
+        }
+      } catch {
+        /* noop */
+      }
+      if (arr.includes(ticker)) {
+        toast({ title: 'כבר ברשימה', description: `${ticker} כבר נמצא ברשימת ${side === 'long' ? 'הלונגים' : 'השורטים'}` });
+        return;
+      }
+      const slot = arr.findIndex((s) => !s);
+      if (slot === -1) {
+        toast({
+          title: 'הרשימה מלאה',
+          description: `אין מקום פנוי ב${side === 'long' ? 'לונגים' : 'שורטים'}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+      arr[slot] = ticker;
+      sessionStorage.setItem(key, JSON.stringify(arr));
+      window.dispatchEvent(new Event('storage'));
+      toast({
+        title: 'נוסף',
+        description: `${ticker} נוסף ל${side === 'long' ? 'לונגים' : 'שורטים'}`,
+      });
+    },
+    [toast],
+  );
+
+  // ── Position calculator state ──────────────────────────────────────────────
   const [accountSize, setAccountSize] = useState('10000');
   const [riskPct, setRiskPct] = useState('1');
   const [entryPrice, setEntryPrice] = useState('');
@@ -91,7 +236,6 @@ export default function TradingCalculator() {
     const entry = parseFloat(entryPrice);
     const stopD = parseFloat(stopDistance);
     const rMult = parseFloat(rMultiple);
-
     if (!Number.isFinite(acct) || !Number.isFinite(risk) || !Number.isFinite(stopD) || stopD <= 0 || acct <= 0) {
       return null;
     }
@@ -100,23 +244,11 @@ export default function TradingCalculator() {
     const shares = Math.floor(sharesRaw);
     const positionValue = Number.isFinite(entry) && entry > 0 ? shares * entry : null;
     const targetMove = Number.isFinite(rMult) ? stopD * rMult : null;
-    const targetPrice =
-      Number.isFinite(entry) && entry > 0 && targetMove !== null ? entry + targetMove : null;
-    const stopPrice =
-      Number.isFinite(entry) && entry > 0 ? entry - stopD : null;
+    const targetPrice = Number.isFinite(entry) && entry > 0 && targetMove !== null ? entry + targetMove : null;
+    const stopPrice = Number.isFinite(entry) && entry > 0 ? entry - stopD : null;
     const potentialProfit = targetMove !== null ? shares * targetMove : null;
     const leverage = positionValue !== null && acct > 0 ? positionValue / acct : null;
-
-    return {
-      riskDollars,
-      shares,
-      positionValue,
-      targetMove,
-      targetPrice,
-      stopPrice,
-      potentialProfit,
-      leverage,
-    };
+    return { riskDollars, shares, positionValue, targetMove, targetPrice, stopPrice, potentialProfit, leverage };
   }, [accountSize, riskPct, entryPrice, stopDistance, rMultiple]);
 
   const slideVariants = {
@@ -126,51 +258,64 @@ export default function TradingCalculator() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto" dir="rtl">
-      <div className="mb-6">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto" dir="rtl">
+      {/* ── Header ───────────────────────────────────────────────────────── */}
+      <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Calculator className="w-5 h-5 text-primary" />
+            {activeTab === 'atr' ? (
+              <Activity className="w-5 h-5 text-primary" />
+            ) : activeTab === 'position' ? (
+              <Calculator className="w-5 h-5 text-primary" />
+            ) : (
+              <CalendarRange className="w-5 h-5 text-primary" />
+            )}
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">מחשבון מסחר</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              {activeTab === 'atr'
+                ? 'מחשבון ATR'
+                : activeTab === 'position'
+                  ? 'מחשבון גודל פוזיציה'
+                  : 'לוח אירועים כלכליים'}
+            </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              ATR ומחיר עדכני, מחשבון גודל פוזיציה, ולוח אירועים כלכליים
+              {activeTab === 'atr'
+                ? 'מחיר סגירה ו-ATR(14) לסימולים נבחרים, נתונים מ-Finviz'
+                : activeTab === 'position'
+                  ? 'חשב כמות מניות לפי גודל חשבון, סיכון ומרחק סטופ'
+                  : 'אירועים מאקרו-כלכליים מ-Investing.com'}
             </p>
           </div>
         </div>
-      </div>
 
-      {/* ──────── Sub-tabs ──────── */}
-      <div className="mb-4 flex gap-1 p-1 bg-muted/40 rounded-xl border border-border w-full md:w-fit">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`relative flex-1 md:flex-none flex items-center justify-center gap-2 px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                active ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {active && (
-                <motion.div
-                  layoutId="calc-tab-pill"
-                  className="absolute inset-0 bg-primary rounded-lg"
-                  transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                />
+        <div className="flex flex-wrap items-center gap-3">
+          <PageToggle active={activeTab} onChange={setActiveTab} />
+          {activeTab === 'atr' && (
+            <>
+              {latestDate && (
+                <span className="text-xs text-muted-foreground hidden md:inline">
+                  נתונים מ-Finviz · {latestDate}
+                </span>
               )}
-              <span className="relative flex items-center gap-2">
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
+              <Button variant="outline" size="sm" onClick={handleReset} title="שחזר ברירת מחדל">
+                <RotateCcw className="w-4 h-4" />
+                איפוס
+              </Button>
+              <Button onClick={handleRefresh} disabled={isRefreshing} size="sm">
+                {isRefreshing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+                רענון
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* ──────── Slides ──────── */}
+      {/* ── Slides ───────────────────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
         {activeTab === 'atr' && (
           <motion.div
@@ -180,83 +325,30 @@ export default function TradingCalculator() {
             animate="animate"
             exit="exit"
             transition={{ duration: 0.2 }}
-            className="bg-card rounded-2xl card-shadow border border-border p-5"
+            className="space-y-4"
           >
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              <h2 className="font-semibold text-foreground">חיפוש ATR ומחיר</h2>
-              <span className="ms-auto text-[10px] text-muted-foreground bg-muted/40 rounded-full px-2 py-0.5">
-                נתונים מ-Finviz
-              </span>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {isLoading
+                ? Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-64 rounded-2xl" />
+                  ))
+                : tickers.map((t, i) => {
+                    const row = latestByTicker[t];
+                    return (
+                      <TickerCard
+                        key={`${t}-${i}`}
+                        ticker={t}
+                        closePrice={row ? row.close_price : 0}
+                        atr={row ? row.atr : 0}
+                        onTickerChange={(newT) => handleTickerChange(i, newT)}
+                        onAddToList={handleAddToList}
+                        animationDelay={i * 100}
+                      />
+                    );
+                  })}
             </div>
 
-            <div className="flex gap-2">
-              <Input
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') fetchAtr();
-                }}
-                placeholder="לדוגמה: AAPL, SPY, QQQ"
-                maxLength={10}
-                className="font-mono uppercase"
-              />
-              <Button onClick={fetchAtr} disabled={atrLoading} className="shrink-0">
-                {atrLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                חפש
-              </Button>
-            </div>
-
-            {atrError && (
-              <div className="mt-3 flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg p-3">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                {atrError}
-              </div>
-            )}
-
-            {atrResult && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-4 space-y-3"
-              >
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-muted/30 rounded-xl p-3 border border-border">
-                    <div className="text-[11px] text-muted-foreground uppercase tracking-wider">סימול</div>
-                    <div className="text-lg font-bold text-foreground font-mono">{atrResult.ticker}</div>
-                  </div>
-                  <div className="bg-muted/30 rounded-xl p-3 border border-border">
-                    <div className="text-[11px] text-muted-foreground uppercase tracking-wider">תאריך</div>
-                    <div className="text-sm font-medium text-foreground">{atrResult.date}</div>
-                  </div>
-                  <div className="bg-primary/5 rounded-xl p-3 border border-primary/20">
-                    <div className="text-[11px] text-muted-foreground uppercase tracking-wider">מחיר נוכחי</div>
-                    <div className="text-lg font-bold text-primary tabular-nums">
-                      {atrResult.price !== null ? `$${fmtNum(atrResult.price)}` : '—'}
-                    </div>
-                  </div>
-                  <div className="bg-accent/5 rounded-xl p-3 border border-accent/20">
-                    <div className="text-[11px] text-muted-foreground uppercase tracking-wider">ATR (14)</div>
-                    <div className="text-lg font-bold text-accent tabular-nums">
-                      {atrResult.atr !== null ? fmtNum(atrResult.atr) : '—'}
-                    </div>
-                  </div>
-                </div>
-                {atrResult.atr !== null && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={useAtrAsStop}
-                    className="w-full"
-                  >
-                    השתמש כמרחק סטופ במחשבון ←
-                  </Button>
-                )}
-                <div className="text-[10px] text-muted-foreground text-center">
-                  {atrResult.source === 'cache' ? 'נתונים מהמטמון של היום' : 'נתונים טריים'}
-                </div>
-              </motion.div>
-            )}
+            <TickerInputTable />
           </motion.div>
         )}
 
@@ -270,11 +362,6 @@ export default function TradingCalculator() {
             transition={{ duration: 0.2 }}
             className="bg-card rounded-2xl card-shadow border border-border p-5"
           >
-            <div className="flex items-center gap-2 mb-4">
-              <Calculator className="w-4 h-4 text-primary" />
-              <h2 className="font-semibold text-foreground">מחשבון גודל פוזיציה</h2>
-            </div>
-
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <FieldNum label="גודל חשבון ($)" value={accountSize} onChange={setAccountSize} />
               <FieldNum label="סיכון לעסקה (%)" value={riskPct} onChange={setRiskPct} step="0.1" />
@@ -297,7 +384,11 @@ export default function TradingCalculator() {
                   <ResultCard label="מחיר סטופ" value={`$${fmtNum(calc.stopPrice)}`} tone="danger" />
                 )}
                 {calc.targetPrice !== null && (
-                  <ResultCard label={`מחיר יעד (${rMultiple}R)`} value={`$${fmtNum(calc.targetPrice)}`} tone="success" />
+                  <ResultCard
+                    label={`מחיר יעד (${rMultiple}R)`}
+                    value={`$${fmtNum(calc.targetPrice)}`}
+                    tone="success"
+                  />
                 )}
                 {calc.potentialProfit !== null && (
                   <ResultCard
@@ -327,13 +418,6 @@ export default function TradingCalculator() {
             transition={{ duration: 0.2 }}
             className="bg-card rounded-2xl card-shadow border border-border overflow-hidden"
           >
-            <div className="flex items-center gap-2 p-4 border-b border-border">
-              <CalendarRange className="w-4 h-4 text-primary" />
-              <h2 className="font-semibold text-foreground">לוח אירועים כלכליים</h2>
-              <span className="ms-auto text-[10px] text-muted-foreground bg-muted/40 rounded-full px-2 py-0.5">
-                מ-Investing.com
-              </span>
-            </div>
             <div className="bg-white" dir="ltr">
               <iframe
                 src="https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&category=_employment,_economicActivity,_inflation,_credit,_centralBanks,_confidenceIndex,_balance,_Bonds&importance=2,3&features=datepicker,timezone&countries=5,72,4,17,37,32,12&calType=week&timeZone=15&lang=1"
@@ -345,7 +429,10 @@ export default function TradingCalculator() {
                 loading="lazy"
               />
             </div>
-            <div className="px-4 py-2 text-[10px] text-muted-foreground text-center border-t border-border" dir="ltr">
+            <div
+              className="px-4 py-2 text-[10px] text-muted-foreground text-center border-t border-border"
+              dir="ltr"
+            >
               Real Time Economic Calendar provided by{' '}
               <a
                 href="https://www.investing.com/"
@@ -412,12 +499,12 @@ function ResultCard({
     tone === 'primary'
       ? 'bg-primary/5 border-primary/20 text-primary'
       : tone === 'success'
-      ? 'bg-accent/5 border-accent/20 text-accent'
-      : tone === 'danger'
-      ? 'bg-destructive/5 border-destructive/20 text-destructive'
-      : tone === 'warn'
-      ? 'bg-yellow-500/5 border-yellow-500/20 text-yellow-600 dark:text-yellow-400'
-      : 'bg-muted/30 border-border text-foreground';
+        ? 'bg-accent/5 border-accent/20 text-accent'
+        : tone === 'danger'
+          ? 'bg-destructive/5 border-destructive/20 text-destructive'
+          : tone === 'warn'
+            ? 'bg-yellow-500/5 border-yellow-500/20 text-yellow-600 dark:text-yellow-400'
+            : 'bg-muted/30 border-border text-foreground';
 
   return (
     <div className={`rounded-xl p-3 border ${toneClass} ${className}`}>
