@@ -4,9 +4,9 @@ import { TrendingUp, Calculator, CalendarRange } from 'lucide-react';
 export type CalcSection = 'atr' | 'position' | 'calendar';
 
 const SECTIONS: { id: CalcSection; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'atr', label: 'ATR ומחיר', icon: TrendingUp },
-  { id: 'position', label: 'גודל פוזיציה', icon: Calculator },
-  { id: 'calendar', label: 'לוח אירועים', icon: CalendarRange },
+  { id: 'atr', label: 'מחשבון ATR', icon: TrendingUp },
+  { id: 'position', label: 'מחשבון פוזיציה', icon: Calculator },
+  { id: 'calendar', label: 'לוח נתונים כלכליים', icon: CalendarRange },
 ];
 
 interface PageToggleProps {
