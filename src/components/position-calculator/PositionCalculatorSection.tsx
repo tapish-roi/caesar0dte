@@ -6,11 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import AccountCard from './AccountCard';
-import TradeSetupCard from './TradeSetupCard';
-import LiveTrackerCard from './LiveTrackerCard';
-import ResultsPanel from './ResultsPanel';
-import RTargetsLadder from './RTargetsLadder';
-import ScaleOutPlan from './ScaleOutPlan';
+import TradeCard from './TradeCard';
 import WarningsBanner from './WarningsBanner';
 import { calculatePosition, type Side } from '@/lib/positionCalc';
 
@@ -239,47 +235,32 @@ export default function PositionCalculatorSection() {
               )}
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-4">
-              <TradeSetupCard
-                ticker={inst.ticker}
-                side={inst.side}
-                entryPrice={inst.entryPrice}
-                stopPrice={inst.stopPrice}
-                targetPrice={inst.targetPrice}
-                atr={atr}
-                onTickerChange={(v) => updateInstance(inst.id, { ticker: v })}
-                onSideChange={(s) => updateInstance(inst.id, { side: s })}
-                onEntryChange={(v) => updateInstance(inst.id, { entryPrice: v })}
-                onStopChange={(v) => updateInstance(inst.id, { stopPrice: v })}
-                onTargetChange={(v) => updateInstance(inst.id, { targetPrice: v })}
-                onClear={() =>
-                  updateInstance(inst.id, {
-                    ticker: '',
-                    side: 'long',
-                    entryPrice: '',
-                    stopPrice: '',
-                    targetPrice: '',
-                  })
-                }
-                onUseAtrStop={handleUseAtrStop}
-              />
-
-              <LiveTrackerCard
-                currentPrice={inst.currentPrice}
-                commissionPerShare={inst.commissionPerShare}
-                maxPositionPct={inst.maxPositionPct}
-                onCurrentPriceChange={(v) => updateInstance(inst.id, { currentPrice: v })}
-                onCommissionChange={(v) => updateInstance(inst.id, { commissionPerShare: v })}
-                onMaxPositionPctChange={(v) => updateInstance(inst.id, { maxPositionPct: v })}
-                onClear={() =>
-                  updateInstance(inst.id, {
-                    currentPrice: '',
-                    commissionPerShare: '',
-                    maxPositionPct: '100',
-                  })
-                }
-              />
-            </div>
+            <TradeCard
+              ticker={inst.ticker}
+              side={inst.side}
+              entryPrice={inst.entryPrice}
+              stopPrice={inst.stopPrice}
+              currentPrice={inst.currentPrice}
+              atr={atr}
+              result={result}
+              accountSize={inputs.accountSize}
+              onTickerChange={(v) => updateInstance(inst.id, { ticker: v })}
+              onSideChange={(s) => updateInstance(inst.id, { side: s })}
+              onEntryChange={(v) => updateInstance(inst.id, { entryPrice: v })}
+              onStopChange={(v) => updateInstance(inst.id, { stopPrice: v })}
+              onCurrentPriceChange={(v) => updateInstance(inst.id, { currentPrice: v })}
+              onClear={() =>
+                updateInstance(inst.id, {
+                  ticker: '',
+                  side: 'long',
+                  entryPrice: '',
+                  stopPrice: '',
+                  targetPrice: '',
+                  currentPrice: '',
+                })
+              }
+              onUseAtrStop={handleUseAtrStop}
+            />
 
             <WarningsBanner
               result={result}
@@ -287,34 +268,6 @@ export default function PositionCalculatorSection() {
               atr={atr}
               riskPerShareForAtr={result.riskPerShare}
             />
-
-            <ResultsPanel
-              result={result}
-              hasTarget={!!inputs.targetPrice}
-              hasCurrentPrice={!!inputs.currentPrice}
-            />
-
-            {result.isValid && (
-              <div className="grid lg:grid-cols-2 gap-4">
-                <RTargetsLadder
-                  side={inputs.side}
-                  entryPrice={inputs.entryPrice}
-                  riskPerShare={result.riskPerShare}
-                  shares={result.shares}
-                />
-                {inputs.targetPrice && (
-                  <ScaleOutPlan
-                    side={inputs.side}
-                    entryPrice={inputs.entryPrice}
-                    riskPerShare={result.riskPerShare}
-                    shares={result.shares}
-                    rrRatio={result.rrRatio}
-                    targetPrice={inputs.targetPrice}
-                    commissionTotal={result.commissionTotal}
-                  />
-                )}
-              </div>
-            )}
 
             {idx < instances.length - 1 && (
               <div className="border-t border-border pt-2" />
