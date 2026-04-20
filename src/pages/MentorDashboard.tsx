@@ -14,9 +14,10 @@ import {
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, MessageSquare, MessageCircle, Pin, PinOff,
   ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
-  MessageCircleQuestion, ClipboardList, List, AlignLeft, LineChart,
+  MessageCircleQuestion, ClipboardList, List, AlignLeft, LineChart, Calculator,
 } from 'lucide-react';
 import TradingJournal from '@/components/TradingJournal';
+import TradingCalculator from '@/components/TradingCalculator';
 import { useToast } from '@/hooks/use-toast';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
@@ -165,7 +166,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
   );
 }
 
-type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes' | 'journal';
+type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes' | 'journal' | 'calculator';
 type PostType = 'discussion' | 'media';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -855,6 +856,7 @@ export default function MentorDashboard() {
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
     { key: 'quizzes' as const, label: 'מבחנים', icon: ClipboardList },
     { key: 'journal' as const, label: 'יומן מסחר', icon: LineChart },
+    { key: 'calculator' as const, label: 'מחשבון מסחר', icon: Calculator },
   ];
 
   return (
@@ -991,6 +993,7 @@ export default function MentorDashboard() {
                    { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
                    { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
                    { key: 'journal', label: 'יומן מסחר', icon: LineChart },
+                   { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
                  ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean }[]).map(({ key, label, icon: Icon, disabled }) => (
                    <button
                      key={key}
@@ -1630,6 +1633,13 @@ export default function MentorDashboard() {
                   onBack={() => { setJournalStudentId(null); setJournalStudentName(''); }}
                 />
               )}
+            </motion.div>
+          )}
+
+          {/* ──────── TRADING CALCULATOR ──────── */}
+          {activeTab === 'calculator' && (
+            <motion.div key="calculator" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <TradingCalculator />
             </motion.div>
           )}
 

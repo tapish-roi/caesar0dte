@@ -10,9 +10,10 @@ import {
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
   User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
-  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList, LineChart,
+  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList, LineChart, Calculator,
 } from 'lucide-react';
 import TradingJournal from '@/components/TradingJournal';
+import TradingCalculator from '@/components/TradingCalculator';
 import { format, isWithinInterval, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -32,7 +33,7 @@ import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
-type SidebarTab = 'lessons' | 'community' | 'live' | 'questions' | 'journal';
+type SidebarTab = 'lessons' | 'community' | 'live' | 'questions' | 'journal' | 'calculator';
 type PostType = 'discussion' | 'media' | 'live';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -904,6 +905,7 @@ export default function StudentDashboard() {
     { key: 'live' as const, label: 'לייב', icon: Radio },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion },
     { key: 'journal' as const, label: 'יומן מסחר', icon: LineChart },
+    { key: 'calculator' as const, label: 'מחשבון מסחר', icon: Calculator },
   ];
 
   return (
@@ -1144,6 +1146,7 @@ export default function StudentDashboard() {
                   { key: 'live', label: 'לייב', icon: Radio },
                   { key: 'questions', label: 'השאלות שלי', icon: MessageCircleQuestion },
                   { key: 'journal', label: 'יומן מסחר', icon: LineChart },
+                  { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean }[]).map(({ key, label, icon: Icon, disabled }) => (
                   <button
                     key={key}
@@ -1575,6 +1578,13 @@ export default function StudentDashboard() {
           {activeTab === 'journal' && user && (
             <motion.div key="journal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <TradingJournal studentId={user.id} viewerId={user.id} viewerRole="student" />
+            </motion.div>
+          )}
+
+          {/* ──────── TRADING CALCULATOR ──────── */}
+          {activeTab === 'calculator' && (
+            <motion.div key="calculator" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <TradingCalculator />
             </motion.div>
           )}
 
