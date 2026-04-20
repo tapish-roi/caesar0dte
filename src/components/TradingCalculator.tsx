@@ -38,10 +38,7 @@ interface AtrRow {
   data_date: string;
 }
 
-const fmtMoney = (n: number) =>
-  n.toLocaleString('he-IL', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
-const fmtNum = (n: number, d = 2) =>
-  n.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
+
 
 function readTickers(): string[] {
   try {
