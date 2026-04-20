@@ -24,6 +24,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import type { DateRange } from 'react-day-picker';
 import ImportIbkrDialog from './ImportIbkrDialog';
+import ImportHistoryDialog from './ImportHistoryDialog';
+import AnalyticsPanel from './AnalyticsPanel';
+import { BarChart3, History, Layers } from 'lucide-react';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types
@@ -47,11 +50,27 @@ interface TradeRow {
   notes: string | null;
   is_demo: boolean;
   option_strategy: string | null;
+  option_legs: Array<{
+    right: 'C' | 'P';
+    strike: number;
+    expiry: string;
+    side: 'long' | 'short';
+    quantity: number;
+    open_price: number | null;
+    close_price: number | null;
+    open_date: string | null;
+    close_date: string | null;
+    commission: number;
+    pnl: number | null;
+    status: string;
+  }> | null;
   strike: number | null;
   expiry_date: string | null;
   mentor_rating: number | null;
   mentor_notes: string | null;
   deleted_at: string | null;
+  import_batch_id: string | null;
+  import_source: string | null;
 }
 
 interface StrategyRow { id: string; name: string; r_amount: number | null; color: string | null; }
