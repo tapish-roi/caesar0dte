@@ -373,7 +373,7 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
       )}
 
       {/* Filters */}
-      {!showTrash && (
+      {!showTrash && view === 'journal' && (
         <div className="bg-card border border-border rounded-xl p-3 mb-4 flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -438,7 +438,8 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
       )}
 
       {/* Trades table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      {(showTrash || view === 'journal') && (
+      <div className="bg-card border border-border rounded-xl overflow-hidden">{/* JOURNAL_TABLE_START */}
         {isLoading ? (
           <div className="p-12 text-center text-muted-foreground">טוען...</div>
         ) : filteredTrades.length === 0 ? (
