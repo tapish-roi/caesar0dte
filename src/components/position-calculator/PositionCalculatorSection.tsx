@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import AccountCard from './AccountCard';
 import TradeCard from './TradeCard';
-import WarningsBanner from './WarningsBanner';
+
 import { calculatePosition, type Side } from '@/lib/positionCalc';
 
 // ──────────────────────────────────────────────────────────────────────────────
