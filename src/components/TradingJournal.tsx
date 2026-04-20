@@ -310,6 +310,10 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
               </Button>
               {!showTrash && (
                 <>
+                  <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} className="h-9 gap-2">
+                    <History className="w-4 h-4" />
+                    היסטוריה
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="h-9 gap-2">
                     <Upload className="w-4 h-4" />
                     ייבוא IBKR
