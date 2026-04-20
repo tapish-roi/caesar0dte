@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Target, RotateCcw, PlusCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,7 @@ export default function TradeCard({
   }, [entryNum, stopNum]);
 
   // Notify parent so calculation logic uses the detected side
-  useMemo(() => {
+  useEffect(() => {
     if (detectedSide) onSideDetected(detectedSide);
   }, [detectedSide, onSideDetected]);
 
