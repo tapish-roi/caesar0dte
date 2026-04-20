@@ -74,6 +74,7 @@ export default function TradingCalculator() {
     if (!atrResult?.atr) return;
     setStopDistance(String(atrResult.atr.toFixed(2)));
     if (atrResult.price) setEntryPrice(String(atrResult.price.toFixed(2)));
+    setActiveTab('position');
     toast({ title: 'הוזן למחשבון', description: `ATR ${atrResult.atr.toFixed(2)} הועבר כמרחק סטופ` });
   };
 
