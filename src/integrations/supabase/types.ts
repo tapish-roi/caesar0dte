@@ -1047,6 +1047,30 @@ export type Database = {
           },
         ]
       }
+      user_calculator_settings: {
+        Row: {
+          account_size: number
+          created_at: string
+          risk_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_size?: number
+          created_at?: string
+          risk_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_size?: number
+          created_at?: string
+          risk_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
