@@ -590,6 +590,7 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
           </div>
         )}
       </div>
+      )}
 
       {/* Trade detail panel */}
       <AnimatePresence>
