@@ -904,6 +904,7 @@ export default function MentorDashboard() {
           items={mentorNavItems}
           activeTab={activeTab}
           onTabChange={(key) => {
+            if (key === 'journal') { window.location.assign('/journal'); return; }
             setActiveTab(key as SidebarTab);
             if (key !== 'quizzes') setQuizNavLessonId(null);
           }}
