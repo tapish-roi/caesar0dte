@@ -264,12 +264,6 @@ export default function PositionCalculatorSection() {
               onUseAtrStop={handleUseAtrStop}
             />
 
-            <WarningsBanner
-              result={result}
-              accountSize={inputs.accountSize}
-              atr={atr}
-              riskPerShareForAtr={result.riskPerShare}
-            />
 
             {idx < instances.length - 1 && (
               <div className="border-t border-border pt-2" />
