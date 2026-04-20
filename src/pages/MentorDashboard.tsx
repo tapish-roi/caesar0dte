@@ -14,8 +14,9 @@ import {
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, MessageSquare, MessageCircle, Pin, PinOff,
   ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
-  MessageCircleQuestion, ClipboardList, List, AlignLeft,
+  MessageCircleQuestion, ClipboardList, List, AlignLeft, LineChart,
 } from 'lucide-react';
+import TradingJournal from '@/components/TradingJournal';
 import { useToast } from '@/hooks/use-toast';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
@@ -164,7 +165,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
   );
 }
 
-type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes';
+type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes' | 'journal';
 type PostType = 'discussion' | 'media';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -215,6 +216,8 @@ export default function MentorDashboard() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
   const [quizNavLessonId, setQuizNavLessonId] = useState<string | null>(null);
+  const [journalStudentId, setJournalStudentId] = useState<string | null>(null);
+  const [journalStudentName, setJournalStudentName] = useState<string>('');
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showLessonPanel, setShowLessonPanel] = useState(false);
@@ -346,7 +349,7 @@ export default function MentorDashboard() {
       );
       return enriched;
     },
-    enabled: !!user && activeTab === 'students',
+    enabled: !!user && (activeTab === 'students' || activeTab === 'journal'),
   });
 
   const { data: invites = [] } = useQuery<{ id: string; contact: string; created_at: string }[]>({
@@ -851,6 +854,7 @@ export default function MentorDashboard() {
     { key: 'live' as const, label: 'לייב', icon: Radio },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
     { key: 'quizzes' as const, label: 'מבחנים', icon: ClipboardList },
+    { key: 'journal' as const, label: 'יומן מסחר', icon: LineChart },
   ];
 
   return (
@@ -986,6 +990,7 @@ export default function MentorDashboard() {
                    { key: 'live', label: 'לייב', icon: Radio },
                    { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
                    { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
+                   { key: 'journal', label: 'יומן מסחר', icon: LineChart },
                  ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean }[]).map(({ key, label, icon: Icon, disabled }) => (
                    <button
                      key={key}
@@ -1576,6 +1581,55 @@ export default function MentorDashboard() {
           {activeTab === 'quizzes' && user && (
             <motion.div key="quizzes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-h-0 h-full overflow-hidden">
               <MentorQuizzesHub mentorId={user.id} initialLessonId={quizNavLessonId} />
+            </motion.div>
+          )}
+
+          {activeTab === 'journal' && user && (
+            <motion.div key="journal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8">
+              {!journalStudentId ? (
+                <div className="max-w-3xl mx-auto">
+                  <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-foreground">יומן מסחר של תלמידים</h1>
+                    <p className="text-sm text-muted-foreground mt-1">בחר תלמיד כדי לצפות ביומן המסחר שלו ולהוסיף הערות / דירוג</p>
+                  </div>
+                  {members.length === 0 ? (
+                    <div className="bg-card rounded-xl card-shadow p-8 text-center">
+                      <LineChart className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-foreground font-medium">אין תלמידים בקהילה עדיין</p>
+                      <p className="text-sm text-muted-foreground mt-1">לאחר שתלמידים יצטרפו לקהילה תוכל לראות את יומני המסחר שלהם כאן</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {members.map((m) => {
+                        const name = m.display_name || m.profiles?.full_name || m.profiles?.email || 'תלמיד';
+                        return (
+                          <button
+                            key={m.student_id}
+                            onClick={() => { setJournalStudentId(m.student_id); setJournalStudentName(name); }}
+                            className="text-right bg-card hover:bg-card/80 border border-border rounded-xl p-4 transition-all hover:border-primary/40 hover:shadow-md group"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-foreground truncate">{name}</div>
+                                {m.profiles?.email && <div className="text-xs text-muted-foreground truncate mt-0.5">{m.profiles.email}</div>}
+                              </div>
+                              <LineChart className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <TradingJournal
+                  studentId={journalStudentId}
+                  viewerId={user.id}
+                  viewerRole="mentor"
+                  studentName={journalStudentName}
+                  onBack={() => { setJournalStudentId(null); setJournalStudentName(''); }}
+                />
+              )}
             </motion.div>
           )}
 
