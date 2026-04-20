@@ -35,9 +35,11 @@ export default function TickerCard({
   }, [isEditing]);
 
   const empty = closePrice === 0 && atr === 0;
-  const stop = atr;
-  const target = atr * 2;
   const pctAtr = closePrice > 0 ? (atr / closePrice) * 100 : 0;
+  const atrLong = closePrice + atr;
+  const atrShort = closePrice - atr;
+  const halfAtrLong = closePrice + atr / 2;
+  const halfAtrShort = closePrice - atr / 2;
 
   const commit = () => {
     const v = draft.trim().toUpperCase();
@@ -111,16 +113,34 @@ export default function TickerCard({
 
         {/* ── Derived helpers ─────────────────────────────────────────────── */}
         {!empty && (
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="bg-muted/30 border border-border rounded-lg p-2">
-              <div className="text-[10px] text-muted-foreground uppercase">סטופ</div>
-              <div className="text-sm font-semibold tabular-nums">{fmt(stop)}</div>
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2">
+                <div className="text-[10px] text-muted-foreground uppercase">ATR ללונג</div>
+                <div className="text-sm font-semibold tabular-nums text-emerald-400">
+                  ${fmt(atrLong)}
+                </div>
+              </div>
+              <div className="bg-rose-500/5 border border-rose-500/20 rounded-lg p-2">
+                <div className="text-[10px] text-muted-foreground uppercase">ATR לשורט</div>
+                <div className="text-sm font-semibold tabular-nums text-rose-400">
+                  ${fmt(atrShort)}
+                </div>
+              </div>
+              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2">
+                <div className="text-[10px] text-muted-foreground uppercase">50% ATR ללונג</div>
+                <div className="text-sm font-semibold tabular-nums text-emerald-400">
+                  ${fmt(halfAtrLong)}
+                </div>
+              </div>
+              <div className="bg-rose-500/5 border border-rose-500/20 rounded-lg p-2">
+                <div className="text-[10px] text-muted-foreground uppercase">50% ATR לשורט</div>
+                <div className="text-sm font-semibold tabular-nums text-rose-400">
+                  ${fmt(halfAtrShort)}
+                </div>
+              </div>
             </div>
-            <div className="bg-muted/30 border border-border rounded-lg p-2">
-              <div className="text-[10px] text-muted-foreground uppercase">יעד 2R</div>
-              <div className="text-sm font-semibold tabular-nums">{fmt(target)}</div>
-            </div>
-            <div className="bg-muted/30 border border-border rounded-lg p-2">
+            <div className="bg-muted/30 border border-border rounded-lg p-2 text-center">
               <div className="text-[10px] text-muted-foreground uppercase">% ATR</div>
               <div className="text-sm font-semibold tabular-nums">{fmt(pctAtr, 1)}%</div>
             </div>
