@@ -14,7 +14,9 @@ import StudentDashboard from "./pages/StudentDashboard";
 import StudentQuizPage from "./pages/StudentQuizPage";
 import MentorQuizEditor from "./pages/MentorQuizEditor";
 import LivestreamPage from "./pages/LivestreamPage";
+import JournalPage from "./pages/JournalPage";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -126,6 +128,9 @@ function AppRoutes() {
                 <Route path="/mentor/quiz/new" element={<MentorQuizEditor />} />
                 <Route path="/mentor/quiz/edit/:quizId" element={<MentorQuizEditor />} />
                 <Route path="/livestream" element={<LivestreamPage />} />
+                <Route path="/journal" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
+                <Route path="/analytics" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
                 <Route path="/accept-invite" element={<AcceptInvitePage />} />
                 <Route path="/auth" element={<Navigate to="/" replace />} />
                 <Route path="*" element={<NotFound />} />
