@@ -333,8 +333,37 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
         </div>
       </div>
 
-      {/* Stat bar */}
+      {/* View tabs (journal / analytics) */}
       {!showTrash && (
+        <div className="mb-4 flex gap-1 p-1 bg-muted/40 rounded-lg w-fit">
+          <button
+            onClick={() => setView('journal')}
+            className={`px-4 h-8 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              view === 'journal' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            יומן
+          </button>
+          <button
+            onClick={() => setView('analytics')}
+            className={`px-4 h-8 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              view === 'analytics' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            אנליטיקה
+          </button>
+        </div>
+      )}
+
+      {/* Analytics view */}
+      {!showTrash && view === 'analytics' && (
+        <AnalyticsPanel trades={filteredTrades} strategies={strategies} />
+      )}
+
+      {/* Stat bar */}
+      {!showTrash && view === 'journal' && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard label="P&L נטו" value={fmtMoney(stats.totalPnl)} accent={stats.totalPnl >= 0 ? 'up' : 'down'} />
           <StatCard label="עסקאות" value={String(stats.total)} />
