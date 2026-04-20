@@ -145,7 +145,7 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
       q = showTrash ? q.not('deleted_at', 'is', null) : q.is('deleted_at', null);
       const { data, error } = await q.order('entry_date', { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return (data ?? []) as TradeRow[];
+      return ((data ?? []) as unknown) as TradeRow[];
     },
   });
 
