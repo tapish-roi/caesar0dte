@@ -1584,6 +1584,55 @@ export default function MentorDashboard() {
             </motion.div>
           )}
 
+          {activeTab === 'journal' && user && (
+            <motion.div key="journal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8">
+              {!journalStudentId ? (
+                <div className="max-w-3xl mx-auto">
+                  <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-foreground">יומן מסחר של תלמידים</h1>
+                    <p className="text-sm text-muted-foreground mt-1">בחר תלמיד כדי לצפות ביומן המסחר שלו ולהוסיף הערות / דירוג</p>
+                  </div>
+                  {members.length === 0 ? (
+                    <div className="bg-card rounded-xl card-shadow p-8 text-center">
+                      <LineChart className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-foreground font-medium">אין תלמידים בקהילה עדיין</p>
+                      <p className="text-sm text-muted-foreground mt-1">לאחר שתלמידים יצטרפו לקהילה תוכל לראות את יומני המסחר שלהם כאן</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {members.map((m) => {
+                        const name = m.display_name || m.profiles?.full_name || m.profiles?.email || 'תלמיד';
+                        return (
+                          <button
+                            key={m.student_id}
+                            onClick={() => { setJournalStudentId(m.student_id); setJournalStudentName(name); }}
+                            className="text-right bg-card hover:bg-card/80 border border-border rounded-xl p-4 transition-all hover:border-primary/40 hover:shadow-md group"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-foreground truncate">{name}</div>
+                                {m.profiles?.email && <div className="text-xs text-muted-foreground truncate mt-0.5">{m.profiles.email}</div>}
+                              </div>
+                              <LineChart className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <TradingJournal
+                  studentId={journalStudentId}
+                  viewerId={user.id}
+                  viewerRole="mentor"
+                  studentName={journalStudentName}
+                  onBack={() => { setJournalStudentId(null); setJournalStudentName(''); }}
+                />
+              )}
+            </motion.div>
+          )}
+
         </AnimatePresence>
       </main>
 
