@@ -47,14 +47,8 @@ export default function WarningsBanner({
     });
   }
 
-  // Capped by max position
-  if (result.cappedByMaxPosition) {
-    warnings.push({
-      icon: Info,
-      tone: 'info',
-      text: `כמות המניות הוגבלה ע״י תקרת החשיפה (${result.shares.toLocaleString()} במקום ${result.rawShares.toLocaleString()})`,
-    });
-  }
+  // Capped-by-max warning intentionally suppressed (per user request)
+
 
   // Risk-of-ruin sanity check
   if (result.riskPctOfAccount > 0 && result.riskPctOfAccount < 100) {
