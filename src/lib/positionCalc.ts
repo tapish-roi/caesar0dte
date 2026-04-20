@@ -63,8 +63,9 @@ export function validate(i: PositionInputs): string[] {
   if (!Number.isFinite(i.accountSize) || i.accountSize <= 0) e.push('גודל חשבון חייב להיות גדול מאפס');
   if (!Number.isFinite(i.riskAmount) || i.riskAmount <= 0) e.push('סיכון לעסקה חייב להיות גדול מאפס');
   if (i.riskAmount > i.accountSize) e.push('הסיכון לעסקה לא יכול לחרוג מגודל החשבון');
-  if (!Number.isFinite(i.entryPrice) || i.entryPrice <= 0) e.push('מחיר כניסה חייב להיות גדול מאפס');
-  if (!Number.isFinite(i.stopPrice) || i.stopPrice <= 0) e.push('מחיר סטופ חייב להיות גדול מאפס');
+  if (i.entryPrice && (!Number.isFinite(i.entryPrice) || i.entryPrice < 0)) e.push('מחיר כניסה לא תקין');
+  if (i.stopPrice && (!Number.isFinite(i.stopPrice) || i.stopPrice < 0)) e.push('מחיר סטופ לא תקין');
+  if (!i.entryPrice || !i.stopPrice) return e; // silent until both filled
   if (i.entryPrice && i.stopPrice && i.entryPrice === i.stopPrice) e.push('הכניסה והסטופ חייבים להיות שונים');
   if (i.side === 'long' && i.stopPrice && i.entryPrice && i.stopPrice >= i.entryPrice)
     e.push('בלונג: הסטופ חייב להיות מתחת למחיר הכניסה');

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { Target, RotateCcw, PlusCircle, TrendingUp, TrendingDown } from 'lucide-react';
+import { RotateCcw, PlusCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { rPriceAt, type Side, type PositionResult } from '@/lib/positionCalc';
@@ -115,18 +115,16 @@ export default function TradeCard({
         variant="ghost"
         size="icon"
         onClick={onClear}
-        className="absolute top-2 start-2 h-7 w-7 text-muted-foreground hover:text-foreground"
+        className="absolute top-2 end-2 h-7 w-7 text-muted-foreground hover:text-foreground"
         title="נקה כרטיס"
       >
         <RotateCcw className="w-3.5 h-3.5" />
       </Button>
 
-      <div className="flex items-center gap-2 mb-4">
-        <Target className="w-4 h-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">פרטי עסקה ותוצאות</h3>
-        {detectedSide && (
+      {detectedSide && (
+        <div className="mb-3 flex justify-start">
           <span
-            className={`ms-auto inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
               detectedSide === 'long'
                 ? 'bg-emerald-500/15 text-emerald-500'
                 : 'bg-rose-500/15 text-rose-500'
@@ -142,8 +140,8 @@ export default function TradeCard({
               </>
             )}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Inputs ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">

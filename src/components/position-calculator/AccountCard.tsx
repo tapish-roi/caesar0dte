@@ -10,12 +10,6 @@ interface Props {
   onClear: () => void;
 }
 
-// §4 — risk-amount presets (0.5R / 1R / 2R == 0.5%/1%/2% of account)
-const PRESETS: Array<{ label: string; pct: number }> = [
-  { label: '0.5R', pct: 0.005 },
-  { label: '1R', pct: 0.01 },
-  { label: '2R', pct: 0.02 },
-];
 
 export default function AccountCard({
   accountSize,
@@ -25,11 +19,6 @@ export default function AccountCard({
   onClear,
 }: Props) {
   const acct = parseFloat(accountSize);
-  const applyPreset = (pct: number) => {
-    if (Number.isFinite(acct) && acct > 0) {
-      onRiskAmountChange((acct * pct).toFixed(2));
-    }
-  };
 
   const riskPctOfAccount =
     Number.isFinite(acct) && acct > 0 && Number.isFinite(parseFloat(riskAmount))
@@ -93,21 +82,6 @@ export default function AccountCard({
             </span>
           )}
         </label>
-
-        <div className="flex gap-1.5 pt-1">
-          {PRESETS.map((p) => (
-            <Button
-              key={p.label}
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => applyPreset(p.pct)}
-              className="flex-1 text-xs"
-            >
-              {p.label}
-            </Button>
-          ))}
-        </div>
       </div>
     </div>
   );
