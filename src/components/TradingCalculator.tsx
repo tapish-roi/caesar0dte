@@ -1,10 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Calculator, Search, TrendingUp, AlertCircle, Loader2, CalendarRange, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+
+type CalcTab = 'atr' | 'position' | 'calendar';
+
+const TABS: { id: CalcTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'atr', label: 'ATR ומחיר', icon: TrendingUp },
+  { id: 'position', label: 'גודל פוזיציה', icon: Calculator },
+  { id: 'calendar', label: 'לוח אירועים', icon: CalendarRange },
+];
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Trading Calculator (מחשבון מסחר)
