@@ -28,6 +28,8 @@ interface PerTradeState {
   currentPrice: string;
   commissionPerShare: string;
   maxPositionPct: string;
+  addPrice: string;
+  addStopPrice: string;
 }
 
 const newInstance = (): PerTradeState => ({
@@ -40,6 +42,8 @@ const newInstance = (): PerTradeState => ({
   currentPrice: '',
   commissionPerShare: '',
   maxPositionPct: '100',
+  addPrice: '',
+  addStopPrice: '',
 });
 
 function readPerTrade(): PerTradeState[] {
@@ -215,11 +219,6 @@ export default function PositionCalculatorSection() {
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-foreground">
                 פוזיציה #{idx + 1}
-                {inst.ticker && (
-                  <span className="ms-2 text-xs font-mono text-muted-foreground tracking-wider">
-                    {inst.ticker}
-                  </span>
-                )}
               </h2>
               {instances.length > 1 && (
                 <Button
@@ -236,27 +235,30 @@ export default function PositionCalculatorSection() {
             </div>
 
             <TradeCard
-              ticker={inst.ticker}
-              side={inst.side}
               entryPrice={inst.entryPrice}
               stopPrice={inst.stopPrice}
               currentPrice={inst.currentPrice}
+              addPrice={inst.addPrice}
+              addStopPrice={inst.addStopPrice}
               atr={atr}
               result={result}
               accountSize={inputs.accountSize}
-              onTickerChange={(v) => updateInstance(inst.id, { ticker: v })}
-              onSideChange={(s) => updateInstance(inst.id, { side: s })}
+              riskAmount={inputs.riskAmount}
               onEntryChange={(v) => updateInstance(inst.id, { entryPrice: v })}
               onStopChange={(v) => updateInstance(inst.id, { stopPrice: v })}
               onCurrentPriceChange={(v) => updateInstance(inst.id, { currentPrice: v })}
+              onAddPriceChange={(v) => updateInstance(inst.id, { addPrice: v })}
+              onAddStopChange={(v) => updateInstance(inst.id, { addStopPrice: v })}
+              onSideDetected={(s) => {
+                if (s !== inst.side) updateInstance(inst.id, { side: s });
+              }}
               onClear={() =>
                 updateInstance(inst.id, {
-                  ticker: '',
-                  side: 'long',
                   entryPrice: '',
                   stopPrice: '',
-                  targetPrice: '',
                   currentPrice: '',
+                  addPrice: '',
+                  addStopPrice: '',
                 })
               }
               onUseAtrStop={handleUseAtrStop}
