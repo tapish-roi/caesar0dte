@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
+
 import {
   Activity,
   Calculator,
@@ -221,11 +221,6 @@ export default function TradingCalculator() {
 
   // ── Position calculator state lives in PositionCalculatorSection ─────────
 
-  const slideVariants = {
-    initial: { opacity: 0, x: 20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 },
-  };
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto" dir="rtl">
@@ -286,17 +281,10 @@ export default function TradingCalculator() {
       </div>
 
       {/* ── Slides ───────────────────────────────────────────────────────── */}
-      <AnimatePresence mode="wait">
-        {activeTab === 'atr' && (
-          <motion.div
-            key="atr"
-            variants={slideVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ duration: 0.2 }}
-            className="space-y-4"
-          >
+      {/* Keep all sections mounted so per-section state (inputs, scroll, fetched data) survives tab switching. Only the active one is visible. */}
+      <div className="relative">
+        <div className={activeTab === 'atr' ? 'block' : 'hidden'}>
+          <div className="space-y-4">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {isLoading
                 ? Array.from({ length: 6 }).map((_, i) => (
@@ -319,32 +307,15 @@ export default function TradingCalculator() {
             </div>
 
             <TickerInputTable />
-          </motion.div>
-        )}
+          </div>
+        </div>
 
-        {activeTab === 'position' && (
-          <motion.div
-            key="position"
-            variants={slideVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ duration: 0.2 }}
-          >
-            <PositionCalculatorSection />
-          </motion.div>
-        )}
+        <div className={activeTab === 'position' ? 'block' : 'hidden'}>
+          <PositionCalculatorSection />
+        </div>
 
-        {activeTab === 'calendar' && (
-          <motion.div
-            key="calendar"
-            variants={slideVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ duration: 0.2 }}
-            className="bg-card rounded-2xl card-shadow border border-border overflow-hidden"
-          >
+        <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
+          <div className="bg-card rounded-2xl card-shadow border border-border overflow-hidden">
             <div className="bg-white" dir="ltr">
               <iframe
                 src="https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&category=_employment,_economicActivity,_inflation,_credit,_centralBanks,_confidenceIndex,_balance,_Bonds&importance=2,3&features=datepicker,timezone&countries=5,72,4,17,37,32,12&calType=week&timeZone=15&lang=1"
@@ -371,9 +342,9 @@ export default function TradingCalculator() {
               </a>
               .
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
