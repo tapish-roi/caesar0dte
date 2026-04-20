@@ -10,8 +10,9 @@ import {
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
   User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
-  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList,
+  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList, LineChart,
 } from 'lucide-react';
+import TradingJournal from '@/components/TradingJournal';
 import { format, isWithinInterval, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -31,7 +32,7 @@ import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
-type SidebarTab = 'lessons' | 'community' | 'live' | 'questions';
+type SidebarTab = 'lessons' | 'community' | 'live' | 'questions' | 'journal';
 type PostType = 'discussion' | 'media' | 'live';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -902,6 +903,7 @@ export default function StudentDashboard() {
     { key: 'community' as const, label: 'קהילה', icon: Users },
     { key: 'live' as const, label: 'לייב', icon: Radio },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion },
+    { key: 'journal' as const, label: 'יומן מסחר', icon: LineChart },
   ];
 
   return (
@@ -1141,6 +1143,7 @@ export default function StudentDashboard() {
                   { key: 'community', label: 'קהילה', icon: Users },
                   { key: 'live', label: 'לייב', icon: Radio },
                   { key: 'questions', label: 'השאלות שלי', icon: MessageCircleQuestion },
+                  { key: 'journal', label: 'יומן מסחר', icon: LineChart },
                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean }[]).map(({ key, label, icon: Icon, disabled }) => (
                   <button
                     key={key}
@@ -1565,6 +1568,13 @@ export default function StudentDashboard() {
             <motion.div key="questions-no-mentor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 text-center text-muted-foreground">
               <MessageCircleQuestion className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">לא נבחרה קהילה</p>
+            </motion.div>
+          )}
+
+          {/* ──────── TRADING JOURNAL ──────── */}
+          {activeTab === 'journal' && user && (
+            <motion.div key="journal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <TradingJournal studentId={user.id} viewerId={user.id} viewerRole="student" />
             </motion.div>
           )}
 
