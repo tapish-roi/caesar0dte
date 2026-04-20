@@ -1148,9 +1148,19 @@ export default function StudentDashboard() {
                   { key: 'journal', label: 'יומן מסחר', icon: LineChart, href: '/journal' },
                   { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
                 ] as { key: SidebarTab | 'journal'; label: string; icon: typeof BookOpen; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
+                  href ? (
+                    <Link
+                      key={key}
+                      to={href}
+                      className="sidebar-tab-glow w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="sidebar-tab-label">{label}</span>
+                    </Link>
+                  ) : (
                   <button
                     key={key}
-                    onClick={() => { if (disabled) { toast({ title: 'בקרוב', description: 'פיצ׳ר הלייב יהיה זמין בקרוב' }); return; } setActiveTab(key); }}
+                    onClick={() => { if (disabled) { toast({ title: 'בקרוב', description: 'פיצ׳ר הלייב יהיה זמין בקרוב' }); return; } setActiveTab(key as SidebarTab); }}
                     className={`sidebar-tab-glow w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
                       disabled
                         ? 'is-disabled text-muted-foreground/40 cursor-not-allowed'
@@ -1163,6 +1173,7 @@ export default function StudentDashboard() {
                     <span className="sidebar-tab-label">{label}</span>
                     {disabled && <Lock className="w-3 h-3 text-muted-foreground/40" />}
                   </button>
+                  )
                 ))}
               </nav>
 

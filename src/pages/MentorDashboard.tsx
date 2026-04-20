@@ -994,9 +994,19 @@ export default function MentorDashboard() {
                    { key: 'journal', label: 'יומן מסחר', icon: LineChart, href: '/journal' },
                    { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
                  ] as { key: SidebarTab | 'journal'; label: string; icon: typeof BookOpen; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
+                   href ? (
+                     <Link
+                       key={key}
+                       to={href}
+                       className="sidebar-tab-glow w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                     >
+                       <Icon className="w-4 h-4" />
+                       <span className="sidebar-tab-label flex-1 text-right">{label}</span>
+                     </Link>
+                   ) : (
                    <button
                      key={key}
-                     onClick={() => { if (disabled) { toast({ title: 'בקרוב', description: 'פיצ׳ר הלייב יהיה זמין בקרוב' }); return; } setActiveTab(key); if (key !== 'quizzes') setQuizNavLessonId(null); }}
+                     onClick={() => { if (disabled) { toast({ title: 'בקרוב', description: 'פיצ׳ר הלייב יהיה זמין בקרוב' }); return; } setActiveTab(key as SidebarTab); if (key !== 'quizzes') setQuizNavLessonId(null); }}
                      className={`sidebar-tab-glow w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
                        disabled
                          ? 'is-disabled text-muted-foreground/40 cursor-not-allowed'
@@ -1014,6 +1024,7 @@ export default function MentorDashboard() {
                        </span>
                      )}
                    </button>
+                   )
                  ))}
               </nav>
 
