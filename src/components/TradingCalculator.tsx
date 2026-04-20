@@ -382,64 +382,7 @@ export default function TradingCalculator() {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Local helpers
+// ──────────────────────────────────────────────────────────────────────────────
+// (Position-calculator UI moved to PositionCalculatorSection)
 // ──────────────────────────────────────────────────────────────────────────────
 
-function FieldNum({
-  label,
-  value,
-  onChange,
-  step = '1',
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  step?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-      <Input
-        type="number"
-        inputMode="decimal"
-        step={step}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 tabular-nums"
-        dir="ltr"
-      />
-    </label>
-  );
-}
-
-function ResultCard({
-  label,
-  value,
-  tone = 'default',
-  big = false,
-  className = '',
-}: {
-  label: string;
-  value: string;
-  tone?: 'default' | 'primary' | 'success' | 'danger' | 'warn';
-  big?: boolean;
-  className?: string;
-}) {
-  const toneClass =
-    tone === 'primary'
-      ? 'bg-primary/5 border-primary/20 text-primary'
-      : tone === 'success'
-        ? 'bg-accent/5 border-accent/20 text-accent'
-        : tone === 'danger'
-          ? 'bg-destructive/5 border-destructive/20 text-destructive'
-          : tone === 'warn'
-            ? 'bg-yellow-500/5 border-yellow-500/20 text-yellow-600 dark:text-yellow-400'
-            : 'bg-muted/30 border-border text-foreground';
-
-  return (
-    <div className={`rounded-xl p-3 border ${toneClass} ${className}`}>
-      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</div>
-      <div className={`${big ? 'text-2xl' : 'text-base'} font-bold tabular-nums mt-0.5`}>{value}</div>
-    </div>
-  );
-}
