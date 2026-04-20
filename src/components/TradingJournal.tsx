@@ -568,6 +568,16 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
         />
       )}
 
+      {/* IBKR import */}
+      {!isMentor && (
+        <ImportIbkrDialog
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          studentId={studentId}
+          onImported={() => qc.invalidateQueries({ queryKey: ['trades', studentId] })}
+        />
+      )}
+
       {/* Bulk tag dialog */}
       <BulkTagDialog
         open={bulkTagOpen}
