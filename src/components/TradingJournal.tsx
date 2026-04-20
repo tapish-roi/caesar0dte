@@ -98,6 +98,23 @@ const fmtMoney = (n: number | null | undefined) => {
   const sign = v < 0 ? '-' : '';
   return `${sign}$${Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
+
+const STRATEGY_HE: Record<string, string> = {
+  long_call: 'Long Call',
+  short_call: 'Short Call',
+  long_put: 'Long Put',
+  short_put: 'Short Put',
+  vertical_spread: 'Vertical Spread',
+  long_straddle: 'Long Straddle',
+  short_straddle: 'Short Straddle',
+  long_strangle: 'Long Strangle',
+  short_strangle: 'Short Strangle',
+  iron_condor: 'Iron Condor',
+  butterfly: 'Butterfly',
+  risk_reversal: 'Risk Reversal',
+  multi_leg: 'Multi-Leg',
+};
+const translateStrategy = (k: string | null | undefined) => (k ? STRATEGY_HE[k] ?? k : '');
 const fmtNum = (n: number | null | undefined, digits = 4) => {
   if (n == null) return '—';
   return Number(n).toLocaleString('en-US', { maximumFractionDigits: digits });
