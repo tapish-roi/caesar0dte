@@ -6,6 +6,6 @@ export function parseIbkr(csvText: string): ParseResult {
   return {
     broker: 'ibkr',
     trades: result.trades as unknown as NormalizedTrade[],
-    errors: (result.errors ?? []).map((m, i) => ({ row: i, message: m })),
+    errors: (result.warnings ?? []).map((m, i) => ({ row: i, message: m })),
   };
 }
