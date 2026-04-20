@@ -634,6 +634,15 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
         />
       )}
 
+      {/* Import history */}
+      {!isMentor && (
+        <ImportHistoryDialog
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          studentId={studentId}
+        />
+      )}
+
       {/* Bulk tag dialog */}
       <BulkTagDialog
         open={bulkTagOpen}
@@ -788,10 +797,56 @@ function TradeDetailPanel({
 
           {trade.option_strategy && (
             <div className="mb-4 bg-accent/5 border border-accent/20 rounded-lg p-3">
-              <p className="text-xs text-accent font-medium mb-1">אופציות</p>
-              <p className="text-xs text-muted-foreground">
-                סוג: {trade.option_strategy} · Strike: {fmtNum(trade.strike)} · תפוגה: {trade.expiry_date ?? '—'}
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-accent font-medium">אסטרטגיית אופציות</p>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/15 text-accent font-medium">
+                  {translateStrategy(trade.option_strategy)}
+                </span>
+              </div>
+              {trade.option_legs && trade.option_legs.length > 0 ? (
+                <div className="rounded-md overflow-hidden border border-border bg-background/50">
+                  <table className="w-full text-[11px]">
+                    <thead className="bg-muted/40">
+                      <tr className="text-right">
+                        <th className="p-1.5 font-medium">סוג</th>
+                        <th className="p-1.5 font-medium">Strike</th>
+                        <th className="p-1.5 font-medium">תפוגה</th>
+                        <th className="p-1.5 font-medium">כיוון</th>
+                        <th className="p-1.5 font-medium">כמות</th>
+                        <th className="p-1.5 font-medium">פתיחה</th>
+                        <th className="p-1.5 font-medium">סגירה</th>
+                        <th className="p-1.5 font-medium">P&L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trade.option_legs.map((l, i) => (
+                        <tr key={i} className="border-t border-border/50">
+                          <td className="p-1.5">
+                            <span className={`px-1.5 py-0.5 rounded font-bold ${
+                              l.right === 'C' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-red-500/15 text-red-500'
+                            }`}>
+                              {l.right === 'C' ? 'CALL' : 'PUT'}
+                            </span>
+                          </td>
+                          <td className="p-1.5 font-medium">{fmtNum(l.strike)}</td>
+                          <td className="p-1.5 text-muted-foreground">{l.expiry}</td>
+                          <td className="p-1.5">{l.side === 'long' ? 'Long' : 'Short'}</td>
+                          <td className="p-1.5">{l.quantity}</td>
+                          <td className="p-1.5">{l.open_price == null ? '—' : `$${Number(l.open_price).toFixed(2)}`}</td>
+                          <td className="p-1.5">{l.close_price == null ? '—' : `$${Number(l.close_price).toFixed(2)}`}</td>
+                          <td className={`p-1.5 font-medium ${l.pnl == null ? 'text-muted-foreground' : Number(l.pnl) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                            {l.pnl == null ? '—' : `${Number(l.pnl) >= 0 ? '+' : ''}$${Number(l.pnl).toFixed(2)}`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Strike: {fmtNum(trade.strike)} · תפוגה: {trade.expiry_date ?? '—'}
+                </p>
+              )}
             </div>
           )}
 
