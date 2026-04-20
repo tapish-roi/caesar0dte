@@ -12,7 +12,7 @@ import {
   User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
   CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList, LineChart, Calculator,
 } from 'lucide-react';
-import TradingJournal from '@/components/TradingJournal';
+import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
 import { format, isWithinInterval, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -33,7 +33,7 @@ import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
-type SidebarTab = 'lessons' | 'community' | 'live' | 'questions' | 'journal' | 'calculator';
+type SidebarTab = 'lessons' | 'community' | 'live' | 'questions' | 'calculator';
 type PostType = 'discussion' | 'media' | 'live';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -904,7 +904,7 @@ export default function StudentDashboard() {
     { key: 'community' as const, label: 'קהילה', icon: Users },
     { key: 'live' as const, label: 'לייב', icon: Radio },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion },
-    { key: 'journal' as const, label: 'יומן מסחר', icon: LineChart },
+    { key: 'journal' as const, label: 'יומן מסחר', icon: LineChart, href: '/journal' },
     { key: 'calculator' as const, label: 'מחשבון מסחר', icon: Calculator },
   ];
 
@@ -926,7 +926,7 @@ export default function StudentDashboard() {
 
       {/* Mobile Bottom Nav */}
       {!lessonViewMode && (
-        <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
+        <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => { if (key === 'journal') { window.location.assign('/journal'); return; } setActiveTab(key as SidebarTab); }} />
       )}
 
       {/* Mobile Profile - full screen overlay */}
@@ -1145,12 +1145,22 @@ export default function StudentDashboard() {
                   { key: 'community', label: 'קהילה', icon: Users },
                   { key: 'live', label: 'לייב', icon: Radio },
                   { key: 'questions', label: 'השאלות שלי', icon: MessageCircleQuestion },
-                  { key: 'journal', label: 'יומן מסחר', icon: LineChart },
+                  { key: 'journal', label: 'יומן מסחר', icon: LineChart, href: '/journal' },
                   { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
-                ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean }[]).map(({ key, label, icon: Icon, disabled }) => (
+                ] as { key: SidebarTab | 'journal'; label: string; icon: typeof BookOpen; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
+                  href ? (
+                    <Link
+                      key={key}
+                      to={href}
+                      className="sidebar-tab-glow w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="sidebar-tab-label">{label}</span>
+                    </Link>
+                  ) : (
                   <button
                     key={key}
-                    onClick={() => { if (disabled) { toast({ title: 'בקרוב', description: 'פיצ׳ר הלייב יהיה זמין בקרוב' }); return; } setActiveTab(key); }}
+                    onClick={() => { if (disabled) { toast({ title: 'בקרוב', description: 'פיצ׳ר הלייב יהיה זמין בקרוב' }); return; } setActiveTab(key as SidebarTab); }}
                     className={`sidebar-tab-glow w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
                       disabled
                         ? 'is-disabled text-muted-foreground/40 cursor-not-allowed'
@@ -1163,6 +1173,7 @@ export default function StudentDashboard() {
                     <span className="sidebar-tab-label">{label}</span>
                     {disabled && <Lock className="w-3 h-3 text-muted-foreground/40" />}
                   </button>
+                  )
                 ))}
               </nav>
 
@@ -1574,12 +1585,7 @@ export default function StudentDashboard() {
             </motion.div>
           )}
 
-          {/* ──────── TRADING JOURNAL ──────── */}
-          {activeTab === 'journal' && user && (
-            <motion.div key="journal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <TradingJournal studentId={user.id} viewerId={user.id} viewerRole="student" />
-            </motion.div>
-          )}
+          {/* journal removed — now lives on /journal */}
 
           {/* ──────── TRADING CALCULATOR ──────── */}
           {activeTab === 'calculator' && (
