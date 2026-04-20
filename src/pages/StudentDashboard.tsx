@@ -926,7 +926,7 @@ export default function StudentDashboard() {
 
       {/* Mobile Bottom Nav */}
       {!lessonViewMode && (
-        <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
+        <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => { if (key === 'journal') { window.location.assign('/journal'); return; } setActiveTab(key as SidebarTab); }} />
       )}
 
       {/* Mobile Profile - full screen overlay */}
