@@ -853,6 +853,60 @@ export type Database = {
           },
         ]
       }
+      stock_atr_data: {
+        Row: {
+          atr: number | null
+          date: string
+          fetched_at: string
+          price: number | null
+          ticker: string
+        }
+        Insert: {
+          atr?: number | null
+          date?: string
+          fetched_at?: string
+          price?: number | null
+          ticker: string
+        }
+        Update: {
+          atr?: number | null
+          date?: string
+          fetched_at?: string
+          price?: number | null
+          ticker?: string
+        }
+        Relationships: []
+      }
+      strategies: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          r_amount: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          r_amount?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          r_amount?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       student_category_access: {
         Row: {
           category_id: string
@@ -877,6 +931,113 @@ export type Database = {
         }
         Relationships: []
       }
+      trades: {
+        Row: {
+          commission: number | null
+          created_at: string
+          deleted_at: string | null
+          entry_date: string | null
+          entry_price: number | null
+          exit_date: string | null
+          exit_price: number | null
+          expiry_date: string | null
+          external_id: string | null
+          group_key: string | null
+          id: string
+          images: string[]
+          import_batch_id: string | null
+          import_source: string | null
+          is_demo: boolean
+          mentor_notes: string | null
+          mentor_rating: number | null
+          net_pnl: number | null
+          notes: string | null
+          option_legs: Json | null
+          option_strategy: string | null
+          quantity: number
+          side: string
+          status: string
+          strategy_id: string | null
+          strike: number | null
+          symbol: string
+          tags: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commission?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          entry_date?: string | null
+          entry_price?: number | null
+          exit_date?: string | null
+          exit_price?: number | null
+          expiry_date?: string | null
+          external_id?: string | null
+          group_key?: string | null
+          id?: string
+          images?: string[]
+          import_batch_id?: string | null
+          import_source?: string | null
+          is_demo?: boolean
+          mentor_notes?: string | null
+          mentor_rating?: number | null
+          net_pnl?: number | null
+          notes?: string | null
+          option_legs?: Json | null
+          option_strategy?: string | null
+          quantity: number
+          side: string
+          status?: string
+          strategy_id?: string | null
+          strike?: number | null
+          symbol: string
+          tags?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commission?: number | null
+          created_at?: string
+          deleted_at?: string | null
+          entry_date?: string | null
+          entry_price?: number | null
+          exit_date?: string | null
+          exit_price?: number | null
+          expiry_date?: string | null
+          external_id?: string | null
+          group_key?: string | null
+          id?: string
+          images?: string[]
+          import_batch_id?: string | null
+          import_source?: string | null
+          is_demo?: boolean
+          mentor_notes?: string | null
+          mentor_rating?: number | null
+          net_pnl?: number | null
+          notes?: string | null
+          option_legs?: Json | null
+          option_strategy?: string | null
+          quantity?: number
+          side?: string
+          status?: string
+          strategy_id?: string | null
+          strike?: number | null
+          symbol?: string
+          tags?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_strategy_id_fkey"
+            columns: ["strategy_id"]
+            isOneToOne: false
+            referencedRelation: "strategies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -891,6 +1052,27 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_tags: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
           user_id?: string
         }
         Relationships: []
