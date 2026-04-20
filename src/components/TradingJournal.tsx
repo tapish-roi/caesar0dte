@@ -24,6 +24,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import type { DateRange } from 'react-day-picker';
 import ImportIbkrDialog from './ImportIbkrDialog';
+import ImportHistoryDialog from './ImportHistoryDialog';
+import AnalyticsPanel from './AnalyticsPanel';
+import { BarChart3, History, Layers } from 'lucide-react';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types
@@ -47,11 +50,27 @@ interface TradeRow {
   notes: string | null;
   is_demo: boolean;
   option_strategy: string | null;
+  option_legs: Array<{
+    right: 'C' | 'P';
+    strike: number;
+    expiry: string;
+    side: 'long' | 'short';
+    quantity: number;
+    open_price: number | null;
+    close_price: number | null;
+    open_date: string | null;
+    close_date: string | null;
+    commission: number;
+    pnl: number | null;
+    status: string;
+  }> | null;
   strike: number | null;
   expiry_date: string | null;
   mentor_rating: number | null;
   mentor_notes: string | null;
   deleted_at: string | null;
+  import_batch_id: string | null;
+  import_source: string | null;
 }
 
 interface StrategyRow { id: string; name: string; r_amount: number | null; color: string | null; }
@@ -79,6 +98,23 @@ const fmtMoney = (n: number | null | undefined) => {
   const sign = v < 0 ? '-' : '';
   return `${sign}$${Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
+
+const STRATEGY_HE: Record<string, string> = {
+  long_call: 'Long Call',
+  short_call: 'Short Call',
+  long_put: 'Long Put',
+  short_put: 'Short Put',
+  vertical_spread: 'Vertical Spread',
+  long_straddle: 'Long Straddle',
+  short_straddle: 'Short Straddle',
+  long_strangle: 'Long Strangle',
+  short_strangle: 'Short Strangle',
+  iron_condor: 'Iron Condor',
+  butterfly: 'Butterfly',
+  risk_reversal: 'Risk Reversal',
+  multi_leg: 'Multi-Leg',
+};
+const translateStrategy = (k: string | null | undefined) => (k ? STRATEGY_HE[k] ?? k : '');
 const fmtNum = (n: number | null | undefined, digits = 4) => {
   if (n == null) return '—';
   return Number(n).toLocaleString('en-US', { maximumFractionDigits: digits });
@@ -114,6 +150,8 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
   const [creatingTrade, setCreatingTrade] = useState(false);
   const [detailTrade, setDetailTrade] = useState<TradeRow | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [view, setView] = useState<'journal' | 'analytics'>('journal');
   const [clearAllOpen, setClearAllOpen] = useState(false);
   const [bulkTagOpen, setBulkTagOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -126,7 +164,7 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
       q = showTrash ? q.not('deleted_at', 'is', null) : q.is('deleted_at', null);
       const { data, error } = await q.order('entry_date', { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return (data ?? []) as TradeRow[];
+      return ((data ?? []) as unknown) as TradeRow[];
     },
   });
 
@@ -289,6 +327,10 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
               </Button>
               {!showTrash && (
                 <>
+                  <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)} className="h-9 gap-2">
+                    <History className="w-4 h-4" />
+                    היסטוריה
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="h-9 gap-2">
                     <Upload className="w-4 h-4" />
                     ייבוא IBKR
@@ -308,8 +350,37 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
         </div>
       </div>
 
-      {/* Stat bar */}
+      {/* View tabs (journal / analytics) */}
       {!showTrash && (
+        <div className="mb-4 flex gap-1 p-1 bg-muted/40 rounded-lg w-fit">
+          <button
+            onClick={() => setView('journal')}
+            className={`px-4 h-8 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              view === 'journal' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            יומן
+          </button>
+          <button
+            onClick={() => setView('analytics')}
+            className={`px-4 h-8 text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 ${
+              view === 'analytics' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            אנליטיקה
+          </button>
+        </div>
+      )}
+
+      {/* Analytics view */}
+      {!showTrash && view === 'analytics' && (
+        <AnalyticsPanel trades={filteredTrades} strategies={strategies} />
+      )}
+
+      {/* Stat bar */}
+      {!showTrash && view === 'journal' && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard label="P&L נטו" value={fmtMoney(stats.totalPnl)} accent={stats.totalPnl >= 0 ? 'up' : 'down'} />
           <StatCard label="עסקאות" value={String(stats.total)} />
@@ -319,7 +390,7 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
       )}
 
       {/* Filters */}
-      {!showTrash && (
+      {!showTrash && view === 'journal' && (
         <div className="bg-card border border-border rounded-xl p-3 mb-4 flex items-center gap-2 flex-wrap">
           <div className="relative flex-1 min-w-[180px]">
             <Search className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -384,7 +455,8 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
       )}
 
       {/* Trades table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      {(showTrash || view === 'journal') && (
+      <div className="bg-card border border-border rounded-xl overflow-hidden">{/* JOURNAL_TABLE_START */}
         {isLoading ? (
           <div className="p-12 text-center text-muted-foreground">טוען...</div>
         ) : filteredTrades.length === 0 ? (
@@ -535,6 +607,7 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
           </div>
         )}
       </div>
+      )}
 
       {/* Trade detail panel */}
       <AnimatePresence>
@@ -575,6 +648,15 @@ export default function TradingJournal({ studentId, viewerId, viewerRole, studen
           onClose={() => setImportOpen(false)}
           studentId={studentId}
           onImported={() => qc.invalidateQueries({ queryKey: ['trades', studentId] })}
+        />
+      )}
+
+      {/* Import history */}
+      {!isMentor && (
+        <ImportHistoryDialog
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          studentId={studentId}
         />
       )}
 
@@ -732,10 +814,56 @@ function TradeDetailPanel({
 
           {trade.option_strategy && (
             <div className="mb-4 bg-accent/5 border border-accent/20 rounded-lg p-3">
-              <p className="text-xs text-accent font-medium mb-1">אופציות</p>
-              <p className="text-xs text-muted-foreground">
-                סוג: {trade.option_strategy} · Strike: {fmtNum(trade.strike)} · תפוגה: {trade.expiry_date ?? '—'}
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-accent font-medium">אסטרטגיית אופציות</p>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/15 text-accent font-medium">
+                  {translateStrategy(trade.option_strategy)}
+                </span>
+              </div>
+              {trade.option_legs && trade.option_legs.length > 0 ? (
+                <div className="rounded-md overflow-hidden border border-border bg-background/50">
+                  <table className="w-full text-[11px]">
+                    <thead className="bg-muted/40">
+                      <tr className="text-right">
+                        <th className="p-1.5 font-medium">סוג</th>
+                        <th className="p-1.5 font-medium">Strike</th>
+                        <th className="p-1.5 font-medium">תפוגה</th>
+                        <th className="p-1.5 font-medium">כיוון</th>
+                        <th className="p-1.5 font-medium">כמות</th>
+                        <th className="p-1.5 font-medium">פתיחה</th>
+                        <th className="p-1.5 font-medium">סגירה</th>
+                        <th className="p-1.5 font-medium">P&L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trade.option_legs.map((l, i) => (
+                        <tr key={i} className="border-t border-border/50">
+                          <td className="p-1.5">
+                            <span className={`px-1.5 py-0.5 rounded font-bold ${
+                              l.right === 'C' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-red-500/15 text-red-500'
+                            }`}>
+                              {l.right === 'C' ? 'CALL' : 'PUT'}
+                            </span>
+                          </td>
+                          <td className="p-1.5 font-medium">{fmtNum(l.strike)}</td>
+                          <td className="p-1.5 text-muted-foreground">{l.expiry}</td>
+                          <td className="p-1.5">{l.side === 'long' ? 'Long' : 'Short'}</td>
+                          <td className="p-1.5">{l.quantity}</td>
+                          <td className="p-1.5">{l.open_price == null ? '—' : `$${Number(l.open_price).toFixed(2)}`}</td>
+                          <td className="p-1.5">{l.close_price == null ? '—' : `$${Number(l.close_price).toFixed(2)}`}</td>
+                          <td className={`p-1.5 font-medium ${l.pnl == null ? 'text-muted-foreground' : Number(l.pnl) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                            {l.pnl == null ? '—' : `${Number(l.pnl) >= 0 ? '+' : ''}$${Number(l.pnl).toFixed(2)}`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Strike: {fmtNum(trade.strike)} · תפוגה: {trade.expiry_date ?? '—'}
+                </p>
+              )}
             </div>
           )}
 
