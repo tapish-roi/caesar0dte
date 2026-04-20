@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import AccountCard from './AccountCard';
 import TradeCard from './TradeCard';
-import WarningsBanner from './WarningsBanner';
+
 import { calculatePosition, type Side } from '@/lib/positionCalc';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -264,12 +264,6 @@ export default function PositionCalculatorSection() {
               onUseAtrStop={handleUseAtrStop}
             />
 
-            <WarningsBanner
-              result={result}
-              accountSize={inputs.accountSize}
-              atr={atr}
-              riskPerShareForAtr={result.riskPerShare}
-            />
 
             {idx < instances.length - 1 && (
               <div className="border-t border-border pt-2" />
