@@ -14,8 +14,9 @@ import {
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, MessageSquare, MessageCircle, Pin, PinOff,
   ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
-  MessageCircleQuestion, ClipboardList, List, AlignLeft,
+  MessageCircleQuestion, ClipboardList, List, AlignLeft, LineChart,
 } from 'lucide-react';
+import TradingJournal from '@/components/TradingJournal';
 import { useToast } from '@/hooks/use-toast';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
@@ -164,7 +165,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
   );
 }
 
-type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes';
+type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes' | 'journal';
 type PostType = 'discussion' | 'media';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -215,6 +216,8 @@ export default function MentorDashboard() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
   const [quizNavLessonId, setQuizNavLessonId] = useState<string | null>(null);
+  const [journalStudentId, setJournalStudentId] = useState<string | null>(null);
+  const [journalStudentName, setJournalStudentName] = useState<string>('');
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showLessonPanel, setShowLessonPanel] = useState(false);
@@ -851,6 +854,7 @@ export default function MentorDashboard() {
     { key: 'live' as const, label: 'לייב', icon: Radio },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
     { key: 'quizzes' as const, label: 'מבחנים', icon: ClipboardList },
+    { key: 'journal' as const, label: 'יומן מסחר', icon: LineChart },
   ];
 
   return (
