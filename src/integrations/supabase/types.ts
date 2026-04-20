@@ -948,6 +948,7 @@ export type Database = {
           import_batch_id: string | null
           import_source: string | null
           is_demo: boolean
+          mentor_id: string | null
           mentor_notes: string | null
           mentor_rating: number | null
           net_pnl: number | null
@@ -980,6 +981,7 @@ export type Database = {
           import_batch_id?: string | null
           import_source?: string | null
           is_demo?: boolean
+          mentor_id?: string | null
           mentor_notes?: string | null
           mentor_rating?: number | null
           net_pnl?: number | null
@@ -1012,6 +1014,7 @@ export type Database = {
           import_batch_id?: string | null
           import_source?: string | null
           is_demo?: boolean
+          mentor_id?: string | null
           mentor_notes?: string | null
           mentor_rating?: number | null
           net_pnl?: number | null
@@ -1082,6 +1085,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _get_trade_snapshot: { Args: { _trade_id: string }; Returns: Json }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
