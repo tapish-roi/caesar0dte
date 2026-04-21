@@ -1,26 +1,16 @@
 import { AlertTriangle, ShieldAlert, Info } from 'lucide-react';
 import type { PositionResult } from '@/lib/positionCalc';
-import { consecutiveLossesUntilHalved } from '@/lib/positionCalc';
 
 interface Props {
   result: PositionResult;
-  accountSize: number;
-  atr?: number;
-  riskPerShareForAtr?: number;
+  riskAmount: number;
 }
 
 const fmtMoney = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
-const fmtNum = (n: number, d = 1) =>
-  n.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
 
-export default function WarningsBanner({
-  result,
-  accountSize,
-  atr,
-  riskPerShareForAtr,
-}: Props) {
-  // Validation errors take priority
+export default function WarningsBanner({ result, riskAmount }: Props) {
+  // §3 — Validation errors take priority (destructive)
   if (!result.isValid && result.errors.length > 0) {
     return (
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 space-y-1">
@@ -38,46 +28,38 @@ export default function WarningsBanner({
 
   const warnings: { icon: typeof Info; tone: 'warn' | 'info'; text: string }[] = [];
 
-  // Buying-power check
-  if (result.positionSize > accountSize) {
+  // Capped by max position
+  if (result.cappedByMaxPosition && riskAmount > 0) {
     warnings.push({
       icon: ShieldAlert,
       tone: 'warn',
-      text: `הפוזיציה חורגת מגודל החשבון — נדרש מינוף של ${fmtMoney(result.positionSize - accountSize)}`,
+      text: `הפוזיציה הוגבלה ע״י החשיפה המקסימלית — סיכון בפועל ${fmtMoney(
+        result.totalRiskDollars,
+      )} מתוך תקציב של ${fmtMoney(riskAmount)}`,
     });
   }
 
-  // Capped-by-max warning intentionally suppressed (per user request)
-
-
-  // Risk-of-ruin sanity check
-  if (result.riskPctOfAccount > 0 && result.riskPctOfAccount < 100) {
-    const ruinN = consecutiveLossesUntilHalved(result.riskPctOfAccount);
-    if (ruinN > 0 && ruinN < 20) {
-      warnings.push({
-        icon: AlertTriangle,
-        tone: 'warn',
-        text: `סיכון גבוה: ${ruinN} הפסדים רצופים יחציו את החשבון`,
-      });
-    }
+  // Buying-power / margin
+  if (result.marginRequired > 0) {
+    warnings.push({
+      icon: ShieldAlert,
+      tone: 'warn',
+      text: `הפוזיציה ${fmtMoney(result.positionSize)} חורגת מגודל החשבון — נדרש מינוף של ${fmtMoney(
+        result.marginRequired,
+      )}`,
+    });
   }
 
-  // ATR-vs-stop ratio
-  if (atr && atr > 0 && riskPerShareForAtr && riskPerShareForAtr > 0) {
-    const ratio = riskPerShareForAtr / atr;
-    if (ratio < 0.5) {
-      warnings.push({
-        icon: Info,
-        tone: 'info',
-        text: `הסטופ צמוד מאוד — ${fmtNum(ratio)}× ATR (פחות מחצי ATR)`,
-      });
-    } else if (ratio > 3) {
-      warnings.push({
-        icon: Info,
-        tone: 'info',
-        text: `הסטופ רחב מאוד — ${fmtNum(ratio)}× ATR`,
-      });
-    }
+  // Risk-of-ruin proxy
+  if (
+    result.consecutiveLossesUntilHalvedCount > 0 &&
+    result.consecutiveLossesUntilHalvedCount < 20
+  ) {
+    warnings.push({
+      icon: AlertTriangle,
+      tone: 'warn',
+      text: `סיכון גבוה: ${result.consecutiveLossesUntilHalvedCount} הפסדים רצופים יחציו את החשבון`,
+    });
   }
 
   if (warnings.length === 0) return null;
