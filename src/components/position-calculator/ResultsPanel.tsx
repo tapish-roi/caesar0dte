@@ -1,7 +1,15 @@
-import type { PositionResult } from '@/lib/positionCalc';
+import { Copy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import type { PositionResult, Side } from '@/lib/positionCalc';
 
 interface Props {
   result: PositionResult;
+  ticker: string;
+  side: Side;
+  entryPrice: number;
+  stopPrice: number;
+  targetPrice?: number;
   hasTarget: boolean;
   hasCurrentPrice: boolean;
 }
@@ -17,14 +25,12 @@ function Cell({
   value,
   tone = 'default',
   big = false,
-  className = '',
   hint,
 }: {
   label: string;
   value: string;
   tone?: 'default' | 'primary' | 'success' | 'danger' | 'warn';
   big?: boolean;
-  className?: string;
   hint?: string;
 }) {
   const toneClass =
@@ -38,23 +44,73 @@ function Cell({
             ? 'bg-amber-500/5 border-amber-500/20 text-amber-500'
             : 'bg-muted/30 border-border text-foreground';
   return (
-    <div className={`rounded-xl p-3 border ${toneClass} ${className}`}>
+    <div className={`rounded-xl p-3 border ${toneClass}`}>
       <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</div>
-      <div className={`${big ? 'text-2xl' : 'text-base'} font-bold tabular-nums mt-0.5`}>{value}</div>
+      <div className={`${big ? 'text-2xl' : 'text-base'} font-bold tabular-nums mt-0.5`}>
+        {value}
+      </div>
       {hint && <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">{hint}</div>}
     </div>
   );
 }
 
-export default function ResultsPanel({ result, hasTarget, hasCurrentPrice }: Props) {
+export default function ResultsPanel({
+  result,
+  ticker,
+  side,
+  entryPrice,
+  stopPrice,
+  targetPrice,
+  hasTarget,
+  hasCurrentPrice,
+}: Props) {
+  const { toast } = useToast();
   if (!result.isValid) return null;
 
   const liveTone =
     result.liveRMultiple > 0 ? 'success' : result.liveRMultiple < 0 ? 'danger' : 'default';
 
+  const handleCopy = async () => {
+    const lines = [
+      `Symbol: ${ticker || '—'}`,
+      `Side: ${side === 'long' ? 'LONG' : 'SHORT'}`,
+      `Shares: ${fmtInt(result.shares)}`,
+      `Entry: ${fmtMoney(entryPrice)}`,
+      `Stop: ${fmtMoney(stopPrice)}`,
+      hasTarget && targetPrice ? `Target: ${fmtMoney(targetPrice)}` : null,
+      `Risk: ${fmtMoney(result.totalRiskDollars)} (${fmtNum(result.riskPctOfAccount)}%)`,
+      hasTarget ? `R:R = ${fmtNum(result.rrRatio)}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+    try {
+      await navigator.clipboard.writeText(lines);
+      toast({ title: 'הועתק', description: 'תוכנית העסקה הועתקה ללוח' });
+    } catch {
+      toast({
+        title: 'שגיאת העתקה',
+        description: 'לא ניתן לגשת ללוח',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="bg-card rounded-2xl card-shadow border border-border p-5">
-      <h3 className="text-sm font-semibold text-foreground mb-3">תוצאות חישוב</h3>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-foreground">תוצאות חישוב</h3>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleCopy}
+          className="text-xs"
+        >
+          <Copy className="w-3.5 h-3.5" />
+          העתק תוכנית
+        </Button>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
         <Cell label="כמות מניות" value={fmtInt(result.shares)} tone="primary" big />
         <Cell
