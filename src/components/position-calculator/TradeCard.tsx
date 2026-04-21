@@ -323,7 +323,7 @@ export default function TradeCard({
                 <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <Stat
                     label="גודל סטופ חדש"
-                    value={`$${fmtNum(newRForBlended)}`}
+                    value={`$${fmtNum(newRiskPerShare)}`}
                     tone="danger"
                   />
                   <Stat
