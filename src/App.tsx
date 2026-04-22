@@ -86,9 +86,30 @@ function AppRoutes() {
     prevTokenRef.current = token;
   }, [session?.access_token, queryClient]);
 
+  // Determine the current "phase" for shared layout animation
+  const isAcceptInvite = typeof window !== 'undefined' && window.location.pathname === '/accept-invite';
+  const phase: 'auth' | 'loading-role' | 'dashboard' = loading
+    ? 'auth'
+    : (!user || roleCheckPending)
+      ? 'auth'
+      : !role
+        ? 'loading-role'
+        : 'dashboard';
+
+  // Lightspeed jump — fires once when transitioning into dashboard from auth/loading-role
+  const prevPhaseRef = useRef(phase);
+  const [lightspeedActive, setLightspeedActive] = useState(false);
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    if (phase === 'dashboard' && prev !== 'dashboard' && !isAcceptInvite) {
+      setLightspeedActive(true);
+    }
+    prevPhaseRef.current = phase;
+  }, [phase, isAcceptInvite]);
+
   if (loading) return <LoadingSpinner />;
 
-  if (window.location.pathname === '/accept-invite') {
+  if (isAcceptInvite) {
     return (
       <Routes>
         <Route path="/accept-invite" element={<AcceptInvitePage />} />
@@ -97,14 +118,11 @@ function AppRoutes() {
     );
   }
 
-  // Determine the current "phase" for shared layout animation
-  const phase = (!user || roleCheckPending) ? 'auth' : !role ? 'loading-role' : 'dashboard';
-
   return (
     <LayoutGroup>
       <AnimatePresence mode="wait" initial={false}>
         {phase === 'auth' && (
-          <motion.div key="auth" exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+          <motion.div key="auth" exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: premiumEase }}>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/accept-invite" element={<AcceptInvitePage />} />
@@ -140,6 +158,10 @@ function AppRoutes() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {lightspeedActive && (
+        <LightspeedTransition onDone={() => setLightspeedActive(false)} />
+      )}
     </LayoutGroup>
   );
 }
