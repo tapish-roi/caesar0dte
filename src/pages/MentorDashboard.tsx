@@ -851,7 +851,7 @@ export default function MentorDashboard() {
     { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
     { key: 'community' as const, label: 'קהילה', icon: Users },
     { key: 'students' as const, label: 'תלמידים', icon: GraduationCap },
-    { key: 'live' as const, label: 'לייב', icon: Radio },
+    
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
     { key: 'quizzes' as const, label: 'מבחנים', icon: ClipboardList },
     { key: 'calculator' as const, label: 'מחשבון מסחר', icon: Calculator },
@@ -988,7 +988,7 @@ export default function MentorDashboard() {
                    { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                    { key: 'community', label: 'קהילה', icon: Users },
                    { key: 'students', label: 'תלמידים', icon: GraduationCap },
-                   { key: 'live', label: 'לייב', icon: Radio },
+                   
                    { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
                    { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
                    { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
