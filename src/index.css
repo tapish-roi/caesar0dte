@@ -529,6 +529,12 @@
     );
     filter: blur(35px);
     pointer-events: none;
+    /* Weaker proximity reaction than Pluto — Moon is mostly static */
+    opacity: calc(0.85 + var(--moon-prox, 0) * 0.35);
+    transform: scale(calc(1 + var(--moon-prox, 0) * 0.03));
+    transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
   }
   .space-moon-tilt {
     position: absolute;
