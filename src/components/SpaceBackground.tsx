@@ -8,7 +8,6 @@
  * ADDITIONS (non-breaking):
  *   - Large accent stars (8 fixed positions, slow twinkle, 3-6px, soft glow)
  *   - Shooting stars layer (1-2 active, randomized 15-40s intervals)
- *   - Stylized moon image (bottom-right, screen-blended)
  *
  * Both additions are pointer-events:none and behind the UI.
  *
@@ -17,7 +16,6 @@
  * and serves as the primary "anchor" wash visible through these layers.
  */
 import { useEffect, useState } from 'react';
-import moonImg from '@/assets/moon.png';
 
 // 8 hand-balanced positions — spread across the screen, no clustering.
 // Each: { x%, y%, size px, opacity, twinkle delay }
@@ -144,37 +142,6 @@ export default function SpaceBackground() {
           />
         ))}
       </div>
-
-      {/* === ADDITION — stylized moon (bottom-right, behind UI) === */}
-      <StylizedMoon />
     </div>
   );
 }
-
-/**
- * StylizedMoon — semi-realistic cratered moon image.
- *
- * Uses a generated PNG with a black background, blended via `screen`
- * mix-blend-mode so only the moon shows over the dark UI background.
- * Sits in bottom-right, behind UI, pointer-events:none.
- */
-function StylizedMoon() {
-  return (
-    <div className="moon-wrap" aria-hidden="true">
-      <div className="moon-float">
-        <img
-          src={moonImg}
-          alt=""
-          className="moon-img"
-          loading="lazy"
-          width={1024}
-          height={1024}
-          draggable={false}
-        />
-      </div>
-    </div>
-  );
-}
-
-
-
