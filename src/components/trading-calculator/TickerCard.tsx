@@ -35,7 +35,6 @@ export default function TickerCard({
   }, [isEditing]);
 
   const empty = closePrice === 0 && atr === 0;
-  const pctAtr = closePrice > 0 ? (atr / closePrice) * 100 : 0;
   const atrLong = closePrice + atr;
   const atrShort = closePrice - atr;
   const halfAtrLong = closePrice + atr / 2;
