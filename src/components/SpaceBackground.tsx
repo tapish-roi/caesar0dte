@@ -16,7 +16,6 @@
  * and serves as the primary "anchor" wash visible through these layers.
  */
 import { useEffect, useState } from 'react';
-import plutoImg from '@/assets/pluto.png';
 
 // 8 hand-balanced positions — spread across the screen, no clustering.
 // Each: { x%, y%, size px, opacity, twinkle delay }
