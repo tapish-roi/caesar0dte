@@ -74,14 +74,25 @@ export default function TradeCard({
 
   const showResults = result.isValid && result.riskPerShare > 0;
 
-  // ── Add-to-position math (independent of original sizing) ─────────────────
+  // ── Add-to-position math ──────────────────────────────────────────────────
+  // Goal: total $ risk on the COMBINED position (from blended avg → new stop)
+  // must stay equal to the user-defined riskAmount.
+  //
+  //   originalShares*(entry − newStop) + addShares*(addPrice − newStop) = riskAmount
+  // ⇒ addShares = (riskAmount − originalShares*(entry − newStop)) / (addPrice − newStop)
+  //
+  // Sign-aware via absolute values so it works for both long and short.
   const addPriceNum = parseFloat(addPrice) || 0;
   const addStopNum = parseFloat(addStopPrice) || 0;
   const newRiskPerShare = addPriceNum && addStopNum && addPriceNum !== addStopNum
     ? Math.abs(addPriceNum - addStopNum)
     : 0;
-  const addShares = newRiskPerShare > 0 && riskAmount > 0
-    ? Math.floor(riskAmount / newRiskPerShare)
+
+  const originalRiskAtNewStop =
+    addStopNum && entryNum ? result.shares * Math.abs(entryNum - addStopNum) : 0;
+  const remainingRiskBudget = riskAmount - originalRiskAtNewStop;
+  const addShares = newRiskPerShare > 0 && remainingRiskBudget > 0
+    ? Math.floor(remainingRiskBudget / newRiskPerShare)
     : 0;
 
   // Combined position (original shares + add shares)
@@ -90,7 +101,7 @@ export default function TradeCard({
     ? (result.shares * entryNum + addShares * addPriceNum) / combinedShares
     : 0;
 
-  // New R for the combined position (uses the new stop)
+  // R for targets = distance from blended avg to the new stop
   const newRForBlended = avgPrice && addStopNum && avgPrice !== addStopNum
     ? Math.abs(avgPrice - addStopNum)
     : 0;
