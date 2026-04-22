@@ -186,14 +186,17 @@
     background-color: hsl(var(--card) / 0.96) !important;
     backdrop-filter: blur(14px) saturate(120%);
     -webkit-backdrop-filter: blur(14px) saturate(120%);
-    border: 1px solid hsla(0, 0%, 100%, 0.06);
+    /* Border subtly brightens with the global cursor-glow signal — keeps
+       cards feeling integrated with the reactive space environment. */
+    border: 1px solid hsla(195, 60%, 70%, calc(0.06 + var(--cursor-glow, 0) * 0.08));
     box-shadow:
       0 8px 30px rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 hsla(0, 0%, 100%, 0.05);
+      inset 0 1px 0 hsla(0, 0%, 100%, 0.05),
+      0 0 0 1px hsla(195, 80%, 60%, calc(var(--cursor-glow, 0) * 0.05));
     transition:
       transform 200ms ease,
-      box-shadow 200ms ease,
-      border-color 200ms ease;
+      box-shadow 400ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 400ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .bg-popover {
     background-image:
