@@ -135,10 +135,8 @@ export default function TradeCard({
       {detectedSide && (
         <div className="mb-3 flex justify-start">
           <span
-            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
-              detectedSide === 'long'
-                ? 'bg-emerald-500/15 text-emerald-500'
-                : 'bg-rose-500/15 text-rose-500'
+            className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
+              detectedSide === 'long' ? 'text-emerald-500' : 'text-rose-500'
             }`}
           >
             {detectedSide === 'long' ? (
