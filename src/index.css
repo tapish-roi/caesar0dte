@@ -355,6 +355,76 @@
     }
   }
 
+  /* === Additions: large accent stars === */
+  .space-large-star {
+    position: absolute;
+    border-radius: 9999px;
+    background: hsla(195, 60%, 96%, 1);
+    opacity: var(--star-op, 0.5);
+    /* Sharp core + very soft glow — single small shadow, no halo ring */
+    box-shadow:
+      0 0 4px hsla(195, 70%, 90%, 0.55),
+      0 0 8px hsla(200, 80%, 75%, 0.25);
+    will-change: opacity, transform;
+    animation: space-large-star-twinkle 7s ease-in-out infinite;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+  @keyframes space-large-star-twinkle {
+    0%, 100% { opacity: var(--star-op, 0.5); transform: translate(-50%, -50%) scale(1); }
+    50%      { opacity: calc(var(--star-op, 0.5) * 0.55); transform: translate(-50%, -50%) scale(0.92); }
+  }
+
+  /* === Additions: shooting stars === */
+  .space-shooting-star {
+    position: absolute;
+    height: 1.5px;
+    pointer-events: none;
+    will-change: transform, opacity;
+    border-radius: 9999px;
+    /* Bright head on the leading edge, fading trail behind */
+    background: linear-gradient(
+      to right,
+      hsla(195, 100%, 96%, 0) 0%,
+      hsla(195, 90%, 92%, 0.35) 60%,
+      hsla(195, 100%, 98%, 0.95) 95%,
+      hsla(195, 100%, 100%, 1) 100%
+    );
+    /* Subtle bloom around the head only */
+    filter: drop-shadow(0 0 2px hsla(195, 90%, 90%, 0.6));
+    opacity: 0;
+    transform-origin: 100% 50%;
+  }
+  /* Down-right diagonal — head points down-right (~30deg) */
+  .space-shooting-star.shoot-dir-r {
+    transform: rotate(28deg) translate3d(0, 0, 0);
+    animation-name: space-shoot-r;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    animation-fill-mode: forwards;
+  }
+  /* Down-left diagonal — mirrored */
+  .space-shooting-star.shoot-dir-l {
+    transform: rotate(152deg) translate3d(0, 0, 0);
+    animation-name: space-shoot-l;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    animation-fill-mode: forwards;
+  }
+  @keyframes space-shoot-r {
+    0%   { opacity: 0; transform: rotate(28deg) translate3d(0, 0, 0); }
+    10%  { opacity: 1; }
+    100% { opacity: 0; transform: rotate(28deg) translate3d(70vw, 0, 0); }
+  }
+  @keyframes space-shoot-l {
+    0%   { opacity: 0; transform: rotate(152deg) translate3d(0, 0, 0); }
+    10%  { opacity: 1; }
+    100% { opacity: 0; transform: rotate(152deg) translate3d(70vw, 0, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .space-large-star { animation: none; }
+    .space-shooting-star { display: none; }
+  }
+
+
   .text-balance {
     text-wrap: balance;
   }
