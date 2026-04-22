@@ -854,7 +854,6 @@ export default function MentorDashboard() {
     { key: 'live' as const, label: 'לייב', icon: Radio },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
     { key: 'quizzes' as const, label: 'מבחנים', icon: ClipboardList },
-    { key: 'journal' as const, label: 'יומן מסחר', icon: LineChart, href: '/journal' },
     { key: 'calculator' as const, label: 'מחשבון מסחר', icon: Calculator },
   ];
 
@@ -992,7 +991,6 @@ export default function MentorDashboard() {
                    { key: 'live', label: 'לייב', icon: Radio },
                    { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
                    { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
-                   { key: 'journal', label: 'יומן מסחר', icon: LineChart, href: '/journal' },
                    { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
                  ] as { key: SidebarTab | 'journal'; label: string; icon: typeof BookOpen; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
                    href ? (
