@@ -414,6 +414,12 @@
     );
     filter: blur(40px);
     pointer-events: none;
+    /* Proximity-reactive: glow intensifies as cursor approaches Pluto */
+    opacity: calc(0.85 + var(--pluto-prox, 0) * 0.6);
+    transform: scale(calc(1 + var(--pluto-prox, 0) * 0.06));
+    transition: opacity 500ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
   }
   /* Fixed axial tilt — defines the "north pole" lean of the planet */
   .space-pluto-tilt {
