@@ -9,10 +9,7 @@ interface Props {
   entryPrice: string;
   stopPrice: string;
   targetPrice: string;
-  atr?: number;
-  riskPerShare: number;
-  rrRatio: number;
-  stopDistancePct: number;
+  atr?: number; // optional, from stock_atr_data cache
   onTickerChange: (v: string) => void;
   onSideChange: (s: Side) => void;
   onEntryChange: (v: string) => void;
@@ -20,11 +17,7 @@ interface Props {
   onTargetChange: (v: string) => void;
   onClear: () => void;
   onUseAtrStop: () => void;
-  onSetTarget: (n: number) => void;
 }
-
-const fmt = (n: number, d = 2) =>
-  n.toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
 
 export default function TradeSetupCard({
   ticker,
@@ -33,9 +26,6 @@ export default function TradeSetupCard({
   stopPrice,
   targetPrice,
   atr,
-  riskPerShare,
-  rrRatio,
-  stopDistancePct,
   onTickerChange,
   onSideChange,
   onEntryChange,
@@ -43,20 +33,20 @@ export default function TradeSetupCard({
   onTargetChange,
   onClear,
   onUseAtrStop,
-  onSetTarget,
 }: Props) {
   const handleTicker = (v: string) => {
-    onTickerChange(v.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5));
+    const cleaned = v.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5);
+    onTickerChange(cleaned);
   };
 
   return (
-    <div className="relative bg-card rounded-2xl card-shadow border border-border p-5 h-full">
+    <div className="relative bg-card rounded-2xl card-shadow border border-border p-5">
       <Button
         type="button"
         variant="ghost"
         size="icon"
         onClick={onClear}
-        className="absolute top-2 end-2 h-7 w-7 text-muted-foreground hover:text-foreground"
+        className="absolute top-2 start-2 h-7 w-7 text-muted-foreground hover:text-foreground"
         title="נקה כרטיס"
       >
         <RotateCcw className="w-3.5 h-3.5" />
@@ -143,8 +133,9 @@ export default function TradeSetupCard({
                 type="button"
                 onClick={onUseAtrStop}
                 className="text-[10px] text-primary hover:underline"
+                title={`השתמש ב-ATR (${atr.toFixed(2)}) לחישוב סטופ`}
               >
-                סטופ מ-ATR ({atr.toFixed(2)})
+                השתמש ב-ATR ({atr.toFixed(2)})
               </button>
             )}
           </div>
@@ -159,38 +150,12 @@ export default function TradeSetupCard({
             dir="ltr"
             placeholder="0.00"
           />
-          {riskPerShare > 0 && (
-            <span className="text-[10px] text-muted-foreground mt-1 block tabular-nums">
-              מרחק סטופ: ${fmt(riskPerShare)} ({fmt(stopDistancePct)}%)
-            </span>
-          )}
         </label>
 
         <label className="block">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              מחיר יעד ($) — אופציונלי
-            </span>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => onSetTarget(2)}
-                disabled={riskPerShare <= 0}
-                className="text-[10px] text-primary hover:underline disabled:opacity-40 disabled:no-underline"
-              >
-                1:2
-              </button>
-              <span className="text-[10px] text-muted-foreground">·</span>
-              <button
-                type="button"
-                onClick={() => onSetTarget(3)}
-                disabled={riskPerShare <= 0}
-                className="text-[10px] text-primary hover:underline disabled:opacity-40 disabled:no-underline"
-              >
-                1:3
-              </button>
-            </div>
-          </div>
+          <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            מחיר יעד ($) — אופציונלי
+          </span>
           <Input
             type="number"
             inputMode="decimal"
@@ -202,11 +167,6 @@ export default function TradeSetupCard({
             dir="ltr"
             placeholder="0.00"
           />
-          {rrRatio > 0 && (
-            <span className="text-[10px] text-emerald-500 mt-1 block tabular-nums font-semibold">
-              R:R = {fmt(rrRatio)}
-            </span>
-          )}
         </label>
       </div>
     </div>
