@@ -16,7 +16,6 @@
  * and serves as the primary "anchor" wash visible through these layers.
  */
 import { useEffect, useState } from 'react';
-import CinematicMoon from './CinematicMoon';
 
 // 8 hand-balanced positions — spread across the screen, no clustering.
 // Each: { x%, y%, size px, opacity, twinkle delay }
@@ -109,9 +108,6 @@ export default function SpaceBackground() {
 
       {/* Fine grain noise overlay — breaks color banding */}
       <div className="space-noise" />
-
-      {/* Cinematic 3D moon — top-left celestial accent */}
-      <CinematicMoon />
 
       {/* === ADDITIONS — large accent stars === */}
       <div className="absolute inset-0 pointer-events-none">
