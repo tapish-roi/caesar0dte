@@ -271,12 +271,10 @@ export default function PositionCalculatorSection() {
         })}
       </div>
 
-      {instances.length < 2 && (
-        <Button onClick={addInstance} variant="outline" className="w-full border-dashed">
-          <Plus className="w-4 h-4" />
-          הוסף מחשבון פוזיציה נוסף
-        </Button>
-      )}
+      <Button onClick={addInstance} variant="outline" className="w-full border-dashed">
+        <Plus className="w-4 h-4" />
+        הוסף מחשבון פוזיציה נוסף
+      </Button>
     </div>
   );
 }
