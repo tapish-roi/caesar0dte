@@ -617,13 +617,47 @@
     50%  { transform: translate3d(-2%, 1.5%, 0) scale(1.04); }
     100% { transform: translate3d(0, 0, 0) scale(1); }
   }
-  @keyframes space-spin-pluto {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+  /* Axial rotation: subtle wobble around the tilted axis. We deliberately
+     use small rotateY/rotateX amplitudes (not full 360deg) so the texture
+     never flips to its blank back-face — instead the planet appears to
+     rotate gently while the terminator overlay does the heavy lifting of
+     "selling" continuous rotation. */
+  @keyframes space-axial-spin-pluto {
+    0%   { transform: rotateY(-18deg) rotateX(2deg); }
+    50%  { transform: rotateY(18deg)  rotateX(-2deg); }
+    100% { transform: rotateY(-18deg) rotateX(2deg); }
   }
-  @keyframes space-spin-moon {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(-360deg); }
+  @keyframes space-axial-spin-moon {
+    0%   { transform: rotateY(-10deg) rotateX(1deg); }
+    50%  { transform: rotateY(10deg)  rotateX(-1deg); }
+    100% { transform: rotateY(-10deg) rotateX(1deg); }
+  }
+  /* Subtle limb foreshortening — the visible disc compresses horizontally
+     in sync with the axial rotation, reinforcing the 3D illusion. */
+  @keyframes space-foreshorten-pluto {
+    0%, 100% { transform: scaleX(1); filter:
+      drop-shadow(0 0 30px hsla(220, 60%, 40%, 0.35))
+      drop-shadow(0 0 60px hsla(25, 50%, 40%, 0.18)); }
+    50%      { transform: scaleX(0.985); filter:
+      drop-shadow(0 0 34px hsla(220, 60%, 40%, 0.4))
+      drop-shadow(0 0 64px hsla(25, 50%, 40%, 0.22)); }
+  }
+  @keyframes space-foreshorten-moon {
+    0%, 100% { transform: scaleX(1); }
+    50%      { transform: scaleX(0.992); }
+  }
+  /* Terminator sweep — a horizontal translation of the day/night gradient
+     across the disc. This is the primary "rotation" cue: light hits a
+     different side of the planet over time. */
+  @keyframes space-terminator-pluto {
+    0%   { transform: translateX(-18%); opacity: 0.85; }
+    50%  { transform: translateX(18%);  opacity: 0.95; }
+    100% { transform: translateX(-18%); opacity: 0.85; }
+  }
+  @keyframes space-terminator-moon {
+    0%   { transform: translateX(-10%); opacity: 0.7; }
+    50%  { transform: translateX(10%);  opacity: 0.8; }
+    100% { transform: translateX(-10%); opacity: 0.7; }
   }
   @keyframes space-float-pluto {
     0%, 100% { translate: 0 0; }
