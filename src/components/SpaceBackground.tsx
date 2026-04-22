@@ -152,93 +152,29 @@ export default function SpaceBackground() {
 }
 
 /**
- * StylizedMoon — minimal designed moon, NOT photo-realistic.
+ * StylizedMoon — semi-realistic cratered moon image.
  *
- * Pure SVG + radial gradients (no raster textures, no fake craters).
- * Crisp circular edge, clear directional lighting (key from top-left,
- * shadow bottom-right), thin rim light on the lit side, two extremely
- * subtle surface variations.
- *
+ * Uses a generated PNG with a black background, blended via `screen`
+ * mix-blend-mode so only the moon shows over the dark UI background.
  * Sits in bottom-right, behind UI, pointer-events:none.
  */
 function StylizedMoon() {
   return (
     <div className="moon-wrap" aria-hidden="true">
       <div className="moon-float">
-        <svg
-          viewBox="0 0 200 200"
-          width="100%"
-          height="100%"
-          className="moon-svg"
-        >
-          <defs>
-            {/* Base sphere — clean cool gray, directional shading from top-left */}
-            <radialGradient id="moon-sphere" cx="32%" cy="28%" r="82%">
-              <stop offset="0%"  stopColor="hsl(210, 18%, 97%)" />
-              <stop offset="35%" stopColor="hsl(212, 16%, 90%)" />
-              <stop offset="70%" stopColor="hsl(218, 18%, 72%)" />
-              <stop offset="100%" stopColor="hsl(224, 24%, 48%)" />
-            </radialGradient>
-
-            {/* Directional shadow — soft terminator on bottom-right (no hard line) */}
-            <radialGradient id="moon-terminator" cx="80%" cy="78%" r="78%">
-              <stop offset="40%" stopColor="hsl(225, 30%, 10%)" stopOpacity="0" />
-              <stop offset="100%" stopColor="hsl(225, 40%, 6%)" stopOpacity="0.42" />
-            </radialGradient>
-
-            {/* Two extremely subtle surface variations — barely visible */}
-            <radialGradient id="moon-mare-a" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="hsl(220, 14%, 60%)" stopOpacity="0.10" />
-              <stop offset="100%" stopColor="hsl(220, 14%, 60%)" stopOpacity="0" />
-            </radialGradient>
-            <radialGradient id="moon-mare-b" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="hsl(220, 14%, 60%)" stopOpacity="0.07" />
-              <stop offset="100%" stopColor="hsl(220, 14%, 60%)" stopOpacity="0" />
-            </radialGradient>
-
-            {/* Whisper-soft outer glow — almost invisible, no ring */}
-            <radialGradient id="moon-glow" cx="50%" cy="50%" r="50%">
-              <stop offset="68%" stopColor="hsl(210, 40%, 92%)" stopOpacity="0" />
-              <stop offset="82%" stopColor="hsl(210, 40%, 92%)" stopOpacity="0.06" />
-              <stop offset="100%" stopColor="hsl(210, 40%, 92%)" stopOpacity="0" />
-            </radialGradient>
-
-            <clipPath id="moon-clip">
-              <circle cx="100" cy="100" r="78" />
-            </clipPath>
-          </defs>
-
-          {/* Whisper outer glow */}
-          <circle cx="100" cy="100" r="96" fill="url(#moon-glow)" />
-
-          {/* Base sphere — crisp edge */}
-          <circle cx="100" cy="100" r="78" fill="url(#moon-sphere)" />
-
-          {/* Subtle surface variations — clipped, no rotation */}
-          <g clipPath="url(#moon-clip)">
-            <ellipse cx="118" cy="108" rx="34" ry="28" fill="url(#moon-mare-a)" />
-            <ellipse cx="78" cy="82" rx="22" ry="18" fill="url(#moon-mare-b)" />
-          </g>
-
-          {/* Directional shadow — gives form */}
-          <circle cx="100" cy="100" r="78" fill="url(#moon-terminator)" />
-
-          {/* Rim light — thin bright arc on the lit edge (top-left) */}
-          <circle
-            cx="100"
-            cy="100"
-            r="77.4"
-            fill="none"
-            stroke="hsl(200, 60%, 96%)"
-            strokeOpacity="0.55"
-            strokeWidth="0.7"
-            strokeDasharray="120 380"
-            strokeDashoffset="-30"
-          />
-        </svg>
+        <img
+          src={moonImg}
+          alt=""
+          className="moon-img"
+          loading="lazy"
+          width={1024}
+          height={1024}
+          draggable={false}
+        />
       </div>
     </div>
   );
 }
+
 
 
