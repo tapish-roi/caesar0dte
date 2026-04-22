@@ -192,90 +192,91 @@ export default function PositionCalculatorSection() {
         onClear={clearAccountCard}
       />
 
-      {instances.map((inst, idx) => {
-        const atr = inst.ticker ? atrByTicker[inst.ticker.toUpperCase()] : undefined;
-        const inputs = {
-          accountSize: Number.isFinite(acctNum) ? acctNum : 0,
-          riskAmount: Number.isFinite(riskNum) ? riskNum : 0,
-          side: inst.side,
-          entryPrice: parseFloat(inst.entryPrice) || 0,
-          stopPrice: parseFloat(inst.stopPrice) || 0,
-          targetPrice: parseFloat(inst.targetPrice) || undefined,
-          currentPrice: parseFloat(inst.currentPrice) || undefined,
-          commissionPerShare: parseFloat(inst.commissionPerShare) || 0,
-          maxPositionPct: parseFloat(inst.maxPositionPct) || 100,
-        };
-        const result = calculatePosition(inputs);
+      <div className={instances.length > 1 ? 'grid grid-cols-1 lg:grid-cols-2 gap-4 items-start' : 'space-y-4'}>
+        {instances.map((inst, idx) => {
+          const atr = inst.ticker ? atrByTicker[inst.ticker.toUpperCase()] : undefined;
+          const inputs = {
+            accountSize: Number.isFinite(acctNum) ? acctNum : 0,
+            riskAmount: Number.isFinite(riskNum) ? riskNum : 0,
+            side: inst.side,
+            entryPrice: parseFloat(inst.entryPrice) || 0,
+            stopPrice: parseFloat(inst.stopPrice) || 0,
+            targetPrice: parseFloat(inst.targetPrice) || undefined,
+            currentPrice: parseFloat(inst.currentPrice) || undefined,
+            commissionPerShare: parseFloat(inst.commissionPerShare) || 0,
+            maxPositionPct: parseFloat(inst.maxPositionPct) || 100,
+          };
+          const result = calculatePosition(inputs);
 
-        const handleUseAtrStop = () => {
-          const entry = parseFloat(inst.entryPrice);
-          if (!atr || !Number.isFinite(entry) || entry <= 0) return;
-          const stop = inst.side === 'long' ? entry - atr : entry + atr;
-          updateInstance(inst.id, { stopPrice: stop.toFixed(2) });
-        };
+          const handleUseAtrStop = () => {
+            const entry = parseFloat(inst.entryPrice);
+            if (!atr || !Number.isFinite(entry) || entry <= 0) return;
+            const stop = inst.side === 'long' ? entry - atr : entry + atr;
+            updateInstance(inst.id, { stopPrice: stop.toFixed(2) });
+          };
 
-        return (
-          <div key={inst.id} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-foreground">
-                פוזיציה #{idx + 1}
-              </h2>
-              {instances.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeInstance(inst.id)}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  title="מחק פוזיציה"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  הסר
-                </Button>
-              )}
+          return (
+            <div key={inst.id} className="space-y-4 h-full flex flex-col">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-foreground">
+                  פוזיציה #{idx + 1}
+                </h2>
+                {instances.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeInstance(inst.id)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    title="מחק פוזיציה"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    הסר
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <TradeCard
+                  entryPrice={inst.entryPrice}
+                  stopPrice={inst.stopPrice}
+                  currentPrice={inst.currentPrice}
+                  addPrice={inst.addPrice}
+                  addStopPrice={inst.addStopPrice}
+                  atr={atr}
+                  result={result}
+                  accountSize={inputs.accountSize}
+                  riskAmount={inputs.riskAmount}
+                  onEntryChange={(v) => updateInstance(inst.id, { entryPrice: v })}
+                  onStopChange={(v) => updateInstance(inst.id, { stopPrice: v })}
+                  onCurrentPriceChange={(v) => updateInstance(inst.id, { currentPrice: v })}
+                  onAddPriceChange={(v) => updateInstance(inst.id, { addPrice: v })}
+                  onAddStopChange={(v) => updateInstance(inst.id, { addStopPrice: v })}
+                  onSideDetected={(s) => {
+                    if (s !== inst.side) updateInstance(inst.id, { side: s });
+                  }}
+                  onClear={() =>
+                    updateInstance(inst.id, {
+                      entryPrice: '',
+                      stopPrice: '',
+                      currentPrice: '',
+                      addPrice: '',
+                      addStopPrice: '',
+                    })
+                  }
+                  onUseAtrStop={handleUseAtrStop}
+                />
+              </div>
             </div>
+          );
+        })}
+      </div>
 
-            <TradeCard
-              entryPrice={inst.entryPrice}
-              stopPrice={inst.stopPrice}
-              currentPrice={inst.currentPrice}
-              addPrice={inst.addPrice}
-              addStopPrice={inst.addStopPrice}
-              atr={atr}
-              result={result}
-              accountSize={inputs.accountSize}
-              riskAmount={inputs.riskAmount}
-              onEntryChange={(v) => updateInstance(inst.id, { entryPrice: v })}
-              onStopChange={(v) => updateInstance(inst.id, { stopPrice: v })}
-              onCurrentPriceChange={(v) => updateInstance(inst.id, { currentPrice: v })}
-              onAddPriceChange={(v) => updateInstance(inst.id, { addPrice: v })}
-              onAddStopChange={(v) => updateInstance(inst.id, { addStopPrice: v })}
-              onSideDetected={(s) => {
-                if (s !== inst.side) updateInstance(inst.id, { side: s });
-              }}
-              onClear={() =>
-                updateInstance(inst.id, {
-                  entryPrice: '',
-                  stopPrice: '',
-                  currentPrice: '',
-                  addPrice: '',
-                  addStopPrice: '',
-                })
-              }
-              onUseAtrStop={handleUseAtrStop}
-            />
-
-
-            {idx < instances.length - 1 && (
-              <div className="border-t border-border pt-2" />
-            )}
-          </div>
-        );
-      })}
-
-      <Button onClick={addInstance} variant="outline" className="w-full border-dashed">
-        <Plus className="w-4 h-4" />
-        הוסף מחשבון פוזיציה
-      </Button>
+      {instances.length < 2 && (
+        <Button onClick={addInstance} variant="outline" className="w-full border-dashed">
+          <Plus className="w-4 h-4" />
+          הוסף מחשבון פוזיציה נוסף
+        </Button>
+      )}
     </div>
   );
 }
