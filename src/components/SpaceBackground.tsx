@@ -109,9 +109,6 @@ export default function SpaceBackground() {
       {/* Fine grain noise overlay — breaks color banding */}
       <div className="space-noise" />
 
-      {/* Cinematic 3D moon — top-left celestial accent */}
-      <CinematicMoon />
-
       {/* === ADDITIONS — large accent stars === */}
       <div className="absolute inset-0 pointer-events-none">
         {LARGE_STARS.map((s, i) => (
