@@ -10,7 +10,6 @@ import { Home, BookOpen, Calculator, LogOut, TrendingUp } from 'lucide-react';
 
 const items = [
   { label: 'בית', url: '/', icon: Home },
-  { label: 'יומן מסחר', url: '/journal', icon: TrendingUp },
   { label: 'מחשבון', url: '/trading-calculator', icon: Calculator },
   { label: 'שיעורים', url: '/', icon: BookOpen },
 ];

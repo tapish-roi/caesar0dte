@@ -904,7 +904,6 @@ export default function StudentDashboard() {
     { key: 'community' as const, label: 'קהילה', icon: Users },
     { key: 'live' as const, label: 'לייב', icon: Radio },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion },
-    { key: 'journal' as const, label: 'יומן מסחר', icon: LineChart, href: '/journal' },
     { key: 'calculator' as const, label: 'מחשבון מסחר', icon: Calculator },
   ];
 
@@ -926,7 +925,7 @@ export default function StudentDashboard() {
 
       {/* Mobile Bottom Nav */}
       {!lessonViewMode && (
-        <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => { if (key === 'journal') { window.location.assign('/journal'); return; } setActiveTab(key as SidebarTab); }} />
+        <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
       )}
 
       {/* Mobile Profile - full screen overlay */}
@@ -1145,9 +1144,8 @@ export default function StudentDashboard() {
                   { key: 'community', label: 'קהילה', icon: Users },
                   { key: 'live', label: 'לייב', icon: Radio },
                   { key: 'questions', label: 'השאלות שלי', icon: MessageCircleQuestion },
-                  { key: 'journal', label: 'יומן מסחר', icon: LineChart, href: '/journal' },
                   { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
-                ] as { key: SidebarTab | 'journal'; label: string; icon: typeof BookOpen; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
+                ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
                   href ? (
                     <Link
                       key={key}
