@@ -113,7 +113,16 @@ export default function SpaceBackground() {
       {/* === Pluto — distant background planet, bottom-right === */}
       <div className="pluto-wrap">
         <div className="pluto-halo" />
-        <div className="pluto-body" />
+        <img
+          src={plutoImg}
+          alt=""
+          aria-hidden="true"
+          className="pluto-img"
+          loading="lazy"
+          width={1024}
+          height={1024}
+          draggable={false}
+        />
       </div>
 
       {/* === ADDITIONS — large accent stars === */}
