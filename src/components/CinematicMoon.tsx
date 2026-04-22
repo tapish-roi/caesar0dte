@@ -128,12 +128,14 @@ export default function CinematicMoon() {
         transform: 'translate(-28%, -28%)',
       }}
     >
+      {/* Halo sits behind the canvas in its own stacking layer so blur doesn't affect the sphere */}
       <div
-        className="absolute inset-0"
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(circle at 50% 50%, rgba(232,228,216,0.18) 0%, rgba(232,228,216,0.08) 35%, rgba(232,228,216,0) 65%)',
-          filter: 'blur(8px)',
+            'radial-gradient(circle at 50% 50%, rgba(232,228,216,0.22) 0%, rgba(232,228,216,0.08) 40%, rgba(232,228,216,0) 70%)',
+          zIndex: 0,
         }}
       />
       <MoonErrorBoundary>
@@ -142,7 +144,7 @@ export default function CinematicMoon() {
             dpr={[1, 1.5]}
             gl={{ alpha: true, antialias: true, powerPreference: 'low-power' }}
             camera={{ position: [0, 0, 3], fov: 35 }}
-            style={{ background: 'transparent' }}
+            style={{ background: 'transparent', position: 'relative', zIndex: 1, width: '100%', height: '100%' }}
           >
             <ambientLight intensity={0.18} color={'#3a4a6b'} />
             <directionalLight
