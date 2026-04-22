@@ -157,7 +157,7 @@ export default function TradeCard({
       {/* ── Inputs ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <label className="block">
-          <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+          <span className="text-[11px] font-medium text-emerald-500 uppercase tracking-wider">
             מחיר כניסה ($)
           </span>
           <Input
@@ -167,7 +167,7 @@ export default function TradeCard({
             step="0.01"
             value={entryPrice}
             onChange={(e) => onEntryChange(e.target.value)}
-            className="mt-1 tabular-nums"
+            className="mt-1 tabular-nums border-emerald-500/40 bg-emerald-500/5 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30 hover:border-emerald-500/60 hover:shadow-[0_0_18px_-4px_rgb(16,185,129,0.35)] transition-all"
             dir="ltr"
             placeholder="0.00"
           />
@@ -175,7 +175,7 @@ export default function TradeCard({
 
         <label className="block">
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-rose-500 uppercase tracking-wider">
               מחיר סטופ ($)
             </span>
             {atr && atr > 0 && (
@@ -196,7 +196,7 @@ export default function TradeCard({
             step="0.01"
             value={stopPrice}
             onChange={(e) => onStopChange(e.target.value)}
-            className="mt-1 tabular-nums"
+            className="mt-1 tabular-nums border-rose-500/40 bg-rose-500/5 focus-visible:border-rose-500 focus-visible:ring-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_18px_-4px_rgb(244,63,94,0.35)] transition-all"
             dir="ltr"
             placeholder="0.00"
           />
@@ -249,9 +249,9 @@ export default function TradeCard({
                 return (
                   <div
                     key={n}
-                    className="rounded-xl border border-border bg-muted/30 p-3 text-center"
+                    className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-center shadow-[0_0_22px_-10px_rgb(16,185,129,0.45)]"
                   >
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    <div className="text-[10px] text-emerald-500/80 uppercase tracking-wider">
                       +{n}R
                     </div>
                     <div className="text-base font-bold tabular-nums mt-0.5 text-foreground">
@@ -295,7 +295,7 @@ export default function TradeCard({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <label className="block">
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                <span className="text-[11px] font-medium text-emerald-500 uppercase tracking-wider">
                   מחיר הוספה ($)
                 </span>
                 <Input
@@ -305,14 +305,14 @@ export default function TradeCard({
                   step="0.01"
                   value={addPrice}
                   onChange={(e) => onAddPriceChange(e.target.value)}
-                  className="mt-1 tabular-nums"
+                  className="mt-1 tabular-nums border-emerald-500/40 bg-emerald-500/5 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30 hover:border-emerald-500/60 hover:shadow-[0_0_18px_-4px_rgb(16,185,129,0.35)] transition-all"
                   dir="ltr"
                   placeholder="0.00"
                 />
               </label>
 
               <label className="block">
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                <span className="text-[11px] font-medium text-rose-500 uppercase tracking-wider">
                   סטופ חדש ($)
                 </span>
                 <Input
@@ -322,7 +322,7 @@ export default function TradeCard({
                   step="0.01"
                   value={addStopPrice}
                   onChange={(e) => onAddStopChange(e.target.value)}
-                  className="mt-1 tabular-nums"
+                  className="mt-1 tabular-nums border-rose-500/40 bg-rose-500/5 focus-visible:border-rose-500 focus-visible:ring-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_18px_-4px_rgb(244,63,94,0.35)] transition-all"
                   dir="ltr"
                   placeholder="0.00"
                 />
@@ -360,9 +360,9 @@ export default function TradeCard({
                       return (
                         <div
                           key={n}
-                          className="rounded-xl border border-border bg-muted/30 p-3 text-center"
+                          className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-center shadow-[0_0_22px_-10px_rgb(16,185,129,0.45)]"
                         >
-                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          <div className="text-[10px] text-emerald-500/80 uppercase tracking-wider">
                             +{n}R חדש
                           </div>
                           <div className="text-base font-bold tabular-nums mt-0.5 text-foreground">
