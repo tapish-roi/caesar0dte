@@ -682,8 +682,12 @@
     .space-layer-twinkle,
     .space-pluto-wrap,
     .space-moon-wrap,
+    .space-pluto-axis,
+    .space-moon-axis,
     .space-pluto,
     .space-moon,
+    .space-pluto-terminator,
+    .space-moon-terminator,
     .space-shooting-star {
       animation: none;
     }
