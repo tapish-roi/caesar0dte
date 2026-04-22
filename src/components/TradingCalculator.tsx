@@ -263,10 +263,6 @@ export default function TradingCalculator() {
                   נתונים מ-Finviz · {latestDate}
                 </span>
               )}
-              <Button variant="outline" size="sm" onClick={handleReset} title="שחזר ברירת מחדל">
-                <RotateCcw className="w-4 h-4" />
-                איפוס
-              </Button>
               <Button onClick={handleRefresh} disabled={isRefreshing} size="sm">
                 {isRefreshing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
