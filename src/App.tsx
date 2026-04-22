@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LayoutGroup, AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import DashboardReveal from "@/components/DashboardReveal";
+import LightspeedTransition from "@/components/LightspeedTransition";
 import AuthPage from "./pages/AuthPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import MentorDashboard from "./pages/MentorDashboard";
