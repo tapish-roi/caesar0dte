@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Trash2, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 
 const SLOTS = 6;
 const EMPTY: string[] = Array.from({ length: SLOTS }, () => '');
@@ -30,9 +28,6 @@ function readSession(key: string): string[] {
 function writeSession(key: string, arr: string[]) {
   sessionStorage.setItem(key, JSON.stringify(arr));
 }
-
-const fmt = (n: number, d = 2) =>
-  n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 
 export default function TickerInputTable({ onTickersChange }: TickerInputTableProps) {
   const [longs, setLongs] = useState<string[]>(() => readSession(LONGS_KEY));
