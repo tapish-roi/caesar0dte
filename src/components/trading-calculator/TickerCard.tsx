@@ -98,7 +98,7 @@ export default function TickerCard({
         {/* ── Price / ATR rows ────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-2">
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">סגירה</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider">מחיר סגירה</div>
             <div className="text-lg font-bold text-primary tabular-nums">
               {empty ? '—' : `$${fmt(closePrice)}`}
             </div>
@@ -116,18 +116,6 @@ export default function TickerCard({
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2 text-center">
               <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2">
-                <div className="text-[10px] text-muted-foreground uppercase">ATR ללונג</div>
-                <div className="text-sm font-semibold tabular-nums text-emerald-400">
-                  ${fmt(atrLong)}
-                </div>
-              </div>
-              <div className="bg-rose-500/5 border border-rose-500/20 rounded-lg p-2">
-                <div className="text-[10px] text-muted-foreground uppercase">ATR לשורט</div>
-                <div className="text-sm font-semibold tabular-nums text-rose-400">
-                  ${fmt(atrShort)}
-                </div>
-              </div>
-              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2">
                 <div className="text-[10px] text-muted-foreground uppercase">50% ATR ללונג</div>
                 <div className="text-sm font-semibold tabular-nums text-emerald-400">
                   ${fmt(halfAtrLong)}
@@ -139,10 +127,18 @@ export default function TickerCard({
                   ${fmt(halfAtrShort)}
                 </div>
               </div>
-            </div>
-            <div className="bg-muted/30 border border-border rounded-lg p-2 text-center">
-              <div className="text-[10px] text-muted-foreground uppercase">% ATR</div>
-              <div className="text-sm font-semibold tabular-nums">{fmt(pctAtr, 1)}%</div>
+              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-2">
+                <div className="text-[10px] text-muted-foreground uppercase">100% ATR ללונג</div>
+                <div className="text-sm font-semibold tabular-nums text-emerald-400">
+                  ${fmt(atrLong)}
+                </div>
+              </div>
+              <div className="bg-rose-500/5 border border-rose-500/20 rounded-lg p-2">
+                <div className="text-[10px] text-muted-foreground uppercase">100% ATR לשורט</div>
+                <div className="text-sm font-semibold tabular-nums text-rose-400">
+                  ${fmt(atrShort)}
+                </div>
+              </div>
             </div>
           </div>
         )}
