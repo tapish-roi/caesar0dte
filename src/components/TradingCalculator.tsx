@@ -7,7 +7,6 @@ import {
   CalendarRange,
   RefreshCw,
   Loader2,
-  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -174,10 +173,6 @@ export default function TradingCalculator() {
     [invokeFinviz, queryClient, toast],
   );
 
-  const handleReset = useCallback(() => {
-    setTickers([...DEFAULT_TICKERS]);
-    toast({ title: 'אופס', description: 'רשימת הסימולים שוחזרה לברירת מחדל' });
-  }, [toast]);
 
   const handleAddToList = useCallback(
     (ticker: string, side: 'long' | 'short') => {
@@ -223,7 +218,7 @@ export default function TradingCalculator() {
 
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto" dir="rtl">
+    <div className={`p-4 md:p-8 mx-auto ${activeTab === 'position' ? 'max-w-7xl' : 'max-w-6xl'}`} dir="rtl">
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-3">
