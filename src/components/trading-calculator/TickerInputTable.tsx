@@ -47,30 +47,6 @@ export default function TickerInputTable({ onTickersChange }: TickerInputTablePr
     onTickersChange?.(longs, shorts);
   }, [longs, shorts, onTickersChange]);
 
-  const allTickers = Array.from(
-    new Set([...longs, ...shorts].map((t) => t.trim().toUpperCase()).filter(Boolean)),
-  );
-
-  const { data: cached = {} } = useQuery({
-    queryKey: ['atr-cache-side-table', allTickers],
-    queryFn: async () => {
-      if (allTickers.length === 0) return {} as Record<string, { close_price: number; atr: number }>;
-      const { data, error } = await supabase
-        .from('stock_atr_data')
-        .select('ticker, close_price, atr, data_date')
-        .in('ticker', allTickers)
-        .order('data_date', { ascending: false });
-      if (error) throw error;
-      const map: Record<string, { close_price: number; atr: number }> = {};
-      for (const row of data ?? []) {
-        if (!map[row.ticker]) map[row.ticker] = { close_price: Number(row.close_price), atr: Number(row.atr) };
-      }
-      return map;
-    },
-    enabled: allTickers.length > 0,
-    staleTime: 5 * 60 * 1000,
-  });
-
   const updateSlot = useCallback(
     (side: 'long' | 'short', index: number, value: string) => {
       const cleaned = value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5);
