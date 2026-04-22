@@ -75,32 +75,51 @@ export default function SpaceBackground() {
       {/* Twinkle overlay — randomized opacity pulse on a subset */}
       <div className="space-layer space-layer-twinkle" />
 
-      {/* Hero celestial body #1 — Pluto, top-left */}
+      {/* Hero celestial body #1 — Pluto, top-left.
+          Three nested layers create the illusion of true axial rotation:
+          - .space-pluto-tilt   → fixed axial tilt (perspective + rotateZ)
+          - .space-pluto-axis   → continuous rotation on the tilted axis
+          - .space-pluto        → the texture (with subtle scaleX foreshortening)
+          - .space-pluto-terminator → light/shadow sweep simulating lit hemisphere */}
       <div className="space-pluto-wrap">
         <div className="space-pluto-glow" />
-        <img
-          src={plutoImg}
-          alt=""
-          className="space-pluto"
-          draggable={false}
-          loading="lazy"
-          width={1024}
-          height={1024}
-        />
+        <div className="space-pluto-tilt">
+          <div className="space-pluto-axis">
+            <div className="space-pluto-sphere">
+              <img
+                src={plutoImg}
+                alt=""
+                className="space-pluto"
+                draggable={false}
+                loading="lazy"
+                width={1024}
+                height={1024}
+              />
+              <div className="space-pluto-terminator" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Hero celestial body #2 — Moon, bottom-right */}
+      {/* Hero celestial body #2 — Moon, bottom-right (same structure, slower) */}
       <div className="space-moon-wrap">
         <div className="space-moon-glow" />
-        <img
-          src={moonImg}
-          alt=""
-          className="space-moon"
-          draggable={false}
-          loading="lazy"
-          width={1024}
-          height={1024}
-        />
+        <div className="space-moon-tilt">
+          <div className="space-moon-axis">
+            <div className="space-moon-sphere">
+              <img
+                src={moonImg}
+                alt=""
+                className="space-moon"
+                draggable={false}
+                loading="lazy"
+                width={1024}
+                height={1024}
+              />
+              <div className="space-moon-terminator" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Rare shooting star */}
