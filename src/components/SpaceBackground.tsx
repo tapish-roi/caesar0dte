@@ -8,6 +8,7 @@
  * ADDITIONS (non-breaking):
  *   - Large accent stars (8 fixed positions, slow twinkle, 3-6px, soft glow)
  *   - Shooting stars layer (1-2 active, randomized 15-40s intervals)
+ *   - Stylized moon image (bottom-right, screen-blended)
  *
  * Both additions are pointer-events:none and behind the UI.
  *
@@ -16,6 +17,7 @@
  * and serves as the primary "anchor" wash visible through these layers.
  */
 import { useEffect, useState } from 'react';
+import moonImg from '@/assets/moon.png';
 
 // 8 hand-balanced positions — spread across the screen, no clustering.
 // Each: { x%, y%, size px, opacity, twinkle delay }
