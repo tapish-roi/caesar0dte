@@ -142,6 +142,96 @@ export default function SpaceBackground() {
           />
         ))}
       </div>
+
+      {/* === ADDITION — stylized moon (bottom-right, behind UI) === */}
+      <StylizedMoon />
     </div>
   );
 }
+
+/**
+ * StylizedMoon — minimal designed moon, NOT photo-realistic.
+ *
+ * Pure SVG + radial gradients (no raster textures). Sits in bottom-right,
+ * behind UI, pointer-events:none. Honors prefers-reduced-motion via CSS.
+ *
+ * Composition:
+ *   - Outer soft glow (filter blur, very low opacity)
+ *   - Base sphere with directional radial gradient (light from top-left)
+ *   - 4 faint "crater-like" patches, slow rotation (axial spin)
+ *   - Light-shift overlay — drifts opacity over ~40s for subtle phase feel
+ */
+function StylizedMoon() {
+  return (
+    <div className="moon-wrap" aria-hidden="true">
+      <div className="moon-float">
+        <svg
+          viewBox="0 0 200 200"
+          width="100%"
+          height="100%"
+          className="moon-svg"
+        >
+          <defs>
+            {/* Directional sphere shading — light from top-left */}
+            <radialGradient id="moon-base" cx="35%" cy="32%" r="78%">
+              <stop offset="0%" stopColor="hsl(210, 25%, 96%)" stopOpacity="1" />
+              <stop offset="42%" stopColor="hsl(212, 22%, 88%)" stopOpacity="1" />
+              <stop offset="78%" stopColor="hsl(218, 22%, 70%)" stopOpacity="1" />
+              <stop offset="100%" stopColor="hsl(222, 28%, 52%)" stopOpacity="1" />
+            </radialGradient>
+
+            {/* Cool tint wash */}
+            <radialGradient id="moon-tint" cx="30%" cy="28%" r="85%">
+              <stop offset="0%" stopColor="hsl(200, 60%, 92%)" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="hsl(220, 50%, 30%)" stopOpacity="0" />
+            </radialGradient>
+
+            {/* Soft outer glow (no halo ring) */}
+            <radialGradient id="moon-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="40%" stopColor="hsl(210, 60%, 90%)" stopOpacity="0.18" />
+              <stop offset="70%" stopColor="hsl(210, 60%, 80%)" stopOpacity="0.06" />
+              <stop offset="100%" stopColor="hsl(210, 60%, 80%)" stopOpacity="0" />
+            </radialGradient>
+
+            {/* Crater patch — soft blob */}
+            <radialGradient id="crater" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="hsl(220, 18%, 55%)" stopOpacity="0.32" />
+              <stop offset="60%" stopColor="hsl(220, 18%, 55%)" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="hsl(220, 18%, 55%)" stopOpacity="0" />
+            </radialGradient>
+
+            {/* Light-shift overlay — subtle terminator that drifts */}
+            <radialGradient id="moon-shadow" cx="78%" cy="72%" r="80%">
+              <stop offset="35%" stopColor="hsl(225, 40%, 12%)" stopOpacity="0" />
+              <stop offset="100%" stopColor="hsl(225, 45%, 8%)" stopOpacity="0.45" />
+            </radialGradient>
+
+            <clipPath id="moon-clip">
+              <circle cx="100" cy="100" r="78" />
+            </clipPath>
+          </defs>
+
+          {/* Outer glow — drawn larger than the sphere */}
+          <circle cx="100" cy="100" r="100" fill="url(#moon-glow)" />
+
+          {/* Base sphere */}
+          <circle cx="100" cy="100" r="78" fill="url(#moon-base)" />
+          <circle cx="100" cy="100" r="78" fill="url(#moon-tint)" />
+
+          {/* Craters — clipped to sphere, slowly rotating */}
+          <g clipPath="url(#moon-clip)" className="moon-craters">
+            <ellipse cx="80" cy="78" rx="14" ry="12" fill="url(#crater)" />
+            <ellipse cx="125" cy="105" rx="20" ry="16" fill="url(#crater)" />
+            <ellipse cx="92" cy="135" rx="11" ry="9" fill="url(#crater)" />
+            <ellipse cx="138" cy="78" rx="8" ry="7" fill="url(#crater)" />
+            <ellipse cx="68" cy="115" rx="9" ry="8" fill="url(#crater)" />
+          </g>
+
+          {/* Directional shading — keeps top-left bright, bottom-right gently shaded */}
+          <circle cx="100" cy="100" r="78" fill="url(#moon-shadow)" className="moon-shadow" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+

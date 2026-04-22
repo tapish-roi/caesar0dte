@@ -424,6 +424,68 @@
     .space-shooting-star { display: none; }
   }
 
+  /* === Addition: stylized moon === */
+  .moon-wrap {
+    position: absolute;
+    /* Bottom-right, partially off-screen for elegance */
+    right: -60px;
+    bottom: -80px;
+    width: clamp(220px, 22vw, 360px);
+    aspect-ratio: 1 / 1;
+    pointer-events: none;
+    will-change: transform, opacity;
+    /* Sit behind UI but above the noise/star layers within the bg overlay */
+    opacity: 0.78;
+    /* Light blur to push it back in depth */
+    filter: blur(0.4px);
+    animation: moon-light-shift 42s ease-in-out infinite;
+  }
+  @media (max-width: 768px) {
+    .moon-wrap { right: -90px; bottom: -110px; opacity: 0.62; }
+  }
+  .moon-float {
+    width: 100%;
+    height: 100%;
+    animation: moon-drift 16s ease-in-out infinite;
+    will-change: transform;
+  }
+  .moon-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .moon-craters {
+    transform-origin: 100px 100px;
+    animation: moon-rotate 220s linear infinite;
+    will-change: transform;
+  }
+  .moon-shadow {
+    /* Subtle phase drift — opacity sways gently */
+    animation: moon-shadow-shift 38s ease-in-out infinite;
+    will-change: opacity;
+  }
+  @keyframes moon-drift {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50%      { transform: translate3d(-8px, -10px, 0); }
+  }
+  @keyframes moon-rotate {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes moon-light-shift {
+    0%, 100% { opacity: 0.78; }
+    50%      { opacity: 0.86; }
+  }
+  @keyframes moon-shadow-shift {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.78; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .moon-wrap, .moon-float, .moon-craters, .moon-shadow { animation: none; }
+  }
+
+
 
   .text-balance {
     text-wrap: balance;
