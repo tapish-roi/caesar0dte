@@ -6,7 +6,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Home, BookOpen, Calculator, LogOut, TrendingUp } from 'lucide-react';
+import { Home, BookOpen, Calculator, LogOut } from 'lucide-react';
 
 const items = [
   { label: 'בית', url: '/', icon: Home },
@@ -27,8 +27,7 @@ function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((it) => {
-                const isActive = location.pathname === it.url ||
-                  (it.url === '/journal' && ['/dashboard', '/analytics'].includes(location.pathname));
+                const isActive = location.pathname === it.url;
                 return (
                   <SidebarMenuItem key={it.label}>
                     <SidebarMenuButton asChild isActive={isActive}>
