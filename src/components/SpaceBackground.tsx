@@ -142,6 +142,9 @@ export default function SpaceBackground() {
           />
         ))}
       </div>
+
+      {/* === ADDITION — stylized moon (bottom-right, behind UI) === */}
+      <StylizedMoon />
     </div>
   );
 }
