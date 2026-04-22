@@ -109,20 +109,7 @@ export default function SpaceBackground() {
       {/* Fine grain noise overlay — breaks color banding */}
       <div className="space-noise" />
 
-      {/* === Pluto — distant background planet, bottom-right === */}
-      <div className="pluto-wrap">
-        <div className="pluto-halo" />
-        <img
-          src={plutoImg}
-          alt=""
-          aria-hidden="true"
-          className="pluto-img"
-          loading="lazy"
-          width={1024}
-          height={1024}
-          draggable={false}
-        />
-      </div>
+
 
       {/* === ADDITIONS — large accent stars === */}
       <div className="absolute inset-0 pointer-events-none">
