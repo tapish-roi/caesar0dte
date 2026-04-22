@@ -476,6 +476,25 @@
     animation: space-terminator-pluto 180s ease-in-out infinite;
     will-change: transform, opacity;
   }
+  /* Reactive specular highlight on Pluto — a soft warm spot that intensifies
+     when the cursor is near, simulating local light hitting the surface.
+     Sits inside the rotating sphere so the highlight stays in world-space. */
+  .space-pluto-spec {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(
+      circle at 35% 35%,
+      hsla(40, 90%, 80%, 0.22),
+      hsla(30, 70%, 60%, 0.10) 35%,
+      transparent 60%
+    );
+    mix-blend-mode: screen;
+    opacity: calc(0.25 + var(--pluto-prox, 0) * 0.55);
+    transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity;
+  }
 
   /* === HERO #2 — MOON (bottom-right) — same system, much slower ========== */
   .space-moon-wrap {
