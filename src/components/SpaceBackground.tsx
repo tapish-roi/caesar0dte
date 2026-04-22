@@ -131,7 +131,10 @@ export default function SpaceBackground() {
     <div
       ref={rootRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-[5] overflow-hidden"
+      /* z-0 + pointer-events-none keep this strictly behind UI. UI elements
+         use z-10+ (and position: relative on wrappers via Tailwind defaults
+         like `relative`). Background elements MUST NEVER capture input. */
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
       style={{
         ['--mx' as string]: 0,
         ['--my' as string]: 0,
