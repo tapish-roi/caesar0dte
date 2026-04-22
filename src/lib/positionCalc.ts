@@ -93,15 +93,13 @@ export function calculatePosition(i: PositionInputs): PositionResult {
   const riskPerShare = Math.abs(i.entryPrice - i.stopPrice);
   if (riskPerShare <= 0) return { isValid: false, errors: ['מרחק סטופ אפס'], ...ZEROS };
 
-  // §3.3 raw shares — ALWAYS floor; never exceed risk budget
+  // §3.3 raw shares — ALWAYS floor; sizing is based only on the user-defined risk budget
   const rawShares = Math.floor(i.riskAmount / riskPerShare);
 
-  // §3.4 max-position cap
-  const maxPct = i.maxPositionPct ?? 100;
-  const maxNotional = i.accountSize * (maxPct / 100);
-  const maxSharesByExposure = i.entryPrice > 0 ? Math.floor(maxNotional / i.entryPrice) : rawShares;
-  const shares = Math.max(0, Math.min(rawShares, maxSharesByExposure));
-  const cappedByMaxPosition = shares < rawShares;
+  // §3.4 final shares
+  // Account size is informational for exposure/risk percentages, but it must not cap sizing.
+  const shares = Math.max(0, rawShares);
+  const cappedByMaxPosition = false;
 
   // §3.5 commission round-trip (open + close)
   const cps = i.commissionPerShare ?? 0;
