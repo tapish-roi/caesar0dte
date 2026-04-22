@@ -186,14 +186,17 @@
     background-color: hsl(var(--card) / 0.96) !important;
     backdrop-filter: blur(14px) saturate(120%);
     -webkit-backdrop-filter: blur(14px) saturate(120%);
-    border: 1px solid hsla(0, 0%, 100%, 0.06);
+    /* Border subtly brightens with the global cursor-glow signal — keeps
+       cards feeling integrated with the reactive space environment. */
+    border: 1px solid hsla(195, 60%, 70%, calc(0.06 + var(--cursor-glow, 0) * 0.08));
     box-shadow:
       0 8px 30px rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 hsla(0, 0%, 100%, 0.05);
+      inset 0 1px 0 hsla(0, 0%, 100%, 0.05),
+      0 0 0 1px hsla(195, 80%, 60%, calc(var(--cursor-glow, 0) * 0.05));
     transition:
       transform 200ms ease,
-      box-shadow 200ms ease,
-      border-color 200ms ease;
+      box-shadow 400ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 400ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .bg-popover {
     background-image:
@@ -414,6 +417,12 @@
     );
     filter: blur(40px);
     pointer-events: none;
+    /* Proximity-reactive: glow intensifies as cursor approaches Pluto */
+    opacity: calc(0.85 + var(--pluto-prox, 0) * 0.6);
+    transform: scale(calc(1 + var(--pluto-prox, 0) * 0.06));
+    transition: opacity 500ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
   }
   /* Fixed axial tilt — defines the "north pole" lean of the planet */
   .space-pluto-tilt {
@@ -476,6 +485,25 @@
     animation: space-terminator-pluto 180s ease-in-out infinite;
     will-change: transform, opacity;
   }
+  /* Reactive specular highlight on Pluto — a soft warm spot that intensifies
+     when the cursor is near, simulating local light hitting the surface.
+     Sits inside the rotating sphere so the highlight stays in world-space. */
+  .space-pluto-spec {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(
+      circle at 35% 35%,
+      hsla(40, 90%, 80%, 0.22),
+      hsla(30, 70%, 60%, 0.10) 35%,
+      transparent 60%
+    );
+    mix-blend-mode: screen;
+    opacity: calc(0.25 + var(--pluto-prox, 0) * 0.55);
+    transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity;
+  }
 
   /* === HERO #2 — MOON (bottom-right) — same system, much slower ========== */
   .space-moon-wrap {
@@ -504,6 +532,12 @@
     );
     filter: blur(35px);
     pointer-events: none;
+    /* Weaker proximity reaction than Pluto — Moon is mostly static */
+    opacity: calc(0.85 + var(--moon-prox, 0) * 0.35);
+    transform: scale(calc(1 + var(--moon-prox, 0) * 0.03));
+    transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
   }
   .space-moon-tilt {
     position: absolute;
@@ -557,6 +591,66 @@
     opacity: 0.75;
     animation: space-terminator-moon 520s ease-in-out infinite;
     will-change: transform, opacity;
+  }
+  /* Moon specular — much subtler than Pluto's, mostly static */
+  .space-moon-spec {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(
+      circle at 40% 35%,
+      hsla(195, 50%, 90%, 0.16),
+      hsla(220, 40%, 70%, 0.06) 40%,
+      transparent 65%
+    );
+    mix-blend-mode: screen;
+    opacity: calc(0.3 + var(--moon-prox, 0) * 0.35);
+    transition: opacity 500ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity;
+  }
+
+  /* === CURSOR-FOLLOWING LIGHT ============================================
+     A single soft radial gradient that paints under the cursor. Very low
+     opacity, very wide falloff, screen blend so it only adds light to stars
+     and nebula — never washes out the void. The position is updated via
+     CSS variables (--cx, --cy) on the parent, throttled to one rAF per
+     mousemove for 60fps performance. */
+  .space-cursor-light {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      circle 520px at var(--cx, 50vw) var(--cy, 50vh),
+      hsla(195, 80%, 75%, 0.14),
+      hsla(220, 70%, 60%, 0.07) 35%,
+      hsla(220, 60%, 40%, 0.025) 65%,
+      transparent 100%
+    );
+    mix-blend-mode: screen;
+    opacity: 0.95;
+    will-change: background;
+  }
+
+  /* === ATMOSPHERIC DEPTH FOG ============================================
+     Corner vignette that sinks the edges into deep space, blending Pluto
+     and Moon into the surrounding void. Multiply blend keeps it dark and
+     atmospheric without tinting the foreground. */
+  .space-fog {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 75% 60% at 50% 50%,
+        transparent 0%,
+        transparent 55%,
+        hsla(220, 50%, 4%, 0.35) 100%),
+      linear-gradient(180deg,
+        hsla(220, 60%, 6%, 0.18) 0%,
+        transparent 25%,
+        transparent 75%,
+        hsla(230, 60%, 4%, 0.22) 100%);
+    mix-blend-mode: multiply;
   }
 
   /* === SHOOTING STAR — rare cinematic accent === */
