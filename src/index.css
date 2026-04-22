@@ -424,6 +424,90 @@
     .space-shooting-star { display: none; }
   }
 
+  /* === Pluto — distant background planet ===
+     Pure CSS sphere: layered radial gradients give surface shading,
+     terminator (light/dark side) and a soft atmospheric halo. Sits
+     deep in the background, behind every UI element. */
+  .pluto-wrap {
+    position: absolute;
+    /* Bottom-right area, far enough out so it never crowds content */
+    right: -6vw;
+    bottom: -8vw;
+    width: clamp(280px, 32vw, 520px);
+    height: clamp(280px, 32vw, 520px);
+    pointer-events: none;
+    will-change: transform;
+    animation: pluto-float 28s ease-in-out infinite;
+    opacity: 0.55;
+  }
+  .pluto-halo {
+    position: absolute;
+    inset: -22%;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle at 50% 50%,
+      hsla(28, 55%, 70%, 0.18) 0%,
+      hsla(20, 45%, 55%, 0.10) 28%,
+      hsla(20, 40%, 40%, 0.04) 52%,
+      transparent 72%
+    );
+    mix-blend-mode: screen;
+  }
+  .pluto-body {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    /* Base body: warm tan -> reddish-brown -> deep umber on the dark side */
+    background:
+      /* Subtle surface mottling (craters / plains) */
+      radial-gradient(circle at 32% 38%, hsla(24, 35%, 28%, 0.55) 0%, transparent 14%),
+      radial-gradient(circle at 58% 30%, hsla(28, 30%, 75%, 0.30) 0%, transparent 11%),
+      radial-gradient(circle at 44% 62%, hsla(20, 40%, 22%, 0.45) 0%, transparent 16%),
+      radial-gradient(circle at 66% 70%, hsla(22, 30%, 30%, 0.40) 0%, transparent 13%),
+      radial-gradient(circle at 28% 72%, hsla(30, 28%, 70%, 0.22) 0%, transparent 10%),
+      radial-gradient(circle at 72% 48%, hsla(18, 38%, 24%, 0.40) 0%, transparent 12%),
+      /* Terminator — light from upper-left, deep shadow lower-right */
+      radial-gradient(
+        circle at 32% 30%,
+        hsl(32, 45%, 78%) 0%,
+        hsl(26, 42%, 62%) 18%,
+        hsl(22, 40%, 46%) 38%,
+        hsl(18, 38%, 30%) 58%,
+        hsl(15, 35%, 16%) 78%,
+        hsl(12, 30%, 8%) 100%
+      );
+    box-shadow:
+      inset -18px -22px 60px hsla(0, 0%, 0%, 0.55),
+      inset 14px 16px 40px hsla(35, 60%, 80%, 0.10);
+    will-change: transform;
+    animation: pluto-spin 220s linear infinite;
+  }
+  /* Faint highlight on the lit limb */
+  .pluto-body::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: radial-gradient(
+      circle at 28% 26%,
+      hsla(36, 60%, 90%, 0.18) 0%,
+      transparent 24%
+    );
+    pointer-events: none;
+  }
+  @keyframes pluto-float {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50%      { transform: translate3d(0, -10px, 0); }
+  }
+  @keyframes pluto-spin {
+    /* Extremely subtle texture rotation — gives life without being obvious */
+    0%   { background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%; }
+    100% { background-position: 100% 0%, -100% 0%, 100% 0%, -100% 0%, 100% 0%, -100% 0%, 0% 0%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pluto-wrap { animation: none; }
+    .pluto-body { animation: none; }
+  }
 
   .text-balance {
     text-wrap: balance;
