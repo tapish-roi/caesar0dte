@@ -101,23 +101,21 @@ export default function TickerInputTable({ onTickersChange }: TickerInputTablePr
           const wrapperClass = isLong
             ? 'border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50 hover:shadow-[0_0_18px_-6px_rgb(16,185,129,0.45)]'
             : 'border-rose-500/30 bg-rose-500/5 hover:border-rose-500/50 hover:shadow-[0_0_18px_-6px_rgb(244,63,94,0.45)]';
-          const inputClass = isLong
-            ? 'font-mono uppercase h-9 flex-1 border-emerald-500/30 bg-transparent focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30'
-            : 'font-mono uppercase h-9 flex-1 border-rose-500/30 bg-transparent focus-visible:border-rose-500 focus-visible:ring-rose-500/30';
+          const tickerColor = isLong ? 'text-emerald-300' : 'text-rose-300';
           return (
             <div
               key={i}
               className={`flex items-center gap-2 rounded-lg border p-1.5 transition-all ${wrapperClass}`}
             >
               <span className="text-[10px] text-muted-foreground tabular-nums w-4 ps-1">{i + 1}.</span>
-              <Input
-                value={value}
-                onChange={(e) => updateSlot(side, i, e.target.value)}
-                placeholder="—"
-                maxLength={5}
+              <div
+                className={`flex-1 h-9 flex items-center font-mono uppercase tracking-wider text-sm font-semibold ${
+                  value ? tickerColor : 'text-muted-foreground/50'
+                }`}
                 dir="ltr"
-                className={inputClass}
-              />
+              >
+                {value || '—'}
+              </div>
               <Button
                 type="button"
                 variant="ghost"
