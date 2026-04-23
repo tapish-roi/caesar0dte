@@ -379,7 +379,7 @@ export default function EconomicCalendar() {
             <ul className="divide-y divide-border/50">
               {events.map((ev) => (
                 <li
-                  key={ev.id}
+                  key={eventRowKey(ev)}
                   className="px-4 py-2.5 hover:bg-muted/20 transition-colors"
                 >
                   {/* Desktop row */}
