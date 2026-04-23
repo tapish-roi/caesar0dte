@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import PageToggle, { type CalcSection } from './trading-calculator/PageToggle';
 import TickerCard from './trading-calculator/TickerCard';
 import TickerInputTable from './trading-calculator/TickerInputTable';
+import EconomicCalendar from './trading-calculator/EconomicCalendar';
 import PositionCalculatorSection from './position-calculator/PositionCalculatorSection';
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -306,34 +307,7 @@ export default function TradingCalculator() {
         </div>
 
         <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>
-          <div className="bg-card rounded-2xl card-shadow border border-border overflow-hidden">
-            <div className="bg-white" dir="ltr">
-              <iframe
-                src="https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&category=_employment,_economicActivity,_inflation,_credit,_centralBanks,_confidenceIndex,_balance,_Bonds&importance=2,3&features=datepicker,timezone&countries=5,72,4,17,37,32,12&calType=week&timeZone=15&lang=1"
-                title="Economic Calendar"
-                width="100%"
-                height="600"
-                frameBorder="0"
-                style={{ border: 0 }}
-                loading="lazy"
-              />
-            </div>
-            <div
-              className="px-4 py-2 text-[10px] text-muted-foreground text-center border-t border-border"
-              dir="ltr"
-            >
-              Real Time Economic Calendar provided by{' '}
-              <a
-                href="https://www.investing.com/"
-                rel="nofollow noopener"
-                target="_blank"
-                className="underline hover:text-primary"
-              >
-                Investing.com
-              </a>
-              .
-            </div>
-          </div>
+          <EconomicCalendar />
         </div>
       </div>
     </div>
