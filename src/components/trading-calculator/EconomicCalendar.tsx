@@ -122,16 +122,17 @@ export default function EconomicCalendar() {
     refetchOnWindowFocus: false,
   });
 
-  // Build country list from current dataset, sorted by event-count desc
+  // Build country list from current dataset, sorted by event-count desc.
+  // Key by countryCode + currency to disambiguate (e.g. EU=EUR, US=USD).
   const countryOptions = useMemo(() => {
-    if (!data?.events) return [] as { code: string; name: string; currency: string; count: number }[];
-    const map = new Map<string, { code: string; name: string; currency: string; count: number }>();
+    if (!data?.events) return [] as { key: string; code: string; name: string; currency: string; count: number }[];
+    const map = new Map<string, { key: string; code: string; name: string; currency: string; count: number }>();
     for (const ev of data.events) {
-      const key = ev.currency || ev.countryCode || ev.country;
-      if (!key) continue;
+      const key = `${ev.countryCode}|${ev.currency}`;
+      if (!key || key === '|') continue;
       const existing = map.get(key);
       if (existing) existing.count += 1;
-      else map.set(key, { code: ev.countryCode, name: ev.country, currency: ev.currency, count: 1 });
+      else map.set(key, { key, code: ev.countryCode, name: ev.country, currency: ev.currency, count: 1 });
     }
     return Array.from(map.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   }, [data]);
@@ -151,7 +152,10 @@ export default function EconomicCalendar() {
     if (!data?.events) return [];
     return data.events.filter((e) => {
       if (!importanceLevels.has(e.importance)) return false;
-      if (selectedCountries.size > 0 && !selectedCountries.has(e.currency)) return false;
+      if (selectedCountries.size > 0) {
+        const evKey = `${e.countryCode}|${e.currency}`;
+        if (!selectedCountries.has(evKey)) return false;
+      }
       return true;
     });
   }, [data, importanceLevels, selectedCountries]);
