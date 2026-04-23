@@ -277,39 +277,29 @@ export default function TradeCard({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <label className="block">
-                <span className="text-[11px] font-medium text-emerald-500 uppercase tracking-wider">
-                  מחיר הוספה ($)
-                </span>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  value={addPrice}
-                  onChange={(e) => onAddPriceChange(e.target.value)}
-                  className="mt-1 tabular-nums border-emerald-500/40 bg-emerald-500/5 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30 hover:border-emerald-500/60 hover:shadow-[0_0_18px_-4px_rgb(16,185,129,0.35)] transition-all"
-                  dir="ltr"
-                  placeholder="0.00"
-                />
-              </label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={addPrice}
+                onChange={(e) => onAddPriceChange(e.target.value)}
+                className="tabular-nums border-emerald-500/40 bg-emerald-500/5 placeholder:text-emerald-500/70 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30 hover:border-emerald-500/60 hover:shadow-[0_0_18px_-4px_rgb(16,185,129,0.35)] transition-all"
+                dir="ltr"
+                placeholder="מחיר הוספה ($)"
+              />
 
-              <label className="block">
-                <span className="text-[11px] font-medium text-rose-500 uppercase tracking-wider">
-                  סטופ חדש ($)
-                </span>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  value={addStopPrice}
-                  onChange={(e) => onAddStopChange(e.target.value)}
-                  className="mt-1 tabular-nums border-rose-500/40 bg-rose-500/5 focus-visible:border-rose-500 focus-visible:ring-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_18px_-4px_rgb(244,63,94,0.35)] transition-all"
-                  dir="ltr"
-                  placeholder="0.00"
-                />
-              </label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={addStopPrice}
+                onChange={(e) => onAddStopChange(e.target.value)}
+                className="tabular-nums border-rose-500/40 bg-rose-500/5 placeholder:text-rose-500/70 focus-visible:border-rose-500 focus-visible:ring-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_18px_-4px_rgb(244,63,94,0.35)] transition-all"
+                dir="ltr"
+                placeholder="סטופ חדש ($)"
+              />
             </div>
 
             {showAddResults && (
