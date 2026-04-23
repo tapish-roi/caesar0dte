@@ -122,16 +122,17 @@ export default function EconomicCalendar() {
     refetchOnWindowFocus: false,
   });
 
-  // Build country list from current dataset, sorted by event-count desc
+  // Build country list from current dataset, sorted by event-count desc.
+  // Key by countryCode + currency to disambiguate (e.g. EU=EUR, US=USD).
   const countryOptions = useMemo(() => {
-    if (!data?.events) return [] as { code: string; name: string; currency: string; count: number }[];
-    const map = new Map<string, { code: string; name: string; currency: string; count: number }>();
+    if (!data?.events) return [] as { key: string; code: string; name: string; currency: string; count: number }[];
+    const map = new Map<string, { key: string; code: string; name: string; currency: string; count: number }>();
     for (const ev of data.events) {
-      const key = ev.currency || ev.countryCode || ev.country;
-      if (!key) continue;
+      const key = `${ev.countryCode}|${ev.currency}`;
+      if (!key || key === '|') continue;
       const existing = map.get(key);
       if (existing) existing.count += 1;
-      else map.set(key, { code: ev.countryCode, name: ev.country, currency: ev.currency, count: 1 });
+      else map.set(key, { key, code: ev.countryCode, name: ev.country, currency: ev.currency, count: 1 });
     }
     return Array.from(map.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   }, [data]);
@@ -151,7 +152,10 @@ export default function EconomicCalendar() {
     if (!data?.events) return [];
     return data.events.filter((e) => {
       if (!importanceLevels.has(e.importance)) return false;
-      if (selectedCountries.size > 0 && !selectedCountries.has(e.currency)) return false;
+      if (selectedCountries.size > 0) {
+        const evKey = `${e.countryCode}|${e.currency}`;
+        if (!selectedCountries.has(evKey)) return false;
+      }
       return true;
     });
   }, [data, importanceLevels, selectedCountries]);
@@ -175,11 +179,11 @@ export default function EconomicCalendar() {
     });
   };
 
-  const toggleCountry = (currency: string) => {
+  const toggleCountry = (key: string) => {
     setSelectedCountries((prev) => {
       const next = new Set(prev);
-      if (next.has(currency)) next.delete(currency);
-      else next.add(currency);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
@@ -195,9 +199,9 @@ export default function EconomicCalendar() {
       ? 'כל המדינות'
       : selectedCountries.size === 1
         ? (() => {
-            const cur = Array.from(selectedCountries)[0];
-            const opt = countryOptions.find((c) => c.currency === cur);
-            return opt ? `${flagEmoji(opt.code)} ${opt.currency}` : cur;
+            const k = Array.from(selectedCountries)[0];
+            const opt = countryOptions.find((c) => c.key === k);
+            return opt ? `${flagEmoji(opt.code)} ${opt.currency}` : k;
           })()
         : `${selectedCountries.size} מדינות`;
 
@@ -268,11 +272,11 @@ export default function EconomicCalendar() {
                   <p className="text-xs text-muted-foreground text-center py-4">לא נמצאו תוצאות</p>
                 ) : (
                   filteredCountryOptions.map((c) => {
-                    const checked = selectedCountries.has(c.currency);
+                    const checked = selectedCountries.has(c.key);
                     return (
                       <button
-                        key={c.currency}
-                        onClick={() => toggleCountry(c.currency)}
+                        key={c.key}
+                        onClick={() => toggleCountry(c.key)}
                         className={cn(
                           'w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors',
                           checked && 'bg-primary/10',
