@@ -154,39 +154,19 @@ export default function TradeCard({
 
       {/* ── Inputs ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <label className="block">
-          <span className="text-[11px] font-medium text-emerald-500 uppercase tracking-wider">
-            מחיר כניסה ($)
-          </span>
-          <Input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
-            value={entryPrice}
-            onChange={(e) => onEntryChange(e.target.value)}
-            className="mt-1 tabular-nums border-emerald-500/40 bg-emerald-500/5 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30 hover:border-emerald-500/60 hover:shadow-[0_0_18px_-4px_rgb(16,185,129,0.35)] transition-all"
-            dir="ltr"
-            placeholder="0.00"
-          />
-        </label>
+        <Input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="0.01"
+          value={entryPrice}
+          onChange={(e) => onEntryChange(e.target.value)}
+          className="tabular-nums border-emerald-500/40 bg-emerald-500/5 placeholder:text-emerald-500/70 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30 hover:border-emerald-500/60 hover:shadow-[0_0_18px_-4px_rgb(16,185,129,0.35)] transition-all"
+          dir="ltr"
+          placeholder="מחיר כניסה ($)"
+        />
 
-        <label className="block">
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-[11px] font-medium text-rose-500 uppercase tracking-wider">
-              מחיר סטופ ($)
-            </span>
-            {atr && atr > 0 && (
-              <button
-                type="button"
-                onClick={onUseAtrStop}
-                className="text-[10px] text-primary hover:underline"
-                title={`השתמש ב-ATR (${atr.toFixed(2)}) לחישוב סטופ`}
-              >
-                ATR ({atr.toFixed(2)})
-              </button>
-            )}
-          </div>
+        <div className="relative">
           <Input
             type="number"
             inputMode="decimal"
@@ -194,28 +174,33 @@ export default function TradeCard({
             step="0.01"
             value={stopPrice}
             onChange={(e) => onStopChange(e.target.value)}
-            className="mt-1 tabular-nums border-rose-500/40 bg-rose-500/5 focus-visible:border-rose-500 focus-visible:ring-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_18px_-4px_rgb(244,63,94,0.35)] transition-all"
+            className="tabular-nums border-rose-500/40 bg-rose-500/5 placeholder:text-rose-500/70 focus-visible:border-rose-500 focus-visible:ring-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_18px_-4px_rgb(244,63,94,0.35)] transition-all pe-16"
             dir="ltr"
-            placeholder="0.00"
+            placeholder="מחיר סטופ ($)"
           />
-        </label>
+          {atr && atr > 0 && (
+            <button
+              type="button"
+              onClick={onUseAtrStop}
+              className="absolute top-1/2 -translate-y-1/2 end-2 text-[10px] text-primary hover:underline"
+              title={`השתמש ב-ATR (${atr.toFixed(2)}) לחישוב סטופ`}
+            >
+              ATR ({atr.toFixed(2)})
+            </button>
+          )}
+        </div>
 
-        <label className="block">
-          <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-            מחיר נוכחי ($)
-          </span>
-          <Input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
-            value={currentPrice}
-            onChange={(e) => onCurrentPriceChange(e.target.value)}
-            className="mt-1 tabular-nums"
-            dir="ltr"
-            placeholder="0.00"
-          />
-        </label>
+        <Input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="0.01"
+          value={currentPrice}
+          onChange={(e) => onCurrentPriceChange(e.target.value)}
+          className="tabular-nums"
+          dir="ltr"
+          placeholder="מחיר נוכחי ($)"
+        />
       </div>
 
       {/* ── Computed outputs ──────────────────────────────────────────────── */}
