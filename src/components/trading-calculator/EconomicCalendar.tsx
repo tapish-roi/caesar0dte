@@ -179,11 +179,11 @@ export default function EconomicCalendar() {
     });
   };
 
-  const toggleCountry = (currency: string) => {
+  const toggleCountry = (key: string) => {
     setSelectedCountries((prev) => {
       const next = new Set(prev);
-      if (next.has(currency)) next.delete(currency);
-      else next.add(currency);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
@@ -199,9 +199,9 @@ export default function EconomicCalendar() {
       ? 'כל המדינות'
       : selectedCountries.size === 1
         ? (() => {
-            const cur = Array.from(selectedCountries)[0];
-            const opt = countryOptions.find((c) => c.currency === cur);
-            return opt ? `${flagEmoji(opt.code)} ${opt.currency}` : cur;
+            const k = Array.from(selectedCountries)[0];
+            const opt = countryOptions.find((c) => c.key === k);
+            return opt ? `${flagEmoji(opt.code)} ${opt.currency}` : k;
           })()
         : `${selectedCountries.size} מדינות`;
 
