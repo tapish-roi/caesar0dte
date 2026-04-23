@@ -397,7 +397,7 @@ export default function EconomicCalendar() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-mono text-muted-foreground">{ev.time || '—'}</span>
-                        <CountryFlag code={ev.countryCode} currency={ev.currency} />
+                        <CountryFlag code={ev.countryCode} name={ev.country} />
                         <ImportanceBulls level={ev.importance} />
                       </div>
                     </div>
