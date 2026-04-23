@@ -124,9 +124,10 @@ function loadPersistedFilters(): PersistedFilters {
     const raw = localStorage.getItem(FILTER_STORAGE_KEY);
     if (!raw) return { importance: [1, 2, 3], countries: [] };
     const parsed = JSON.parse(raw) as Partial<PersistedFilters>;
-    const importance = Array.isArray(parsed.importance)
-      ? (parsed.importance.filter((v) => v === 1 || v === 2 || v === 3) as ImportanceLevel[])
-      : [1, 2, 3];
+    const importanceRaw = Array.isArray(parsed.importance) ? parsed.importance : [1, 2, 3];
+    const importance = importanceRaw.filter(
+      (v): v is ImportanceLevel => v === 1 || v === 2 || v === 3,
+    );
     const countries = Array.isArray(parsed.countries)
       ? parsed.countries.filter((c): c is string => typeof c === 'string')
       : [];
