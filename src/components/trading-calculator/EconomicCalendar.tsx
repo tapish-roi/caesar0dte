@@ -67,7 +67,7 @@ function ImportanceBulls({ level }: { level: 1 | 2 | 3 }) {
   );
 }
 
-function CountryFlag({ code, currency }: { code: string; currency: string }) {
+function CountryFlag({ code, name }: { code: string; name?: string }) {
   // Emoji flag from ISO-2; EU has a special block
   const flag =
     code === 'EU'
@@ -76,9 +76,9 @@ function CountryFlag({ code, currency }: { code: string; currency: string }) {
         ? String.fromCodePoint(...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
         : '🌐';
   return (
-    <div className="flex items-center gap-1.5 min-w-[3.5rem]">
+    <div className="flex items-center gap-1.5 min-w-[3rem]" title={name}>
       <span className="text-base leading-none">{flag}</span>
-      <span className="text-[11px] font-semibold text-muted-foreground">{currency}</span>
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase">{code}</span>
     </div>
   );
 }
@@ -134,16 +134,16 @@ export default function EconomicCalendar() {
   });
 
   // Build country list from current dataset, sorted by event-count desc.
-  // Key by countryCode + currency to disambiguate (e.g. EU=EUR, US=USD).
+  // Key purely by countryCode so the filter is country-based, not currency-based.
   const countryOptions = useMemo(() => {
-    if (!data?.events) return [] as { key: string; code: string; name: string; currency: string; count: number }[];
-    const map = new Map<string, { key: string; code: string; name: string; currency: string; count: number }>();
+    if (!data?.events) return [] as { code: string; name: string; count: number }[];
+    const map = new Map<string, { code: string; name: string; count: number }>();
     for (const ev of data.events) {
-      const key = `${ev.countryCode}|${ev.currency}`;
-      if (!key || key === '|') continue;
-      const existing = map.get(key);
+      const code = ev.countryCode;
+      if (!code) continue;
+      const existing = map.get(code);
       if (existing) existing.count += 1;
-      else map.set(key, { key, code: ev.countryCode, name: ev.country, currency: ev.currency, count: 1 });
+      else map.set(code, { code, name: ev.country, count: 1 });
     }
     return Array.from(map.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   }, [data]);
@@ -154,7 +154,6 @@ export default function EconomicCalendar() {
     return countryOptions.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        c.currency.toLowerCase().includes(q) ||
         c.code.toLowerCase().includes(q),
     );
   }, [countryOptions, countrySearch]);
@@ -163,10 +162,7 @@ export default function EconomicCalendar() {
     if (!data?.events) return [];
     return data.events.filter((e) => {
       if (!importanceLevels.has(e.importance)) return false;
-      if (selectedCountries.size > 0) {
-        const evKey = `${e.countryCode}|${e.currency}`;
-        if (!selectedCountries.has(evKey)) return false;
-      }
+      if (selectedCountries.size > 0 && !selectedCountries.has(e.countryCode)) return false;
       return true;
     });
   }, [data, importanceLevels, selectedCountries]);
@@ -210,9 +206,9 @@ export default function EconomicCalendar() {
       ? 'כל המדינות'
       : selectedCountries.size === 1
         ? (() => {
-            const k = Array.from(selectedCountries)[0];
-            const opt = countryOptions.find((c) => c.key === k);
-            return opt ? `${flagEmoji(opt.code)} ${opt.currency}` : k;
+            const code = Array.from(selectedCountries)[0];
+            const opt = countryOptions.find((c) => c.code === code);
+            return opt ? `${flagEmoji(opt.code)} ${opt.name}` : code;
           })()
         : `${selectedCountries.size} מדינות`;
 
@@ -283,11 +279,11 @@ export default function EconomicCalendar() {
                   <p className="text-xs text-muted-foreground text-center py-4">לא נמצאו תוצאות</p>
                 ) : (
                   filteredCountryOptions.map((c) => {
-                    const checked = selectedCountries.has(c.key);
+                    const checked = selectedCountries.has(c.code);
                     return (
                       <button
-                        key={c.key}
-                        onClick={() => toggleCountry(c.key)}
+                        key={c.code}
+                        onClick={() => toggleCountry(c.code)}
                         className={cn(
                           'w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors',
                           checked && 'bg-primary/10',
@@ -296,7 +292,6 @@ export default function EconomicCalendar() {
                         <Checkbox checked={checked} className="pointer-events-none" />
                         <span className="text-base leading-none">{flagEmoji(c.code)}</span>
                         <span className="flex-1 text-start truncate text-foreground">{c.name}</span>
-                        <span className="text-[10px] font-mono text-muted-foreground">{c.currency}</span>
                         <span className="text-[10px] text-muted-foreground/70 tabular-nums">{c.count}</span>
                         {checked && <Check className="w-3 h-3 text-primary" />}
                       </button>
@@ -385,7 +380,7 @@ export default function EconomicCalendar() {
                   {/* Desktop row */}
                   <div className="hidden md:grid grid-cols-[60px_80px_1fr_80px_80px_80px] gap-3 items-center text-sm">
                     <span className="text-xs font-mono text-muted-foreground">{ev.time || '—'}</span>
-                    <CountryFlag code={ev.countryCode} currency={ev.currency} />
+                    <CountryFlag code={ev.countryCode} name={ev.country} />
                     <div className="flex items-center gap-2 min-w-0">
                       <ImportanceBulls level={ev.importance} />
                       <span className="text-foreground truncate" title={ev.event}>{ev.event}</span>
@@ -402,7 +397,7 @@ export default function EconomicCalendar() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xs font-mono text-muted-foreground">{ev.time || '—'}</span>
-                        <CountryFlag code={ev.countryCode} currency={ev.currency} />
+                        <CountryFlag code={ev.countryCode} name={ev.country} />
                         <ImportanceBulls level={ev.importance} />
                       </div>
                     </div>
