@@ -205,21 +205,39 @@ export default function EconomicCalendar() {
 
   const filtered = useMemo(() => {
     if (!data?.events) return [];
+
+    const normalizedSelectedCountries = new Set(
+      Array.from(selectedCountries).map((code) => code.trim().toUpperCase()),
+    );
+
     return data.events.filter((e) => {
+      const eventCountryCode = e.countryCode?.trim().toUpperCase() ?? '';
       if (!importanceLevels.has(e.importance)) return false;
-      if (selectedCountries.size > 0 && !selectedCountries.has(e.countryCode)) return false;
+      if (normalizedSelectedCountries.size > 0 && !normalizedSelectedCountries.has(eventCountryCode)) {
+        return false;
+      }
       return true;
     });
   }, [data, importanceLevels, selectedCountries]);
 
   const grouped = useMemo(() => {
+    const normalizedSelectedCountries = new Set(
+      Array.from(selectedCountries).map((code) => code.trim().toUpperCase()),
+    );
     const map = new Map<string, EconomicEvent[]>();
+
     for (const ev of filtered) {
+      const eventCountryCode = ev.countryCode?.trim().toUpperCase() ?? '';
+      if (normalizedSelectedCountries.size > 0 && !normalizedSelectedCountries.has(eventCountryCode)) {
+        continue;
+      }
+
       if (!map.has(ev.date)) map.set(ev.date, []);
       map.get(ev.date)!.push(ev);
     }
+
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered]);
+  }, [filtered, selectedCountries]);
 
   const toggleImportance = (lvl: ImportanceLevel) => {
     setImportanceLevels((prev) => {
