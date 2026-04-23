@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, RefreshCw, AlertCircle, Check, ChevronDown, Globe2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
