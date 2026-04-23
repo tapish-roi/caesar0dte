@@ -150,10 +150,10 @@ export default function TickerCard({
             size="sm"
             onClick={() => onAddToList(ticker, 'long')}
             disabled={empty}
-            className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300"
+            className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 min-w-0 px-2 gap-1 text-[11px] sm:text-xs whitespace-nowrap"
           >
-            <ArrowUpRight className="w-4 h-4" />
-            הוסף ללונג
+            <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">הוסף ללונג</span>
           </Button>
           <Button
             type="button"
@@ -161,10 +161,10 @@ export default function TickerCard({
             size="sm"
             onClick={() => onAddToList(ticker, 'short')}
             disabled={empty}
-            className="border-rose-500/40 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+            className="border-rose-500/40 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 min-w-0 px-2 gap-1 text-[11px] sm:text-xs whitespace-nowrap"
           >
-            <ArrowDownRight className="w-4 h-4" />
-            הוסף לשורט
+            <ArrowDownRight className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">הוסף לשורט</span>
           </Button>
         </div>
       </Card>
