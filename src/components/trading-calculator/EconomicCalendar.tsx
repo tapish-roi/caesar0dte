@@ -206,9 +206,9 @@ export default function EconomicCalendar() {
       ? 'כל המדינות'
       : selectedCountries.size === 1
         ? (() => {
-            const k = Array.from(selectedCountries)[0];
-            const opt = countryOptions.find((c) => c.key === k);
-            return opt ? `${flagEmoji(opt.code)} ${opt.currency}` : k;
+            const code = Array.from(selectedCountries)[0];
+            const opt = countryOptions.find((c) => c.code === code);
+            return opt ? `${flagEmoji(opt.code)} ${opt.name}` : code;
           })()
         : `${selectedCountries.size} מדינות`;
 
