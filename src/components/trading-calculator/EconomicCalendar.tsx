@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, RefreshCw, AlertCircle, Check, ChevronDown, Globe2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -112,14 +112,59 @@ function eventRowKey(event: EconomicEvent): string {
   ].join('|');
 }
 
+const FILTER_STORAGE_KEY = 'economic-calendar-filters-v1';
+
+interface PersistedFilters {
+  importance: ImportanceLevel[];
+  countries: string[];
+}
+
+function loadPersistedFilters(): PersistedFilters {
+  try {
+    const raw = localStorage.getItem(FILTER_STORAGE_KEY);
+    if (!raw) return { importance: [1, 2, 3], countries: [] };
+    const parsed = JSON.parse(raw) as Partial<PersistedFilters>;
+    const importanceRaw = Array.isArray(parsed.importance) ? parsed.importance : [1, 2, 3];
+    const importance = importanceRaw.filter(
+      (v): v is ImportanceLevel => v === 1 || v === 2 || v === 3,
+    );
+    const countries = Array.isArray(parsed.countries)
+      ? parsed.countries.filter((c): c is string => typeof c === 'string')
+      : [];
+    return {
+      importance: importance.length > 0 ? importance : [1, 2, 3],
+      countries,
+    };
+  } catch {
+    return { importance: [1, 2, 3], countries: [] };
+  }
+}
+
 export default function EconomicCalendar() {
-  // Multi-select importance — default: all three levels checked
+  const initialFilters = useMemo(loadPersistedFilters, []);
+
+  // Multi-select importance — restored from last session (default: all three)
   const [importanceLevels, setImportanceLevels] = useState<Set<ImportanceLevel>>(
-    () => new Set<ImportanceLevel>([1, 2, 3]),
+    () => new Set<ImportanceLevel>(initialFilters.importance),
   );
-  // Multi-select countries — empty = all
-  const [selectedCountries, setSelectedCountries] = useState<Set<string>>(new Set());
+  // Multi-select countries — restored from last session (empty = all)
+  const [selectedCountries, setSelectedCountries] = useState<Set<string>>(
+    () => new Set<string>(initialFilters.countries),
+  );
   const [countrySearch, setCountrySearch] = useState('');
+
+  // Persist filter state across reloads / tab switches.
+  useEffect(() => {
+    try {
+      const payload: PersistedFilters = {
+        importance: Array.from(importanceLevels),
+        countries: Array.from(selectedCountries),
+      };
+      localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      /* ignore quota / privacy-mode errors */
+    }
+  }, [importanceLevels, selectedCountries]);
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery<ApiResponse>({
     queryKey: ['economic-calendar'],
