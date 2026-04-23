@@ -46,22 +46,16 @@ export default function TickerInputTable({ onTickersChange }: TickerInputTablePr
     onTickersChange?.(longs, shorts);
   }, [longs, shorts, onTickersChange]);
 
-  const updateSlot = useCallback(
-    (side: 'long' | 'short', index: number, value: string) => {
-      const cleaned = value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5);
-      const setter = side === 'long' ? setLongs : setShorts;
-      const key = side === 'long' ? LONGS_KEY : SHORTS_KEY;
-      setter((prev) => {
-        const next = [...prev];
-        next[index] = cleaned;
-        writeSession(key, next);
-        return next;
-      });
-    },
-    [],
-  );
-
-  const clearSlot = (side: 'long' | 'short', index: number) => updateSlot(side, index, '');
+  const clearSlot = (side: 'long' | 'short', index: number) => {
+    const setter = side === 'long' ? setLongs : setShorts;
+    const key = side === 'long' ? LONGS_KEY : SHORTS_KEY;
+    setter((prev) => {
+      const next = [...prev];
+      next[index] = '';
+      writeSession(key, next);
+      return next;
+    });
+  };
 
   const clearAll = (side: 'long' | 'short') => {
     const key = side === 'long' ? LONGS_KEY : SHORTS_KEY;
