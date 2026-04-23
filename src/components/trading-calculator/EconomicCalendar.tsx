@@ -380,7 +380,7 @@ export default function EconomicCalendar() {
                   {/* Desktop row */}
                   <div className="hidden md:grid grid-cols-[60px_80px_1fr_80px_80px_80px] gap-3 items-center text-sm">
                     <span className="text-xs font-mono text-muted-foreground">{ev.time || '—'}</span>
-                    <CountryFlag code={ev.countryCode} currency={ev.currency} />
+                    <CountryFlag code={ev.countryCode} name={ev.country} />
                     <div className="flex items-center gap-2 min-w-0">
                       <ImportanceBulls level={ev.importance} />
                       <span className="text-foreground truncate" title={ev.event}>{ev.event}</span>
