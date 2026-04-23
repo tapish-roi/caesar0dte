@@ -279,11 +279,11 @@ export default function EconomicCalendar() {
                   <p className="text-xs text-muted-foreground text-center py-4">לא נמצאו תוצאות</p>
                 ) : (
                   filteredCountryOptions.map((c) => {
-                    const checked = selectedCountries.has(c.key);
+                    const checked = selectedCountries.has(c.code);
                     return (
                       <button
-                        key={c.key}
-                        onClick={() => toggleCountry(c.key)}
+                        key={c.code}
+                        onClick={() => toggleCountry(c.code)}
                         className={cn(
                           'w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors',
                           checked && 'bg-primary/10',
@@ -292,7 +292,6 @@ export default function EconomicCalendar() {
                         <Checkbox checked={checked} className="pointer-events-none" />
                         <span className="text-base leading-none">{flagEmoji(c.code)}</span>
                         <span className="flex-1 text-start truncate text-foreground">{c.name}</span>
-                        <span className="text-[10px] font-mono text-muted-foreground">{c.currency}</span>
                         <span className="text-[10px] text-muted-foreground/70 tabular-nums">{c.count}</span>
                         {checked && <Check className="w-3 h-3 text-primary" />}
                       </button>
