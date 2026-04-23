@@ -18,7 +18,42 @@ interface EconomicEvent {
   previous: string | null;
 }
 
-// Map common currency → flag/country code
+// Map country name (from flag <span title="...">) → code/name
+const COUNTRY_NAME_TO_CODE: Record<string, { code: string; name: string }> = {
+  "United States": { code: "US", name: "United States" },
+  "USA": { code: "US", name: "United States" },
+  "Euro Zone": { code: "EU", name: "Euro Zone" },
+  "European Union": { code: "EU", name: "Euro Zone" },
+  "Germany": { code: "DE", name: "Germany" },
+  "France": { code: "FR", name: "France" },
+  "Italy": { code: "IT", name: "Italy" },
+  "Spain": { code: "ES", name: "Spain" },
+  "Netherlands": { code: "NL", name: "Netherlands" },
+  "United Kingdom": { code: "GB", name: "United Kingdom" },
+  "U.K.": { code: "GB", name: "United Kingdom" },
+  "Britain": { code: "GB", name: "United Kingdom" },
+  "Japan": { code: "JP", name: "Japan" },
+  "China": { code: "CN", name: "China" },
+  "Canada": { code: "CA", name: "Canada" },
+  "Australia": { code: "AU", name: "Australia" },
+  "New Zealand": { code: "NZ", name: "New Zealand" },
+  "Switzerland": { code: "CH", name: "Switzerland" },
+  "Israel": { code: "IL", name: "Israel" },
+  "India": { code: "IN", name: "India" },
+  "Brazil": { code: "BR", name: "Brazil" },
+  "Mexico": { code: "MX", name: "Mexico" },
+  "South Korea": { code: "KR", name: "South Korea" },
+  "South Africa": { code: "ZA", name: "South Africa" },
+  "Turkey": { code: "TR", name: "Turkey" },
+  "Sweden": { code: "SE", name: "Sweden" },
+  "Norway": { code: "NO", name: "Norway" },
+  "Denmark": { code: "DK", name: "Denmark" },
+  "Hong Kong": { code: "HK", name: "Hong Kong" },
+  "Singapore": { code: "SG", name: "Singapore" },
+  "Russia": { code: "RU", name: "Russia" },
+};
+
+// Fallback: currency → country (used only if title mapping fails)
 const CURRENCY_TO_COUNTRY: Record<string, { code: string; name: string }> = {
   USD: { code: "US", name: "United States" },
   EUR: { code: "EU", name: "Euro Zone" },
