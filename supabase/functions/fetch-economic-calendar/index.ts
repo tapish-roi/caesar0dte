@@ -127,7 +127,14 @@ function parseHtmlEvents(html: string): EconomicEvent[] {
     const forecast = cellText("fore");
     const previous = cellText("prev");
 
-    const meta = CURRENCY_TO_COUNTRY[currency] ?? { code: "", name: countryFromTitle || currency };
+    // Prefer the explicit country (from the flag span title) over a currency
+    // lookup, because some events use shared currencies (e.g. EUR across many
+    // EU countries, or non-USD events tagged to North-American sessions).
+    const titleMeta = countryFromTitle ? COUNTRY_NAME_TO_CODE[countryFromTitle.trim()] : undefined;
+    const meta =
+      titleMeta ??
+      CURRENCY_TO_COUNTRY[currency] ??
+      { code: "", name: countryFromTitle || currency };
 
     events.push({
       id,
