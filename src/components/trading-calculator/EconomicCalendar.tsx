@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Loader2, RefreshCw, AlertCircle, Check, ChevronDown, Globe2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -90,10 +93,22 @@ function valueClass(actual: string | null, forecast: string | null) {
   return 'text-foreground';
 }
 
-type ImportanceFilter = 0 | 1 | 2 | 3; // 0 = all
+type ImportanceLevel = 1 | 2 | 3;
+
+function flagEmoji(code: string): string {
+  if (code === 'EU') return '🇪🇺';
+  if (code.length !== 2) return '🌐';
+  return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+}
 
 export default function EconomicCalendar() {
-  const [importanceFilter, setImportanceFilter] = useState<ImportanceFilter>(0);
+  // Multi-select importance — default: all three levels checked
+  const [importanceLevels, setImportanceLevels] = useState<Set<ImportanceLevel>>(
+    () => new Set<ImportanceLevel>([1, 2, 3]),
+  );
+  // Multi-select countries — empty = all
+  const [selectedCountries, setSelectedCountries] = useState<Set<string>>(new Set());
+  const [countrySearch, setCountrySearch] = useState('');
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery<ApiResponse>({
     queryKey: ['economic-calendar'],
@@ -107,11 +122,39 @@ export default function EconomicCalendar() {
     refetchOnWindowFocus: false,
   });
 
+  // Build country list from current dataset, sorted by event-count desc
+  const countryOptions = useMemo(() => {
+    if (!data?.events) return [] as { code: string; name: string; currency: string; count: number }[];
+    const map = new Map<string, { code: string; name: string; currency: string; count: number }>();
+    for (const ev of data.events) {
+      const key = ev.currency || ev.countryCode || ev.country;
+      if (!key) continue;
+      const existing = map.get(key);
+      if (existing) existing.count += 1;
+      else map.set(key, { code: ev.countryCode, name: ev.country, currency: ev.currency, count: 1 });
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [data]);
+
+  const filteredCountryOptions = useMemo(() => {
+    const q = countrySearch.trim().toLowerCase();
+    if (!q) return countryOptions;
+    return countryOptions.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.currency.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q),
+    );
+  }, [countryOptions, countrySearch]);
+
   const filtered = useMemo(() => {
     if (!data?.events) return [];
-    if (importanceFilter === 0) return data.events;
-    return data.events.filter((e) => e.importance >= importanceFilter);
-  }, [data, importanceFilter]);
+    return data.events.filter((e) => {
+      if (!importanceLevels.has(e.importance)) return false;
+      if (selectedCountries.size > 0 && !selectedCountries.has(e.currency)) return false;
+      return true;
+    });
+  }, [data, importanceLevels, selectedCountries]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, EconomicEvent[]>();
@@ -119,35 +162,148 @@ export default function EconomicCalendar() {
       if (!map.has(ev.date)) map.set(ev.date, []);
       map.get(ev.date)!.push(ev);
     }
-    // sort by date
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
+
+  const toggleImportance = (lvl: ImportanceLevel) => {
+    setImportanceLevels((prev) => {
+      const next = new Set(prev);
+      if (next.has(lvl)) {
+        if (next.size > 1) next.delete(lvl); // keep at least one
+      } else next.add(lvl);
+      return next;
+    });
+  };
+
+  const toggleCountry = (currency: string) => {
+    setSelectedCountries((prev) => {
+      const next = new Set(prev);
+      if (next.has(currency)) next.delete(currency);
+      else next.add(currency);
+      return next;
+    });
+  };
+
+  const importanceOptions: { v: ImportanceLevel; label: string; color: string }[] = [
+    { v: 1, label: '★', color: 'text-muted-foreground' },
+    { v: 2, label: '★★', color: 'text-amber-400' },
+    { v: 3, label: '★★★', color: 'text-red-400' },
+  ];
+
+  const countryButtonLabel =
+    selectedCountries.size === 0
+      ? 'כל המדינות'
+      : selectedCountries.size === 1
+        ? (() => {
+            const cur = Array.from(selectedCountries)[0];
+            const opt = countryOptions.find((c) => c.currency === cur);
+            return opt ? `${flagEmoji(opt.code)} ${opt.currency}` : cur;
+          })()
+        : `${selectedCountries.size} מדינות`;
 
   return (
     <div className="bg-card rounded-2xl card-shadow border border-border overflow-hidden">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border bg-muted/20">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">חשיבות:</span>
-          {([
-            { v: 0 as const, label: 'הכל' },
-            { v: 1 as const, label: '★' },
-            { v: 2 as const, label: '★★' },
-            { v: 3 as const, label: '★★★' },
-          ]).map((opt) => (
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Importance multi-select chips */}
+          <div className="flex items-center gap-1.5 ps-1">
+            <span className="text-xs text-muted-foreground">חשיבות:</span>
+            {importanceOptions.map((opt) => {
+              const active = importanceLevels.has(opt.v);
+              return (
+                <button
+                  key={opt.v}
+                  onClick={() => toggleImportance(opt.v)}
+                  className={cn(
+                    'px-2.5 py-1 rounded-lg text-xs font-medium transition-all border',
+                    active
+                      ? 'bg-primary/15 border-primary/40 text-foreground shadow-sm'
+                      : 'bg-secondary/30 border-transparent text-muted-foreground/60 hover:bg-secondary/60',
+                  )}
+                  title={`חשיבות ${opt.v}/3`}
+                >
+                  <span className={cn(active ? opt.color : 'opacity-60')}>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Country multi-select popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 text-xs"
+                disabled={countryOptions.length === 0}
+              >
+                <Globe2 className="w-3.5 h-3.5" />
+                <span>{countryButtonLabel}</span>
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72 p-0" dir="rtl">
+              <div className="p-2 border-b border-border flex items-center gap-2">
+                <Input
+                  value={countrySearch}
+                  onChange={(e) => setCountrySearch(e.target.value)}
+                  placeholder="חפש מדינה..."
+                  className="h-8 text-xs"
+                />
+                {selectedCountries.size > 0 && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 px-2 text-xs"
+                    onClick={() => setSelectedCountries(new Set())}
+                    title="נקה בחירה"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+              <div className="max-h-72 overflow-y-auto py-1">
+                {filteredCountryOptions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4">לא נמצאו תוצאות</p>
+                ) : (
+                  filteredCountryOptions.map((c) => {
+                    const checked = selectedCountries.has(c.currency);
+                    return (
+                      <button
+                        key={c.currency}
+                        onClick={() => toggleCountry(c.currency)}
+                        className={cn(
+                          'w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors',
+                          checked && 'bg-primary/10',
+                        )}
+                      >
+                        <Checkbox checked={checked} className="pointer-events-none" />
+                        <span className="text-base leading-none">{flagEmoji(c.code)}</span>
+                        <span className="flex-1 text-start truncate text-foreground">{c.name}</span>
+                        <span className="text-[10px] font-mono text-muted-foreground">{c.currency}</span>
+                        <span className="text-[10px] text-muted-foreground/70 tabular-nums">{c.count}</span>
+                        {checked && <Check className="w-3 h-3 text-primary" />}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Active filters summary / clear-all */}
+          {(selectedCountries.size > 0 || importanceLevels.size < 3) && (
             <button
-              key={opt.v}
-              onClick={() => setImportanceFilter(opt.v)}
-              className={cn(
-                'px-2.5 py-1 rounded-lg text-xs font-medium transition-all',
-                importanceFilter === opt.v
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground',
-              )}
+              onClick={() => {
+                setSelectedCountries(new Set());
+                setImportanceLevels(new Set([1, 2, 3]));
+              }}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline"
             >
-              {opt.label}
+              נקה הכל
             </button>
-          ))}
+          )}
         </div>
 
         <div className="flex items-center gap-3">
