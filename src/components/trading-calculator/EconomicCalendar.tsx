@@ -67,7 +67,7 @@ function ImportanceBulls({ level }: { level: 1 | 2 | 3 }) {
   );
 }
 
-function CountryFlag({ code, currency }: { code: string; currency: string }) {
+function CountryFlag({ code, name }: { code: string; name?: string }) {
   // Emoji flag from ISO-2; EU has a special block
   const flag =
     code === 'EU'
@@ -76,9 +76,9 @@ function CountryFlag({ code, currency }: { code: string; currency: string }) {
         ? String.fromCodePoint(...[...code.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65))
         : '🌐';
   return (
-    <div className="flex items-center gap-1.5 min-w-[3.5rem]">
+    <div className="flex items-center gap-1.5 min-w-[3rem]" title={name}>
       <span className="text-base leading-none">{flag}</span>
-      <span className="text-[11px] font-semibold text-muted-foreground">{currency}</span>
+      <span className="text-[11px] font-semibold text-muted-foreground uppercase">{code}</span>
     </div>
   );
 }
