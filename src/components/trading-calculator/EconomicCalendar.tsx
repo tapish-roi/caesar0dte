@@ -272,11 +272,11 @@ export default function EconomicCalendar() {
                   <p className="text-xs text-muted-foreground text-center py-4">לא נמצאו תוצאות</p>
                 ) : (
                   filteredCountryOptions.map((c) => {
-                    const checked = selectedCountries.has(c.currency);
+                    const checked = selectedCountries.has(c.key);
                     return (
                       <button
-                        key={c.currency}
-                        onClick={() => toggleCountry(c.currency)}
+                        key={c.key}
+                        onClick={() => toggleCountry(c.key)}
                         className={cn(
                           'w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors',
                           checked && 'bg-primary/10',
