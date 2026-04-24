@@ -1463,15 +1463,32 @@ export default function StudentDashboard() {
 
                 {filteredLessons.filter(l => !l.category_id).map((lesson) => {
                   const prog = getProgress(lesson.id);
+                  const lessonCompleted = !!prog?.completed;
                   return (
                     <motion.div
                       key={lesson.id}
                       whileHover={{ y: -2 }}
                       onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
-                      className="bg-card rounded-xl card-shadow p-4 flex items-center gap-3 cursor-pointer transition-all"
+                      className={`rounded-xl card-shadow p-4 flex items-center gap-3 cursor-pointer transition-all ${
+                        lessonCompleted
+                          ? 'bg-emerald-500/5 ring-1 ring-emerald-500/30 hover:bg-emerald-500/10'
+                          : 'bg-card'
+                      }`}
                     >
-                      {typeIcon(lesson.lesson_type)}
-                      <span className="text-sm text-foreground flex-1">{lesson.title}</span>
+                      {lessonCompleted ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                      ) : (
+                        typeIcon(lesson.lesson_type)
+                      )}
+                      <span className={`text-sm flex-1 ${lessonCompleted ? 'text-emerald-400 font-medium' : 'text-foreground'}`}>
+                        {lesson.title}
+                      </span>
+                      {lessonCompleted && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold shrink-0">
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          הושלם
+                        </span>
+                      )}
                       <span className="text-[10px] text-muted-foreground/70">
                         {format(parseISO(lesson.created_at), 'dd.MM.yy', { locale: he })}
                       </span>
