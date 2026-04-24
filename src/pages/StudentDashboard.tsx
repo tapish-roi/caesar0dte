@@ -1704,10 +1704,12 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
   postTypeColor: Record<string, string>;
   formatDate: (s: string) => string;
   queryClient: ReturnType<typeof useQueryClient>;
+  mediaReloadKey?: number;
 }>(({
   post, fetchComments, expanded, onToggleComments,
   commentText, onCommentChange, onAddComment, onJoinLive,
   postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
+  mediaReloadKey = 0,
 }, ref) => {
   const { data: comments = [], isLoading: commentsLoading } = useQuery<PostComment[]>({
     queryKey: ['student-comments', post.id],
