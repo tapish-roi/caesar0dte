@@ -2378,8 +2378,8 @@ function MentorPostCard({
         {post.media_url && (
           <div className="mt-3 rounded-xl overflow-hidden cursor-pointer" onClick={() => openLightbox(post.media_url!, (post.media_type as 'video' | 'image') || 'image')}>
             {post.media_type === 'video'
-              ? <video src={post.media_url} className="w-full max-h-80 object-cover" />
-              : <img src={post.media_url} alt="" className="w-full max-h-80 object-cover" />
+              ? <video key={mediaSrc!} src={mediaSrc!} className="w-full max-h-80 object-cover" />
+              : <img key={mediaSrc!} src={mediaSrc!} alt="" className="w-full max-h-80 object-cover" />
             }
           </div>
         )}
