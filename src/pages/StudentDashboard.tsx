@@ -1467,7 +1467,23 @@ export default function StudentDashboard() {
                     {communityDateRange?.from && <span className="ms-2 text-primary font-medium">· מסונן לפי תאריך</span>}
                   </p>
                 </div>
-                <DateRangeFilter range={communityDateRange} onChange={setCommunityDateRange} />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      setRefreshingFeed(true);
+                      setMediaReloadKey(k => k + 1);
+                      await qc.invalidateQueries({ queryKey: ['student-posts', mentorId] });
+                      setTimeout(() => setRefreshingFeed(false), 600);
+                    }}
+                    disabled={refreshingFeed}
+                    className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all disabled:opacity-50"
+                    title="רענן פיד ומדיה"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${refreshingFeed ? 'animate-spin' : ''}`} />
+                    רענן
+                  </button>
+                  <DateRangeFilter range={communityDateRange} onChange={setCommunityDateRange} />
+                </div>
               </div>
 
               {posts.length === 0 ? (
