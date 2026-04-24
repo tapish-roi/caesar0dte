@@ -10,7 +10,7 @@ import {
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
   User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
-  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList, LineChart, Calculator,
+  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList, LineChart, Calculator, RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
@@ -500,6 +500,8 @@ export default function StudentDashboard() {
 
   // Date filter state
   const [communityDateRange, setCommunityDateRange] = useState<DateRange | undefined>(undefined);
+  const [mediaReloadKey, setMediaReloadKey] = useState(0);
+  const [refreshingFeed, setRefreshingFeed] = useState(false);
 
   // Community dropdown state
   const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
@@ -1465,7 +1467,23 @@ export default function StudentDashboard() {
                     {communityDateRange?.from && <span className="ms-2 text-primary font-medium">· מסונן לפי תאריך</span>}
                   </p>
                 </div>
-                <DateRangeFilter range={communityDateRange} onChange={setCommunityDateRange} />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      setRefreshingFeed(true);
+                      setMediaReloadKey(k => k + 1);
+                      await qc.invalidateQueries({ queryKey: ['student-posts', mentorId] });
+                      setTimeout(() => setRefreshingFeed(false), 600);
+                    }}
+                    disabled={refreshingFeed}
+                    className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all disabled:opacity-50"
+                    title="רענן פיד ומדיה"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${refreshingFeed ? 'animate-spin' : ''}`} />
+                    רענן
+                  </button>
+                  <DateRangeFilter range={communityDateRange} onChange={setCommunityDateRange} />
+                </div>
               </div>
 
               {posts.length === 0 ? (
@@ -1528,6 +1546,7 @@ export default function StudentDashboard() {
                             postTypeColor={postTypeColor}
                             formatDate={formatDate}
                             queryClient={qc}
+                            mediaReloadKey={mediaReloadKey}
                           />
                         ))}
                       </div>
@@ -1685,10 +1704,12 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
   postTypeColor: Record<string, string>;
   formatDate: (s: string) => string;
   queryClient: ReturnType<typeof useQueryClient>;
+  mediaReloadKey?: number;
 }>(({
   post, fetchComments, expanded, onToggleComments,
   commentText, onCommentChange, onAddComment, onJoinLive,
   postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
+  mediaReloadKey = 0,
 }, ref) => {
   const { data: comments = [], isLoading: commentsLoading } = useQuery<PostComment[]>({
     queryKey: ['student-comments', post.id],
@@ -1698,6 +1719,9 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
 
   const { lightbox, openLightbox, closeLightbox } = useMediaLightbox();
   const pType = post.post_type;
+  const mediaSrc = post.media_url
+    ? `${post.media_url}${post.media_url.includes('?') ? '&' : '?'}_r=${mediaReloadKey}`
+    : null;
 
   return (
     <motion.div
@@ -1737,7 +1761,7 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
               <span className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
               <span className="text-xs text-muted-foreground font-medium">הקלטת הלייב</span>
             </div>
-            <video src={post.media_url} className="w-full max-h-72 object-contain bg-black rounded-b-xl" controls controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
+            <video key={mediaSrc!} src={mediaSrc!} className="w-full max-h-72 object-contain bg-black rounded-b-xl" controls controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
           </div>
         )}
 
@@ -1745,8 +1769,8 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
         {pType !== 'live' && post.media_url && (
           <div className="mt-3 rounded-xl overflow-hidden cursor-pointer" onClick={() => openLightbox(post.media_url!, (post.media_type as 'video' | 'image') || 'image')}>
             {post.media_type === 'video'
-              ? <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" />
-              : <img src={post.media_url} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
+              ? <video key={mediaSrc!} src={mediaSrc!} className="w-full max-h-72 object-cover rounded-xl" />
+              : <img key={mediaSrc!} src={mediaSrc!} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
             }
           </div>
         )}

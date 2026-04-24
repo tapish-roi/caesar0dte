@@ -14,7 +14,7 @@ import {
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, MessageSquare, MessageCircle, Pin, PinOff,
   ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
-  MessageCircleQuestion, ClipboardList, List, AlignLeft, LineChart, Calculator,
+  MessageCircleQuestion, ClipboardList, List, AlignLeft, LineChart, Calculator, RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
@@ -245,6 +245,8 @@ export default function MentorDashboard() {
   const [postMediaType, setPostMediaType] = useState('');
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [feedMediaReloadKey, setFeedMediaReloadKey] = useState(0);
+  const [refreshingFeed, setRefreshingFeed] = useState(false);
   const [removeConfirm, setRemoveConfirm] = useState<{ studentId: string; name: string } | null>(null);
   // Edit post state
   const [editPost, setEditPost] = useState<CommunityPost | null>(null);
@@ -1310,9 +1312,25 @@ export default function MentorDashboard() {
           {/* ──────── COMMUNITY ──────── */}
           {activeTab === 'community' && (
             <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 max-w-2xl mx-auto">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
-                <p className="text-sm text-muted-foreground mt-1">שתף עדכונים, ניתוחים ודיונים עם הקהילה שלך</p>
+              <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
+                  <p className="text-sm text-muted-foreground mt-1">שתף עדכונים, ניתוחים ודיונים עם הקהילה שלך</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setRefreshingFeed(true);
+                    setFeedMediaReloadKey(k => k + 1);
+                    await qc.invalidateQueries({ queryKey: ['community_posts', user?.id] });
+                    setTimeout(() => setRefreshingFeed(false), 600);
+                  }}
+                  disabled={refreshingFeed}
+                  className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all disabled:opacity-50"
+                  title="רענן פיד ומדיה"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${refreshingFeed ? 'animate-spin' : ''}`} />
+                  רענן
+                </button>
               </div>
 
               {/* Compose box */}
@@ -1428,6 +1446,7 @@ export default function MentorDashboard() {
                     postTypeColor={postTypeColor}
                     formatDate={formatDate}
                     queryClient={qc}
+                    mediaReloadKey={feedMediaReloadKey}
                   />
                 ))}
               </div>
@@ -2287,6 +2306,7 @@ function MentorPostCard({
   post, fetchComments, expanded, onToggleComments,
   commentText, onCommentChange, onAddComment, onDelete, onTogglePin, onEdit,
   postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
+  mediaReloadKey = 0,
 }: {
   post: CommunityPost;
   fetchComments: (id: string) => Promise<PostComment[]>;
@@ -2304,6 +2324,7 @@ function MentorPostCard({
   postTypeColor: Record<string, string>;
   formatDate: (s: string) => string;
   queryClient: ReturnType<typeof useQueryClient>;
+  mediaReloadKey?: number;
 }) {
   const { data: comments = [], isLoading: commentsLoading } = useQuery<PostComment[]>({
     queryKey: ['comments', post.id],
@@ -2313,6 +2334,9 @@ function MentorPostCard({
 
   const { lightbox, openLightbox, closeLightbox } = useMediaLightbox();
   const pType = post.post_type;
+  const mediaSrc = post.media_url
+    ? `${post.media_url}${post.media_url.includes('?') ? '&' : '?'}_r=${mediaReloadKey}`
+    : null;
 
   return (
     <div className={`bg-card rounded-2xl card-shadow overflow-hidden ${post.is_pinned ? 'ring-2 ring-primary/25' : ''}`}>
@@ -2354,8 +2378,8 @@ function MentorPostCard({
         {post.media_url && (
           <div className="mt-3 rounded-xl overflow-hidden cursor-pointer" onClick={() => openLightbox(post.media_url!, (post.media_type as 'video' | 'image') || 'image')}>
             {post.media_type === 'video'
-              ? <video src={post.media_url} className="w-full max-h-80 object-cover" />
-              : <img src={post.media_url} alt="" className="w-full max-h-80 object-cover" />
+              ? <video key={mediaSrc!} src={mediaSrc!} className="w-full max-h-80 object-cover" />
+              : <img key={mediaSrc!} src={mediaSrc!} alt="" className="w-full max-h-80 object-cover" />
             }
           </div>
         )}
