@@ -2306,6 +2306,7 @@ function MentorPostCard({
   post, fetchComments, expanded, onToggleComments,
   commentText, onCommentChange, onAddComment, onDelete, onTogglePin, onEdit,
   postTypeLabel, postTypeIcon, postTypeBg, postTypeColor, formatDate, queryClient,
+  mediaReloadKey = 0,
 }: {
   post: CommunityPost;
   fetchComments: (id: string) => Promise<PostComment[]>;
@@ -2323,6 +2324,7 @@ function MentorPostCard({
   postTypeColor: Record<string, string>;
   formatDate: (s: string) => string;
   queryClient: ReturnType<typeof useQueryClient>;
+  mediaReloadKey?: number;
 }) {
   const { data: comments = [], isLoading: commentsLoading } = useQuery<PostComment[]>({
     queryKey: ['comments', post.id],
@@ -2332,6 +2334,9 @@ function MentorPostCard({
 
   const { lightbox, openLightbox, closeLightbox } = useMediaLightbox();
   const pType = post.post_type;
+  const mediaSrc = post.media_url
+    ? `${post.media_url}${post.media_url.includes('?') ? '&' : '?'}_r=${mediaReloadKey}`
+    : null;
 
   return (
     <div className={`bg-card rounded-2xl card-shadow overflow-hidden ${post.is_pinned ? 'ring-2 ring-primary/25' : ''}`}>
