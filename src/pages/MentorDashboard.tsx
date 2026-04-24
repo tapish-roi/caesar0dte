@@ -14,7 +14,7 @@ import {
   LogOut, Send, X, Check, Film, Upload, GraduationCap,
   Image, MessageSquare, MessageCircle, Pin, PinOff,
   ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
-  MessageCircleQuestion, ClipboardList, List, AlignLeft, LineChart, Calculator,
+  MessageCircleQuestion, ClipboardList, List, AlignLeft, LineChart, Calculator, RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
