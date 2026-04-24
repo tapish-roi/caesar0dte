@@ -10,7 +10,7 @@ import {
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
   User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
-  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList, LineChart, Calculator,
+  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList, LineChart, Calculator, RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
