@@ -1363,21 +1363,40 @@ export default function StudentDashboard() {
                       initial={{ opacity: 0, y: 10, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       transition={{ duration: 0.35, delay: catIdx * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                      className="bg-card rounded-xl card-shadow overflow-hidden"
+                      className={`rounded-xl card-shadow overflow-hidden transition-colors ${
+                        catLessons.every((l) => getProgress(l.id)?.completed)
+                          ? 'bg-emerald-500/5 ring-1 ring-emerald-500/30'
+                          : 'bg-card'
+                      }`}
                     >
-                      <div
-                        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-                        onClick={() => toggleCat(cat.id)}
-                      >
-                        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
-                        <span className="font-semibold text-foreground flex-1">{cat.title}</span>
-                        <span className="text-xs text-muted-foreground">{catLessons.length} שיעורים</span>
-                      </div>
+                      {(() => {
+                        const completedCount = catLessons.filter((l) => getProgress(l.id)?.completed).length;
+                        const allCompleted = completedCount === catLessons.length && catLessons.length > 0;
+                        return (
+                          <div
+                            className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                            onClick={() => toggleCat(cat.id)}
+                          >
+                            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                            <span className={`font-semibold flex-1 ${allCompleted ? 'text-emerald-400' : 'text-foreground'}`}>{cat.title}</span>
+                            {allCompleted && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold shrink-0">
+                                <CheckCircle2 className="w-3 h-3" />
+                                כל השיעורים הושלמו
+                              </span>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {completedCount}/{catLessons.length} הושלמו
+                            </span>
+                          </div>
+                        );
+                      })()}
                       <AnimatePresence>
                         {isExpanded && (
                           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                             <div className="border-t border-border">
                               {catLessons.map((lesson) => {
+                                const lessonCompleted = !!getProgress(lesson.id)?.completed;
                                 return (
                                    <div
                                     key={lesson.id}
@@ -1385,14 +1404,34 @@ export default function StudentDashboard() {
                                       setLessonViewMode({ categoryId: cat.id, categoryTitle: cat.title });
                                       setSelectedLesson(lesson.id);
                                     }}
-                                    className="flex flex-wrap items-center gap-2 md:gap-3 px-4 md:px-6 py-3 cursor-pointer hover:bg-muted/30 transition-colors"
+                                    className={`flex flex-wrap items-center gap-2 md:gap-3 px-4 md:px-6 py-3 cursor-pointer transition-colors ${
+                                      lessonCompleted
+                                        ? 'bg-emerald-500/5 hover:bg-emerald-500/10 border-e-2 border-emerald-500/60'
+                                        : 'hover:bg-muted/30'
+                                    }`}
                                   >
                                     <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
-                                      {typeIcon(lesson.lesson_type)}
+                                      {lessonCompleted ? (
+                                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                      ) : (
+                                        typeIcon(lesson.lesson_type)
+                                      )}
                                     </div>
-                                    <span className={`text-sm flex-1 min-w-0 truncate ${selectedLesson === lesson.id ? 'font-medium text-accent' : 'text-foreground'}`}>
+                                    <span className={`text-sm flex-1 min-w-0 truncate ${
+                                      lessonCompleted
+                                        ? 'text-emerald-400 font-medium'
+                                        : selectedLesson === lesson.id
+                                          ? 'font-medium text-accent'
+                                          : 'text-foreground'
+                                    }`}>
                                       {lesson.title}
                                     </span>
+                                    {lessonCompleted && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold shrink-0">
+                                        <CheckCircle2 className="w-2.5 h-2.5" />
+                                        הושלם
+                                      </span>
+                                    )}
                                     <span className="text-[10px] text-muted-foreground/70 shrink-0">
                                       {format(parseISO(lesson.created_at), 'dd.MM.yy', { locale: he })}
                                     </span>
@@ -1424,15 +1463,32 @@ export default function StudentDashboard() {
 
                 {filteredLessons.filter(l => !l.category_id).map((lesson) => {
                   const prog = getProgress(lesson.id);
+                  const lessonCompleted = !!prog?.completed;
                   return (
                     <motion.div
                       key={lesson.id}
                       whileHover={{ y: -2 }}
                       onClick={() => setSelectedLesson(lesson.id === selectedLesson ? null : lesson.id)}
-                      className="bg-card rounded-xl card-shadow p-4 flex items-center gap-3 cursor-pointer transition-all"
+                      className={`rounded-xl card-shadow p-4 flex items-center gap-3 cursor-pointer transition-all ${
+                        lessonCompleted
+                          ? 'bg-emerald-500/5 ring-1 ring-emerald-500/30 hover:bg-emerald-500/10'
+                          : 'bg-card'
+                      }`}
                     >
-                      {typeIcon(lesson.lesson_type)}
-                      <span className="text-sm text-foreground flex-1">{lesson.title}</span>
+                      {lessonCompleted ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                      ) : (
+                        typeIcon(lesson.lesson_type)
+                      )}
+                      <span className={`text-sm flex-1 ${lessonCompleted ? 'text-emerald-400 font-medium' : 'text-foreground'}`}>
+                        {lesson.title}
+                      </span>
+                      {lessonCompleted && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold shrink-0">
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          הושלם
+                        </span>
+                      )}
                       <span className="text-[10px] text-muted-foreground/70">
                         {format(parseISO(lesson.created_at), 'dd.MM.yy', { locale: he })}
                       </span>
