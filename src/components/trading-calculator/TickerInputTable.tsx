@@ -14,7 +14,13 @@ interface TickerInputTableProps {
 
 function readSession(key: string): string[] {
   try {
-    const raw = sessionStorage.getItem(key);
+    // One-time migration from sessionStorage → localStorage
+    const legacy = sessionStorage.getItem(key);
+    if (legacy && !localStorage.getItem(key)) {
+      localStorage.setItem(key, legacy);
+      sessionStorage.removeItem(key);
+    }
+    const raw = localStorage.getItem(key);
     if (!raw) return [...EMPTY];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length === SLOTS) return parsed.map((s) => String(s ?? ''));
@@ -25,7 +31,7 @@ function readSession(key: string): string[] {
 }
 
 function writeSession(key: string, arr: string[]) {
-  sessionStorage.setItem(key, JSON.stringify(arr));
+  localStorage.setItem(key, JSON.stringify(arr));
 }
 
 export default function TickerInputTable({ onTickersChange }: TickerInputTableProps) {

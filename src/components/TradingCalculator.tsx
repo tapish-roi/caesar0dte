@@ -181,7 +181,13 @@ export default function TradingCalculator() {
       const empty = Array.from({ length: SLOTS }, () => '');
       let arr = empty;
       try {
-        const raw = sessionStorage.getItem(key);
+        // One-time migration from sessionStorage → localStorage
+        const legacy = sessionStorage.getItem(key);
+        if (legacy && !localStorage.getItem(key)) {
+          localStorage.setItem(key, legacy);
+          sessionStorage.removeItem(key);
+        }
+        const raw = localStorage.getItem(key);
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed) && parsed.length === SLOTS) {
@@ -205,7 +211,7 @@ export default function TradingCalculator() {
         return;
       }
       arr[slot] = ticker;
-      sessionStorage.setItem(key, JSON.stringify(arr));
+      localStorage.setItem(key, JSON.stringify(arr));
       window.dispatchEvent(new Event('storage'));
       toast({
         title: 'נוסף',
