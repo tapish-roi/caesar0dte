@@ -1546,6 +1546,7 @@ export default function StudentDashboard() {
                             postTypeColor={postTypeColor}
                             formatDate={formatDate}
                             queryClient={qc}
+                            mediaReloadKey={mediaReloadKey}
                           />
                         ))}
                       </div>
