@@ -1312,9 +1312,25 @@ export default function MentorDashboard() {
           {/* ──────── COMMUNITY ──────── */}
           {activeTab === 'community' && (
             <motion.div key="community" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 max-w-2xl mx-auto">
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
-                <p className="text-sm text-muted-foreground mt-1">שתף עדכונים, ניתוחים ודיונים עם הקהילה שלך</p>
+              <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
+                  <p className="text-sm text-muted-foreground mt-1">שתף עדכונים, ניתוחים ודיונים עם הקהילה שלך</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setRefreshingFeed(true);
+                    setFeedMediaReloadKey(k => k + 1);
+                    await qc.invalidateQueries({ queryKey: ['community_posts', user?.id] });
+                    setTimeout(() => setRefreshingFeed(false), 600);
+                  }}
+                  disabled={refreshingFeed}
+                  className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all disabled:opacity-50"
+                  title="רענן פיד ומדיה"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${refreshingFeed ? 'animate-spin' : ''}`} />
+                  רענן
+                </button>
               </div>
 
               {/* Compose box */}
