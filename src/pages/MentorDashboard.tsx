@@ -245,6 +245,8 @@ export default function MentorDashboard() {
   const [postMediaType, setPostMediaType] = useState('');
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [feedMediaReloadKey, setFeedMediaReloadKey] = useState(0);
+  const [refreshingFeed, setRefreshingFeed] = useState(false);
   const [removeConfirm, setRemoveConfirm] = useState<{ studentId: string; name: string } | null>(null);
   // Edit post state
   const [editPost, setEditPost] = useState<CommunityPost | null>(null);
