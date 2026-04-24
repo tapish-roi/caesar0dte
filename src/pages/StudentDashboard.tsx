@@ -1719,6 +1719,9 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
 
   const { lightbox, openLightbox, closeLightbox } = useMediaLightbox();
   const pType = post.post_type;
+  const mediaSrc = post.media_url
+    ? `${post.media_url}${post.media_url.includes('?') ? '&' : '?'}_r=${mediaReloadKey}`
+    : null;
 
   return (
     <motion.div
