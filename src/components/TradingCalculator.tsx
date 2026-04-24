@@ -211,7 +211,7 @@ export default function TradingCalculator() {
         return;
       }
       arr[slot] = ticker;
-      sessionStorage.setItem(key, JSON.stringify(arr));
+      localStorage.setItem(key, JSON.stringify(arr));
       window.dispatchEvent(new Event('storage'));
       toast({
         title: 'נוסף',
