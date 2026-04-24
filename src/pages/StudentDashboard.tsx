@@ -500,6 +500,8 @@ export default function StudentDashboard() {
 
   // Date filter state
   const [communityDateRange, setCommunityDateRange] = useState<DateRange | undefined>(undefined);
+  const [mediaReloadKey, setMediaReloadKey] = useState(0);
+  const [refreshingFeed, setRefreshingFeed] = useState(false);
 
   // Community dropdown state
   const [communityDropdownOpen, setCommunityDropdownOpen] = useState(false);
