@@ -1446,6 +1446,7 @@ export default function MentorDashboard() {
                     postTypeColor={postTypeColor}
                     formatDate={formatDate}
                     queryClient={qc}
+                    mediaReloadKey={feedMediaReloadKey}
                   />
                 ))}
               </div>
