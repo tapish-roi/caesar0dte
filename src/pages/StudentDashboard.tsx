@@ -1761,7 +1761,7 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
               <span className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
               <span className="text-xs text-muted-foreground font-medium">הקלטת הלייב</span>
             </div>
-            <video src={post.media_url} className="w-full max-h-72 object-contain bg-black rounded-b-xl" controls controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
+            <video key={mediaSrc!} src={mediaSrc!} className="w-full max-h-72 object-contain bg-black rounded-b-xl" controls controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
           </div>
         )}
 
@@ -1769,8 +1769,8 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
         {pType !== 'live' && post.media_url && (
           <div className="mt-3 rounded-xl overflow-hidden cursor-pointer" onClick={() => openLightbox(post.media_url!, (post.media_type as 'video' | 'image') || 'image')}>
             {post.media_type === 'video'
-              ? <video src={post.media_url} className="w-full max-h-72 object-cover rounded-xl" />
-              : <img src={post.media_url} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
+              ? <video key={mediaSrc!} src={mediaSrc!} className="w-full max-h-72 object-cover rounded-xl" />
+              : <img key={mediaSrc!} src={mediaSrc!} alt="post" className="w-full max-h-72 object-cover rounded-xl" />
             }
           </div>
         )}
