@@ -396,7 +396,6 @@
     100% { opacity: 0; transform: rotate(152deg) translate3d(70vw, 0, 0); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .space-large-star { animation: none; }
     .space-shooting-star { display: none; }
   }
 
