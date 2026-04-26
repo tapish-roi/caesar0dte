@@ -250,19 +250,23 @@
       opacity 180ms ease,
       transform 180ms ease;
   }
-  /* Main content gradient background — preserved as the "Mid anchor" wash */
+  /* Main content background — cinematic space photograph anchored to the
+     viewport. The image stays untouched; all animations live in the
+     SpaceBackground overlay above it. A subtle dark wash keeps text legible. */
   .main-content-gradient {
-    background: linear-gradient(
-      160deg,
-      hsl(220, 45%, 15%) 0%,
-      hsl(200, 50%, 22%) 30%,
-      hsl(190, 45%, 28%) 55%,
-      hsl(210, 40%, 20%) 80%,
-      hsl(230, 35%, 16%) 100%
-    );
-    /* Allow the fixed SpaceBackground (z-0) to show through faintly via
-       semi-transparent gradient stops — keep the wash itself opaque so
-       readability never drops. The parallax layers live behind it. */
+    background-color: hsl(222, 60%, 4%);
+    background-image:
+      linear-gradient(
+        160deg,
+        hsla(220, 55%, 8%, 0.55) 0%,
+        hsla(210, 50%, 10%, 0.35) 40%,
+        hsla(220, 60%, 6%, 0.55) 100%
+      ),
+      url("/src/assets/space-background.png");
+    background-size: cover, cover;
+    background-position: center center, center center;
+    background-repeat: no-repeat, no-repeat;
+    background-attachment: fixed, fixed;
     position: relative;
   }
 
