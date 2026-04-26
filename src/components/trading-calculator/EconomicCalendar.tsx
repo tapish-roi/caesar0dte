@@ -458,13 +458,13 @@ export default function EconomicCalendar() {
                   {/* Mobile row */}
                   <div className="lg:hidden flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
                         <span className="text-xs font-mono text-muted-foreground">{ev.time || '—'}</span>
                         <CountryFlag code={ev.countryCode} name={ev.country} />
                         <ImportanceBulls level={ev.importance} />
                       </div>
                     </div>
-                    <p className="text-sm text-foreground leading-snug">{ev.event}</p>
+                    <p className="text-sm text-foreground leading-snug break-words">{ev.event}</p>
                     <div className="flex items-center justify-between text-[11px] font-mono pt-1 border-t border-border/30">
                       <div className="flex flex-col items-start">
                         <span className="text-[9px] uppercase text-muted-foreground">בפועל</span>
