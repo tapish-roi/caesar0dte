@@ -402,13 +402,13 @@ function Stat({
         ? 'bg-destructive/5 border-destructive/20 text-destructive'
         : 'bg-muted/30 border-border text-foreground';
   return (
-    <div className={`rounded-xl p-3 border ${toneClass}`}>
-      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</div>
-      <div className={`${big ? 'text-2xl' : 'text-base'} font-bold tabular-nums mt-0.5`}>
+    <div className={`rounded-xl p-3 border min-w-0 ${toneClass}`}>
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">{label}</div>
+      <div className={`${big ? 'text-2xl' : 'text-base'} font-bold tabular-nums mt-0.5 break-words`}>
         {value}
       </div>
       {hint && (
-        <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">{hint}</div>
+        <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums truncate">{hint}</div>
       )}
     </div>
   );
