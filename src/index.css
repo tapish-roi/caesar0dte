@@ -262,7 +262,7 @@
         hsla(210, 50%, 10%, 0.35) 40%,
         hsla(220, 60%, 6%, 0.55) 100%
       ),
-      url("/src/assets/space-background.png");
+      url("/assets/space-background.png");
     background-size: cover, cover;
     background-position: center center, center center;
     background-repeat: no-repeat, no-repeat;
