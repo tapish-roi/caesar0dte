@@ -32,14 +32,14 @@ export default function AccountCard({
         variant="ghost"
         size="icon"
         onClick={onClear}
-        className="absolute top-2 end-2 h-7 w-7 text-muted-foreground hover:text-foreground"
+        className="absolute top-2 end-2 h-7 w-7 text-muted-foreground hover:text-foreground z-10"
         title="נקה כרטיס"
       >
         <RotateCcw className="w-3.5 h-3.5" />
       </Button>
 
-      <div className="flex items-center gap-2 mb-4">
-        <Wallet className="w-4 h-4 text-primary" />
+      <div className="flex items-center gap-2 mb-4 pe-9">
+        <Wallet className="w-4 h-4 text-primary shrink-0" />
         <h3 className="text-sm font-semibold text-foreground">גודל חשבון וסיכון</h3>
       </div>
 
