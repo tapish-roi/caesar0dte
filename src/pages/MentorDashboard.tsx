@@ -26,6 +26,7 @@ import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
 import LessonStudentProgress from '@/components/LessonStudentProgress';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import SpaceBackground from '@/components/SpaceBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ChevronLeft } from 'lucide-react';
@@ -859,7 +860,8 @@ export default function MentorDashboard() {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden relative" dir="rtl">
+    <div className="flex h-screen bg-background overflow-hidden relative" dir="rtl">
+      <SpaceBackground />
       {/* Draft lesson alert */}
       <AlertDialog open={!!draftAlertLessonId} onOpenChange={(open) => { if (!open) setDraftAlertLessonId(null); }}>
         <AlertDialogContent dir="rtl" className="text-white">

@@ -6,7 +6,7 @@ export default function DashboardReveal({ children }: { children: React.ReactNod
   return (
     <motion.div
       layoutId="main-container"
-      className="min-h-screen"
+      className="min-h-screen bg-background"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{

@@ -28,6 +28,7 @@ import LiveHubStudent from '@/components/LiveHubStudent';
 import LessonQA from '@/components/LessonQA';
 import StudentMyQuestions from '@/components/StudentMyQuestions';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import SpaceBackground from '@/components/SpaceBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -909,7 +910,8 @@ export default function StudentDashboard() {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden relative" dir="rtl">
+    <div className="flex h-screen bg-background overflow-hidden relative" dir="rtl">
+      <SpaceBackground />
       {/* Mobile Header */}
       {isMobile && !lessonViewMode && (
         <div className="fixed top-0 left-0 right-0 z-30">

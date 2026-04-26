@@ -107,18 +107,7 @@
   body {
     @apply text-foreground;
     font-family: 'IBM Plex Sans Hebrew', 'Segoe UI', system-ui, sans-serif;
-    background-color: hsl(220, 30%, 8%);
-    background-image:
-      linear-gradient(
-        to bottom,
-        hsla(220, 35%, 8%, 0.5),
-        hsla(220, 35%, 8%, 0.68)
-      ),
-      url("/space-background.jpg");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    background: hsl(220, 30%, 14%);
     min-height: 100vh;
     min-height: 100dvh;
     font-feature-settings: "tnum";
@@ -127,7 +116,6 @@
     overflow-x: hidden;
     /* Avoid iOS rubber-band horizontal flicker */
     overscroll-behavior-x: none;
-    position: relative;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -266,12 +254,15 @@
   .main-content-gradient {
     background: linear-gradient(
       160deg,
-      hsla(220, 45%, 15%, 0.78) 0%,
-      hsla(200, 50%, 22%, 0.66) 30%,
-      hsla(190, 45%, 28%, 0.58) 55%,
-      hsla(210, 40%, 20%, 0.7) 80%,
-      hsla(230, 35%, 16%, 0.82) 100%
+      hsl(220, 45%, 15%) 0%,
+      hsl(200, 50%, 22%) 30%,
+      hsl(190, 45%, 28%) 55%,
+      hsl(210, 40%, 20%) 80%,
+      hsl(230, 35%, 16%) 100%
     );
+    /* Allow the fixed SpaceBackground (z-0) to show through faintly via
+       semi-transparent gradient stops — keep the wash itself opaque so
+       readability never drops. The parallax layers live behind it. */
     position: relative;
   }
 
