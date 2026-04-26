@@ -154,7 +154,7 @@ export default function TradeCard({
       )}
 
       {/* ── Inputs ──────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
         <Input
           type="number"
           inputMode="decimal"
@@ -162,12 +162,12 @@ export default function TradeCard({
           step="0.01"
           value={entryPrice}
           onChange={(e) => onEntryChange(e.target.value)}
-          className="tabular-nums border-emerald-500/40 bg-emerald-500/5 placeholder:text-emerald-500/70 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30 hover:border-emerald-500/60 hover:shadow-[0_0_18px_-4px_rgb(16,185,129,0.35)] transition-all"
+          className="tabular-nums border-emerald-500/40 bg-emerald-500/5 placeholder:text-emerald-500/70 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30 hover:border-emerald-500/60 hover:shadow-[0_0_18px_-4px_rgb(16,185,129,0.35)] transition-all min-w-0"
           dir="ltr"
           placeholder="מחיר כניסה ($)"
         />
 
-        <div className="relative">
+        <div className="relative min-w-0">
           <Input
             type="number"
             inputMode="decimal"
@@ -175,7 +175,10 @@ export default function TradeCard({
             step="0.01"
             value={stopPrice}
             onChange={(e) => onStopChange(e.target.value)}
-            className="tabular-nums border-rose-500/40 bg-rose-500/5 placeholder:text-rose-500/70 focus-visible:border-rose-500 focus-visible:ring-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_18px_-4px_rgb(244,63,94,0.35)] transition-all pe-16"
+            className={cn(
+              "tabular-nums border-rose-500/40 bg-rose-500/5 placeholder:text-rose-500/70 focus-visible:border-rose-500 focus-visible:ring-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_18px_-4px_rgb(244,63,94,0.35)] transition-all min-w-0",
+              atr && atr > 0 ? "pe-14" : ""
+            )}
             dir="ltr"
             placeholder="מחיר סטופ ($)"
           />
@@ -183,10 +186,10 @@ export default function TradeCard({
             <button
               type="button"
               onClick={onUseAtrStop}
-              className="absolute top-1/2 -translate-y-1/2 end-2 text-[10px] text-primary hover:underline"
+              className="absolute top-1/2 -translate-y-1/2 end-1.5 text-[10px] text-primary hover:underline whitespace-nowrap px-1 rounded bg-background/80"
               title={`השתמש ב-ATR (${atr.toFixed(2)}) לחישוב סטופ`}
             >
-              ATR ({atr.toFixed(2)})
+              ATR {atr.toFixed(2)}
             </button>
           )}
         </div>
@@ -198,7 +201,7 @@ export default function TradeCard({
           step="0.01"
           value={currentPrice}
           onChange={(e) => onCurrentPriceChange(e.target.value)}
-          className="tabular-nums"
+          className="tabular-nums min-w-0"
           dir="ltr"
           placeholder="מחיר נוכחי ($)"
         />
