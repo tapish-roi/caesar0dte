@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { RotateCcw, PlusCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { rPriceAt, type Side, type PositionResult } from '@/lib/positionCalc';
 
 interface Props {
@@ -120,20 +121,20 @@ export default function TradeCard({
   const showAddResults = addShares > 0 && newRForBlended > 0;
 
   return (
-    <div className="relative bg-card rounded-2xl card-shadow border border-border p-5">
+    <div className="relative bg-card rounded-2xl card-shadow border border-border p-5 pt-10">
       <Button
         type="button"
         variant="ghost"
         size="icon"
         onClick={onClear}
-        className="absolute top-2 end-2 h-7 w-7 text-muted-foreground hover:text-foreground"
+        className="absolute top-2 end-2 h-7 w-7 text-muted-foreground hover:text-foreground z-10"
         title="נקה כרטיס"
       >
         <RotateCcw className="w-3.5 h-3.5" />
       </Button>
 
       {detectedSide && (
-        <div className="mb-3 flex justify-start">
+        <div className="mb-3 flex justify-start -mt-6">
           <span
             className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
               detectedSide === 'long' ? 'text-emerald-500' : 'text-rose-500'
@@ -153,7 +154,7 @@ export default function TradeCard({
       )}
 
       {/* ── Inputs ──────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
         <Input
           type="number"
           inputMode="decimal"
@@ -161,12 +162,12 @@ export default function TradeCard({
           step="0.01"
           value={entryPrice}
           onChange={(e) => onEntryChange(e.target.value)}
-          className="tabular-nums border-emerald-500/40 bg-emerald-500/5 placeholder:text-emerald-500/70 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30 hover:border-emerald-500/60 hover:shadow-[0_0_18px_-4px_rgb(16,185,129,0.35)] transition-all"
+          className="tabular-nums border-emerald-500/40 bg-emerald-500/5 placeholder:text-emerald-500/70 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/30 hover:border-emerald-500/60 hover:shadow-[0_0_18px_-4px_rgb(16,185,129,0.35)] transition-all min-w-0"
           dir="ltr"
           placeholder="מחיר כניסה ($)"
         />
 
-        <div className="relative">
+        <div className="relative min-w-0">
           <Input
             type="number"
             inputMode="decimal"
@@ -174,7 +175,10 @@ export default function TradeCard({
             step="0.01"
             value={stopPrice}
             onChange={(e) => onStopChange(e.target.value)}
-            className="tabular-nums border-rose-500/40 bg-rose-500/5 placeholder:text-rose-500/70 focus-visible:border-rose-500 focus-visible:ring-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_18px_-4px_rgb(244,63,94,0.35)] transition-all pe-16"
+            className={cn(
+              "tabular-nums border-rose-500/40 bg-rose-500/5 placeholder:text-rose-500/70 focus-visible:border-rose-500 focus-visible:ring-rose-500/30 hover:border-rose-500/60 hover:shadow-[0_0_18px_-4px_rgb(244,63,94,0.35)] transition-all min-w-0",
+              atr && atr > 0 ? "pe-14" : ""
+            )}
             dir="ltr"
             placeholder="מחיר סטופ ($)"
           />
@@ -182,10 +186,10 @@ export default function TradeCard({
             <button
               type="button"
               onClick={onUseAtrStop}
-              className="absolute top-1/2 -translate-y-1/2 end-2 text-[10px] text-primary hover:underline"
+              className="absolute top-1/2 -translate-y-1/2 end-1.5 text-[10px] text-primary hover:underline whitespace-nowrap px-1 rounded bg-background/80"
               title={`השתמש ב-ATR (${atr.toFixed(2)}) לחישוב סטופ`}
             >
-              ATR ({atr.toFixed(2)})
+              ATR {atr.toFixed(2)}
             </button>
           )}
         </div>
@@ -197,7 +201,7 @@ export default function TradeCard({
           step="0.01"
           value={currentPrice}
           onChange={(e) => onCurrentPriceChange(e.target.value)}
-          className="tabular-nums"
+          className="tabular-nums min-w-0"
           dir="ltr"
           placeholder="מחיר נוכחי ($)"
         />
@@ -398,13 +402,13 @@ function Stat({
         ? 'bg-destructive/5 border-destructive/20 text-destructive'
         : 'bg-muted/30 border-border text-foreground';
   return (
-    <div className={`rounded-xl p-3 border ${toneClass}`}>
-      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</div>
-      <div className={`${big ? 'text-2xl' : 'text-base'} font-bold tabular-nums mt-0.5`}>
+    <div className={`rounded-xl p-3 border min-w-0 ${toneClass}`}>
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">{label}</div>
+      <div className={`${big ? 'text-2xl' : 'text-base'} font-bold tabular-nums mt-0.5 break-words`}>
         {value}
       </div>
       {hint && (
-        <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums">{hint}</div>
+        <div className="text-[10px] text-muted-foreground mt-0.5 tabular-nums truncate">{hint}</div>
       )}
     </div>
   );

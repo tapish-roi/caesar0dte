@@ -425,7 +425,7 @@ export default function EconomicCalendar() {
             </header>
 
             {/* Column headers (desktop only) */}
-            <div className="hidden md:grid grid-cols-[60px_80px_1fr_80px_80px_80px] gap-3 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/50 bg-background/40">
+            <div className="hidden lg:grid grid-cols-[56px_72px_minmax(0,1fr)_70px_70px_70px] gap-3 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/50 bg-background/40">
               <span>שעה</span>
               <span>מדינה</span>
               <span>אירוע</span>
@@ -441,30 +441,30 @@ export default function EconomicCalendar() {
                   className="px-4 py-2.5 hover:bg-muted/20 transition-colors"
                 >
                   {/* Desktop row */}
-                  <div className="hidden md:grid grid-cols-[60px_80px_1fr_80px_80px_80px] gap-3 items-center text-sm">
+                  <div className="hidden lg:grid grid-cols-[56px_72px_minmax(0,1fr)_70px_70px_70px] gap-3 items-center text-sm">
                     <span className="text-xs font-mono text-muted-foreground">{ev.time || '—'}</span>
                     <CountryFlag code={ev.countryCode} name={ev.country} />
                     <div className="flex items-center gap-2 min-w-0">
                       <ImportanceBulls level={ev.importance} />
                       <span className="text-foreground truncate" title={ev.event}>{ev.event}</span>
                     </div>
-                    <span className={cn('text-end font-mono text-sm', valueClass(ev.actual, ev.forecast))}>
+                    <span className={cn('text-end font-mono text-sm truncate', valueClass(ev.actual, ev.forecast))} title={ev.actual ?? undefined}>
                       {ev.actual ?? '—'}
                     </span>
-                    <span className="text-end font-mono text-sm text-muted-foreground">{ev.forecast ?? '—'}</span>
-                    <span className="text-end font-mono text-sm text-muted-foreground">{ev.previous ?? '—'}</span>
+                    <span className="text-end font-mono text-sm text-muted-foreground truncate" title={ev.forecast ?? undefined}>{ev.forecast ?? '—'}</span>
+                    <span className="text-end font-mono text-sm text-muted-foreground truncate" title={ev.previous ?? undefined}>{ev.previous ?? '—'}</span>
                   </div>
 
                   {/* Mobile row */}
-                  <div className="md:hidden flex flex-col gap-1.5">
+                  <div className="lg:hidden flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-wrap">
                         <span className="text-xs font-mono text-muted-foreground">{ev.time || '—'}</span>
                         <CountryFlag code={ev.countryCode} name={ev.country} />
                         <ImportanceBulls level={ev.importance} />
                       </div>
                     </div>
-                    <p className="text-sm text-foreground leading-snug">{ev.event}</p>
+                    <p className="text-sm text-foreground leading-snug break-words">{ev.event}</p>
                     <div className="flex items-center justify-between text-[11px] font-mono pt-1 border-t border-border/30">
                       <div className="flex flex-col items-start">
                         <span className="text-[9px] uppercase text-muted-foreground">בפועל</span>
