@@ -910,7 +910,7 @@ export default function StudentDashboard() {
   ];
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden relative" dir="rtl">
+    <div className="flex h-screen overflow-hidden relative" dir="rtl">
       <SpaceBackground />
       {/* Mobile Header */}
       {isMobile && !lessonViewMode && (

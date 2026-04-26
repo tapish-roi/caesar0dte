@@ -107,7 +107,7 @@
   body {
     @apply text-foreground;
     font-family: 'IBM Plex Sans Hebrew', 'Segoe UI', system-ui, sans-serif;
-    background: hsl(220, 30%, 14%);
+    background-color: hsl(220, 30%, 8%);
     min-height: 100vh;
     min-height: 100dvh;
     font-feature-settings: "tnum";
@@ -116,6 +116,35 @@
     overflow-x: hidden;
     /* Avoid iOS rubber-band horizontal flicker */
     overscroll-behavior-x: none;
+    position: relative;
+  }
+
+  /* Global cosmic background — fixed, covers entire viewport across all pages */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: url("/src/assets/space-background.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    pointer-events: none;
+  }
+
+  /* Subtle dark overlay so foreground content remains readable above background */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+      to bottom,
+      hsla(220, 35%, 8%, 0.55),
+      hsla(220, 35%, 8%, 0.7)
+    );
+    pointer-events: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
