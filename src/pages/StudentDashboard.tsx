@@ -1994,10 +1994,6 @@ function ProfileContent({
       <div className="space-y-2.5 pt-1 border-t border-border">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-1">התראות ועדכונים</p>
         <div className="flex items-center justify-between py-1">
-          <div className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-xs text-foreground">SMS / נייד</span></div>
-          <Switch checked={notifyState.notify_sms} onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: val, notify_email: notifyState.notify_email })} disabled={saveNotifications.isPending} />
-        </div>
-        <div className="flex items-center justify-between py-1">
           <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-xs text-foreground">אימייל</span></div>
           <Switch checked={notifyState.notify_email} onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: notifyState.notify_sms, notify_email: val })} disabled={saveNotifications.isPending} />
         </div>
