@@ -120,20 +120,20 @@ export default function TradeCard({
   const showAddResults = addShares > 0 && newRForBlended > 0;
 
   return (
-    <div className="relative bg-card rounded-2xl card-shadow border border-border p-5">
+    <div className="relative bg-card rounded-2xl card-shadow border border-border p-5 pt-10">
       <Button
         type="button"
         variant="ghost"
         size="icon"
         onClick={onClear}
-        className="absolute top-2 end-2 h-7 w-7 text-muted-foreground hover:text-foreground"
+        className="absolute top-2 end-2 h-7 w-7 text-muted-foreground hover:text-foreground z-10"
         title="נקה כרטיס"
       >
         <RotateCcw className="w-3.5 h-3.5" />
       </Button>
 
       {detectedSide && (
-        <div className="mb-3 flex justify-start">
+        <div className="mb-3 flex justify-start -mt-6">
           <span
             className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
               detectedSide === 'long' ? 'text-emerald-500' : 'text-rose-500'
