@@ -1140,7 +1140,7 @@ export default function MentorDashboard() {
                           </div>
                         </div>
                         {/* Right column: quiz panel */}
-                        <div className="w-full md:w-80 shrink-0">
+                        <div className="w-full lg:w-80 shrink-0 min-w-0">
                           <LessonQuizPanel lessonId={lesson.id} mentorId={user!.id} onCreateQuiz={() => { setQuizNavLessonId(lesson.id); setActiveTab('quizzes'); }} />
                         </div>
                       </motion.div>
