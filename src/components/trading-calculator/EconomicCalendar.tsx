@@ -549,7 +549,8 @@ export default function EconomicCalendar() {
               ))}
             </ul>
           </section>
-        ))}
+          );
+        })}
       </div>
 
       <div className="px-4 py-2 text-[10px] text-muted-foreground text-center border-t border-border">
