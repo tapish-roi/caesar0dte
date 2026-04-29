@@ -1491,8 +1491,8 @@ export default function MentorDashboard() {
                           <Send className="w-3.5 h-3.5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-sm text-foreground">{inv.contact}</span>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <span className="text-sm text-foreground block truncate">{inv.contact}</span>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
                             {new Date(inv.created_at).toLocaleDateString('he-IL')} · ממתין לאישור
                           </p>
                         </div>
@@ -1523,68 +1523,72 @@ export default function MentorDashboard() {
                       const displayName = m.display_name || m.profiles?.full_name || 'תלמיד';
                       const isEditing = editingNickname === m.student_id;
                       return (
-                      <div key={m.student_id} className="flex flex-wrap items-center gap-2 md:gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors group">
-                        <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold shrink-0">
-                          {displayName[0]?.toUpperCase() ?? '?'}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          {isEditing ? (
-                            <form
-                              className="flex items-center gap-2"
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                updateNickname.mutate({ studentId: m.student_id, displayName: nicknameValue });
-                              }}
-                            >
-                              <input
-                                autoFocus
-                                className="h-7 px-2 text-sm border border-border rounded-md bg-surface text-card-foreground w-full max-w-[180px]"
-                                value={nicknameValue}
-                                onChange={(e) => setNicknameValue(e.target.value)}
-                                placeholder={m.profiles?.full_name || 'כינוי'}
-                              />
-                              <button type="submit" className="w-6 h-6 flex items-center justify-center rounded text-accent hover:bg-accent/10">
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
-                              <button type="button" onClick={() => setEditingNickname(null)} className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:bg-muted">
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </form>
-                          ) : (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
-                              {m.display_name && (
-                                <span className="text-[10px] text-muted-foreground">({m.profiles?.full_name})</span>
-                              )}
-                              <button
-                                onClick={() => { setEditingNickname(m.student_id); setNicknameValue(m.display_name || ''); }}
-                                className="md:opacity-0 md:group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-primary transition-all"
-                                title="ערוך כינוי"
+                      <div key={m.student_id} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors group">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent font-bold shrink-0">
+                            {displayName[0]?.toUpperCase() ?? '?'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            {isEditing ? (
+                              <form
+                                className="flex items-center gap-2"
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  updateNickname.mutate({ studentId: m.student_id, displayName: nicknameValue });
+                                }}
                               >
-                                <Pencil className="w-3 h-3" />
-                              </button>
-                            </div>
-                          )}
-                          <div className="text-xs text-muted-foreground truncate">{m.profiles?.email}</div>
+                                <input
+                                  autoFocus
+                                  className="h-7 px-2 text-sm border border-border rounded-md bg-surface text-card-foreground w-full max-w-[180px] min-w-0"
+                                  value={nicknameValue}
+                                  onChange={(e) => setNicknameValue(e.target.value)}
+                                  placeholder={m.profiles?.full_name || 'כינוי'}
+                                />
+                                <button type="submit" className="w-6 h-6 flex items-center justify-center rounded text-accent hover:bg-accent/10 shrink-0">
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                                <button type="button" onClick={() => setEditingNickname(null)} className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:bg-muted shrink-0">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </form>
+                            ) : (
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
+                                {m.display_name && (
+                                  <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">({m.profiles?.full_name})</span>
+                                )}
+                                <button
+                                  onClick={() => { setEditingNickname(m.student_id); setNicknameValue(m.display_name || ''); }}
+                                  className="md:opacity-0 md:group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-primary transition-all shrink-0"
+                                  title="ערוך כינוי"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                            <div className="text-xs text-muted-foreground truncate">{m.profiles?.email}</div>
+                          </div>
                         </div>
-                        <div className="text-[10px] md:text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full shrink-0">
-                          {new Date(m.joined_at).toLocaleDateString('he-IL')}
+                        <div className="flex items-center gap-2 shrink-0 ms-12 sm:ms-0 flex-wrap justify-end">
+                          <div className="text-[10px] md:text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full shrink-0 whitespace-nowrap">
+                            {new Date(m.joined_at).toLocaleDateString('he-IL')}
+                          </div>
+                          {/* Permissions button */}
+                          <button
+                            onClick={() => { setAccessStudentId(m.student_id); setAccessStudentName(displayName); }}
+                            className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-all shrink-0"
+                            title="נהל הרשאות קטגוריות"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setRemoveConfirm({ studentId: m.student_id, name: displayName })}
+                            className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all shrink-0"
+                            title="הסר מהקהילה"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                        {/* Permissions button */}
-                        <button
-                          onClick={() => { setAccessStudentId(m.student_id); setAccessStudentName(displayName); }}
-                          className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-all"
-                          title="נהל הרשאות קטגוריות"
-                        >
-                          <ShieldCheck className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setRemoveConfirm({ studentId: m.student_id, name: displayName })}
-                          className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                          title="הסר מהקהילה"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
                       </div>
                       );
                     })}
