@@ -311,29 +311,25 @@ export default function EconomicCalendar() {
   }, [data, importanceLevels, selectedCountries]);
 
   const grouped = useMemo(() => {
-    const normalizedSelectedCountries = new Set(
-      Array.from(selectedCountries).map((code) => code.trim().toUpperCase()),
-    );
     const map = new Map<string, EconomicEvent[]>();
 
     for (const ev of filtered) {
-      const eventCountryCode = ev.countryCode?.trim().toUpperCase() ?? '';
-      if (normalizedSelectedCountries.size > 0 && !normalizedSelectedCountries.has(eventCountryCode)) {
-        continue;
-      }
-
+      // Group by the event's date in the USER's timezone, not the source date.
+      // This ensures events that cross midnight (e.g. NY events shown to a TLV
+      // user, or TLV events viewed from the US) appear under the correct day.
       const localDate = eventLocalDate(ev);
       if (!map.has(localDate)) map.set(localDate, []);
       map.get(localDate)!.push(ev);
     }
 
-    // Sort each day's events by their actual local timestamp (TZ-correct order).
+    // Sort each day's events by their actual UTC timestamp so order is correct
+    // regardless of the user's timezone.
     for (const list of map.values()) {
       list.sort((a, b) => eventTimestamp(a) - eventTimestamp(b));
     }
 
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered, selectedCountries]);
+  }, [filtered]);
 
   // Find the closest upcoming event (in the future) among the filtered list.
   const nextEvent = useMemo(() => {
