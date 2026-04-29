@@ -1073,9 +1073,9 @@ export default function MentorDashboard() {
                     const lesson = lessons.find(l => l.id === selectedLesson);
                     if (!lesson) return null;
                     return (
-                      <motion.div key={lesson.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col md:flex-row gap-6 items-start">
-                        {/* Left column: lesson content */}
-                        <div className="flex-1 min-w-0 bg-card rounded-xl card-shadow overflow-hidden">
+                       <motion.div key={lesson.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col lg:flex-row gap-6 items-start w-full min-w-0">
+                         {/* Left column: lesson content */}
+                         <div className="flex-1 min-w-0 w-full bg-card rounded-xl card-shadow overflow-hidden">
                           {/* Video area */}
                           <div className="aspect-video bg-foreground/5 border-b border-border flex items-center justify-center">
                             {lesson.video_url ? (
