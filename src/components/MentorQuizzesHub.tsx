@@ -236,21 +236,21 @@ function QuizBuilder({
   return (
     <div className="h-full flex flex-col" dir="rtl">
       {/* Header */}
-      <div className="px-8 pt-8 pb-0 shrink-0">
-        <div className="flex items-center gap-3 mb-5">
-          <button onClick={onDone} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+      <div className="px-4 md:px-8 pt-4 md:pt-8 pb-0 shrink-0">
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <button onClick={onDone} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
             <ChevronRight className="w-4 h-4" />חזרה
           </button>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <ClipboardList className="w-4 h-4 text-primary" />
             </div>
-            <h1 className="text-xl font-bold text-foreground">יצירת מבחן חדש</h1>
+            <h1 className="text-xl font-bold text-foreground truncate">יצירת מבחן חדש</h1>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-8 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8">
         {/* Quiz meta */}
         <div className="bg-card border border-border rounded-xl p-5 mb-5 space-y-4">
           <div>
@@ -410,23 +410,23 @@ function QuizBuilder({
         </div>
 
         {/* Add question buttons */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <button
             onClick={() => addQuestion('multiple_choice')}
-            className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+            className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap"
           >
-            <List className="w-4 h-4 text-primary" />הוסף שאלה אמריקאית
+            <List className="w-4 h-4 text-primary shrink-0" />הוסף שאלה אמריקאית
           </button>
           <button
             onClick={() => addQuestion('free_text')}
-            className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+            className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap"
           >
-            <AlignLeft className="w-4 h-4 text-accent" />הוסף שאלה פתוחה
+            <AlignLeft className="w-4 h-4 text-accent shrink-0" />הוסף שאלה פתוחה
           </button>
         </div>
 
         {/* Save buttons */}
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => handleSave(false)}
             disabled={isSaving || !title.trim()}
@@ -631,20 +631,20 @@ function QuizDetail({
   if (isEditing) {
     return (
       <div className="h-full flex flex-col" dir="rtl">
-        <div className="px-8 pt-8 pb-0 shrink-0">
-          <div className="flex items-center gap-3 mb-5">
+        <div className="px-4 md:px-8 pt-4 md:pt-8 pb-0 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
             <button onClick={() => setIsEditing(false)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
               <ChevronRight className="w-4 h-4" />ביטול עריכה
             </button>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <ClipboardList className="w-4 h-4 text-primary" />
               </div>
-              <h1 className="text-xl font-bold text-foreground">עריכת מבחן</h1>
+              <h1 className="text-xl font-bold text-foreground truncate">עריכת מבחן</h1>
             </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto px-8 pb-8">
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8">
           {/* Meta */}
           <div className="bg-card border border-border rounded-xl p-5 mb-5 space-y-4">
             <div>
@@ -787,12 +787,12 @@ function QuizDetail({
           </div>
 
           {/* Add question buttons */}
-          <div className="flex gap-2 mb-6">
-            <button onClick={() => addEditQuestion('multiple_choice')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all">
-              <List className="w-4 h-4 text-primary" />הוסף שאלה אמריקאית
+          <div className="flex flex-wrap gap-2 mb-6">
+            <button onClick={() => addEditQuestion('multiple_choice')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap">
+              <List className="w-4 h-4 text-primary shrink-0" />הוסף שאלה אמריקאית
             </button>
-            <button onClick={() => addEditQuestion('free_text')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all">
-              <AlignLeft className="w-4 h-4 text-accent" />הוסף שאלה פתוחה
+            <button onClick={() => addEditQuestion('free_text')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap">
+              <AlignLeft className="w-4 h-4 text-accent shrink-0" />הוסף שאלה פתוחה
             </button>
           </div>
 
@@ -812,26 +812,26 @@ function QuizDetail({
   return (
     <div className="h-full flex flex-col" dir="rtl">
       {/* Header */}
-      <div className="px-8 pt-8 pb-0 shrink-0">
+      <div className="px-4 md:px-8 pt-4 md:pt-8 pb-0 shrink-0">
         <div className="flex items-center gap-3 mb-2">
           <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
             <ChevronRight className="w-4 h-4" />חזרה למבחנים
           </button>
         </div>
         {quiz && (
-          <div className="flex items-start gap-4 mb-5">
+          <div className="flex flex-wrap items-start gap-4 mb-5">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${quiz.is_published ? 'bg-accent/10' : 'bg-muted'}`}>
               <ClipboardList className={`w-5 h-5 ${quiz.is_published ? 'text-accent' : 'text-muted-foreground'}`} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold text-foreground">{quiz.title}</h1>
+                <h1 className="text-xl font-bold text-foreground break-words">{quiz.title}</h1>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${quiz.is_published ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                   {quiz.is_published ? 'פורסם' : 'טיוטה'}
                 </span>
               </div>
-              {quiz.description && <p className="text-sm text-muted-foreground mt-0.5">{quiz.description}</p>}
-              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+              {quiz.description && <p className="text-sm text-muted-foreground mt-0.5 break-words">{quiz.description}</p>}
+              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                 {lessonTitle && (
                   <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />{lessonTitle}</span>
                 )}
@@ -840,16 +840,16 @@ function QuizDetail({
                 <span className="flex items-center gap-1"><Users className="w-3 h-3" />{quiz.submissionCount ?? 0} הגשות</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="w-full sm:w-auto flex flex-wrap items-center gap-2">
               <button
                 onClick={() => detailNavigate(`/mentor/quiz/edit/${quizId}`)}
-                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-all"
+                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap"
               >
                 <Send className="w-3.5 h-3.5" />ערוך
               </button>
               <button
                 onClick={() => onTogglePublish(quiz.id, quiz.is_published)}
-                className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-medium transition-all whitespace-nowrap ${
                   quiz.is_published
                     ? 'border-border text-muted-foreground hover:bg-muted'
                     : 'bg-accent text-accent-foreground border-accent hover:opacity-90'
@@ -859,7 +859,7 @@ function QuizDetail({
               </button>
               <button
                 onClick={handleDelete}
-                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all"
+                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all whitespace-nowrap"
               >
                 <Trash2 className="w-3.5 h-3.5" />מחק
               </button>
@@ -868,7 +868,7 @@ function QuizDetail({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-8 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -1336,46 +1336,46 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   return (
     <div className="h-full flex flex-col" dir="rtl">
       {/* Header */}
-      <div className="px-8 pt-8 pb-0 shrink-0">
-        <div className="flex items-center gap-3 mb-5">
+      <div className="px-4 md:px-8 pt-4 md:pt-8 pb-0 shrink-0">
+        <div className="flex flex-wrap items-center gap-3 mb-5">
           {onBack && (
-            <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
               <ChevronRight className="w-4 h-4" />חזרה
             </button>
           )}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <ClipboardList className="w-5 h-5 text-primary" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">מבחנים</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-foreground truncate">מבחנים</h1>
               <p className="text-sm text-muted-foreground">{quizzes.length} מבחנים</p>
             </div>
           </div>
-          <div className="mr-auto flex gap-2">
+          <div className="w-full sm:w-auto sm:mr-auto flex flex-wrap gap-2">
             <button
               onClick={() => setView(view === 'submissions' ? 'list' : 'submissions')}
-              className={`flex items-center gap-2 h-9 px-4 rounded-lg border text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 h-9 px-3 sm:px-4 rounded-lg border text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                 view === 'submissions' ? 'bg-accent/10 border-accent/30 text-accent' : 'border-border text-foreground hover:bg-muted'
               }`}
             >
-              <Users className="w-4 h-4" />
+              <Users className="w-4 h-4 shrink-0" />
               תוצאות תלמידים
               {submissions.length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">{submissions.length}</span>
+                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center shrink-0">{submissions.length}</span>
               )}
             </button>
             <button
               onClick={() => navigate(initialLessonId ? `/mentor/quiz/new?lessonId=${initialLessonId}` : '/mentor/quiz/new')}
-              className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
+              className="flex items-center gap-2 h-9 px-3 sm:px-4 rounded-lg bg-primary text-primary-foreground text-xs sm:text-sm font-medium hover:opacity-90 transition-all whitespace-nowrap"
             >
-              <Plus className="w-4 h-4" />צור מבחן חדש
+              <Plus className="w-4 h-4 shrink-0" />צור מבחן חדש
             </button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-8 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8">
         <AnimatePresence mode="wait">
           {/* ── Quizzes List ── */}
           {view === 'list' && (
