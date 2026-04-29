@@ -925,10 +925,10 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* Mobile Bottom Nav */}
-      {!lessonViewMode && (
-        <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
-      )}
+      {/* Mobile Bottom Nav — visible at all times so students can navigate
+          even while inside a lesson (back to lessons list, community, Q&A,
+          calculator, etc.). */}
+      <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
 
       {/* Mobile Profile - full screen overlay */}
       {isMobile && profileOpen && (
@@ -1211,7 +1211,7 @@ export default function StudentDashboard() {
 
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
-            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8">
+            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 pb-24 md:pb-8">
 
               {/* Mobile back button for lesson view */}
               {lessonViewMode && isMobile && (
