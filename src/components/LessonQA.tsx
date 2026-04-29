@@ -196,30 +196,30 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
   };
 
   return (
-    <div className="mt-8 border-t border-border pt-6" dir="rtl">
+    <div className="mt-8 border-t border-border pt-6 w-full max-w-full overflow-hidden" dir="rtl">
       {/* Section header */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <MessageCircleQuestion className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold text-foreground">שאלות ותשובות</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+        <div className="flex items-center gap-2 min-w-0">
+          <MessageCircleQuestion className="w-5 h-5 text-primary shrink-0" />
+          <h3 className="font-semibold text-foreground truncate">שאלות ותשובות</h3>
           {questions.length > 0 && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{questions.length}</span>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">{questions.length}</span>
           )}
         </div>
         {/* Student action buttons */}
         {!isMentor && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <button
               onClick={() => setPrivateModalOpen(true)}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-all whitespace-nowrap"
             >
-              <Lock className="w-3 h-3" />שאלה פרטית
+              <Lock className="w-3 h-3 shrink-0" />שאלה פרטית
             </button>
             <button
               onClick={() => setNewQuestion(prev => prev === '__focus__' ? '' : '__focus__')}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all whitespace-nowrap"
             >
-              <Globe className="w-3 h-3" />שאלה פומבית
+              <Globe className="w-3 h-3 shrink-0" />שאלה פומבית
             </button>
           </div>
         )}
@@ -237,12 +237,12 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                 {studentName[0]?.toUpperCase()}
               </div>
-              <div className="flex-1 flex gap-2">
+              <div className="flex-1 flex gap-2 min-w-0">
                 <input
                   value={newQuestion === '__focus__' ? '' : newQuestion}
                   onChange={e => setNewQuestion(e.target.value)}
                   placeholder="שאל שאלה שכל התלמידים יראו..."
-                  className="flex-1 h-9 px-3 bg-muted/50 ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+                  className="flex-1 min-w-0 h-9 px-3 bg-muted/50 ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
                   onKeyDown={e => {
                     if (e.key === 'Enter' && newQuestion.trim() && newQuestion !== '__focus__') {
                       postQuestion.mutate(newQuestion.trim());
@@ -252,9 +252,9 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                 <button
                   onClick={() => { if (newQuestion.trim() && newQuestion !== '__focus__') postQuestion.mutate(newQuestion.trim()); }}
                   disabled={!newQuestion.trim() || newQuestion === '__focus__' || postQuestion.isPending}
-                  className="h-9 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                  className="h-9 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5 shrink-0"
                 >
-                  <Send className="w-3 h-3" />שלח
+                  <Send className="w-3 h-3" /><span className="hidden sm:inline">שלח</span>
                 </button>
               </div>
             </div>
@@ -360,7 +360,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                     exit={{ height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="pr-11 pl-3 pb-3 space-y-2">
+                    <div className="pr-3 sm:pr-11 pl-3 pb-3 space-y-2">
                       {/* Existing mentor answers */}
                       {q.answers!.map(a => {
                         const isEditingThis = editingAnswer === a.id;
