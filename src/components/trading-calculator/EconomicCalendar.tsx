@@ -47,6 +47,32 @@ function formatDateHeader(dateStr: string): string {
   return `${DAY_LABELS_HE[d.getDay()]}, ${d.getDate()} ${MONTH_LABELS_HE[d.getMonth()]}`;
 }
 
+function todayStr(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function eventTimestamp(ev: { date: string; time: string }): number {
+  // The edge fn requests timeZone=15 (Tel Aviv). Treat times as user-local.
+  const t = ev.time && /^\d{2}:\d{2}$/.test(ev.time) ? ev.time : '23:59';
+  return new Date(`${ev.date}T${t}:00`).getTime();
+}
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return 'עכשיו';
+  const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+  if (days > 0) return `${days}ד ${hours}ש`;
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
 function ImportanceBulls({ level }: { level: 1 | 2 | 3 }) {
   const color =
     level === 3 ? 'text-red-400' : level === 2 ? 'text-amber-400' : 'text-muted-foreground/60';
