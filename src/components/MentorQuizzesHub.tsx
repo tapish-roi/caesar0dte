@@ -812,26 +812,26 @@ function QuizDetail({
   return (
     <div className="h-full flex flex-col" dir="rtl">
       {/* Header */}
-      <div className="px-8 pt-8 pb-0 shrink-0">
+      <div className="px-4 md:px-8 pt-4 md:pt-8 pb-0 shrink-0">
         <div className="flex items-center gap-3 mb-2">
           <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
             <ChevronRight className="w-4 h-4" />חזרה למבחנים
           </button>
         </div>
         {quiz && (
-          <div className="flex items-start gap-4 mb-5">
+          <div className="flex flex-wrap items-start gap-4 mb-5">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${quiz.is_published ? 'bg-accent/10' : 'bg-muted'}`}>
               <ClipboardList className={`w-5 h-5 ${quiz.is_published ? 'text-accent' : 'text-muted-foreground'}`} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold text-foreground">{quiz.title}</h1>
+                <h1 className="text-xl font-bold text-foreground break-words">{quiz.title}</h1>
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${quiz.is_published ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                   {quiz.is_published ? 'פורסם' : 'טיוטה'}
                 </span>
               </div>
-              {quiz.description && <p className="text-sm text-muted-foreground mt-0.5">{quiz.description}</p>}
-              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+              {quiz.description && <p className="text-sm text-muted-foreground mt-0.5 break-words">{quiz.description}</p>}
+              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                 {lessonTitle && (
                   <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />{lessonTitle}</span>
                 )}
@@ -840,16 +840,16 @@ function QuizDetail({
                 <span className="flex items-center gap-1"><Users className="w-3 h-3" />{quiz.submissionCount ?? 0} הגשות</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="w-full sm:w-auto flex flex-wrap items-center gap-2">
               <button
                 onClick={() => detailNavigate(`/mentor/quiz/edit/${quizId}`)}
-                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-all"
+                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap"
               >
                 <Send className="w-3.5 h-3.5" />ערוך
               </button>
               <button
                 onClick={() => onTogglePublish(quiz.id, quiz.is_published)}
-                className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 h-9 px-3 rounded-lg border text-xs font-medium transition-all whitespace-nowrap ${
                   quiz.is_published
                     ? 'border-border text-muted-foreground hover:bg-muted'
                     : 'bg-accent text-accent-foreground border-accent hover:opacity-90'
@@ -859,7 +859,7 @@ function QuizDetail({
               </button>
               <button
                 onClick={handleDelete}
-                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all"
+                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all whitespace-nowrap"
               >
                 <Trash2 className="w-3.5 h-3.5" />מחק
               </button>
@@ -868,7 +868,7 @@ function QuizDetail({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-8 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
