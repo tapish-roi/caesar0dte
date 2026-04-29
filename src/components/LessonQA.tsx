@@ -196,30 +196,30 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
   };
 
   return (
-    <div className="mt-8 border-t border-border pt-6" dir="rtl">
+    <div className="mt-8 border-t border-border pt-6 w-full max-w-full overflow-hidden" dir="rtl">
       {/* Section header */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <MessageCircleQuestion className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold text-foreground">שאלות ותשובות</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+        <div className="flex items-center gap-2 min-w-0">
+          <MessageCircleQuestion className="w-5 h-5 text-primary shrink-0" />
+          <h3 className="font-semibold text-foreground truncate">שאלות ותשובות</h3>
           {questions.length > 0 && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{questions.length}</span>
+            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">{questions.length}</span>
           )}
         </div>
         {/* Student action buttons */}
         {!isMentor && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <button
               onClick={() => setPrivateModalOpen(true)}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-all whitespace-nowrap"
             >
-              <Lock className="w-3 h-3" />שאלה פרטית
+              <Lock className="w-3 h-3 shrink-0" />שאלה פרטית
             </button>
             <button
               onClick={() => setNewQuestion(prev => prev === '__focus__' ? '' : '__focus__')}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all whitespace-nowrap"
             >
-              <Globe className="w-3 h-3" />שאלה פומבית
+              <Globe className="w-3 h-3 shrink-0" />שאלה פומבית
             </button>
           </div>
         )}
