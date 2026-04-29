@@ -1491,8 +1491,8 @@ export default function MentorDashboard() {
                           <Send className="w-3.5 h-3.5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-sm text-foreground">{inv.contact}</span>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <span className="text-sm text-foreground block truncate">{inv.contact}</span>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">
                             {new Date(inv.created_at).toLocaleDateString('he-IL')} · ממתין לאישור
                           </p>
                         </div>
