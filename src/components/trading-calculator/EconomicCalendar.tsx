@@ -47,6 +47,32 @@ function formatDateHeader(dateStr: string): string {
   return `${DAY_LABELS_HE[d.getDay()]}, ${d.getDate()} ${MONTH_LABELS_HE[d.getMonth()]}`;
 }
 
+function todayStr(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function eventTimestamp(ev: { date: string; time: string }): number {
+  // The edge fn requests timeZone=15 (Tel Aviv). Treat times as user-local.
+  const t = ev.time && /^\d{2}:\d{2}$/.test(ev.time) ? ev.time : '23:59';
+  return new Date(`${ev.date}T${t}:00`).getTime();
+}
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return 'עכשיו';
+  const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+  if (days > 0) return `${days}ד ${hours}ש`;
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
 function ImportanceBulls({ level }: { level: 1 | 2 | 3 }) {
   const color =
     level === 3 ? 'text-red-400' : level === 2 ? 'text-amber-400' : 'text-muted-foreground/60';
@@ -152,6 +178,14 @@ export default function EconomicCalendar() {
     () => new Set<string>(initialFilters.countries),
   );
   const [countrySearch, setCountrySearch] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const today = useMemo(() => todayStr(), [now]);
 
   // Persist filter state across reloads / tab switches.
   useEffect(() => {
@@ -238,6 +272,19 @@ export default function EconomicCalendar() {
 
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered, selectedCountries]);
+
+  // Find the closest upcoming event (in the future) among the filtered list.
+  const nextEvent = useMemo(() => {
+    let best: { ev: EconomicEvent; ts: number } | null = null;
+    for (const ev of filtered) {
+      const ts = eventTimestamp(ev);
+      if (!Number.isFinite(ts) || ts <= now) continue;
+      if (!best || ts < best.ts) best = { ev, ts };
+    }
+    return best;
+  }, [filtered, now]);
+  const nextEventKey = nextEvent ? eventRowKey(nextEvent.ev) : null;
+  const countdownMs = nextEvent ? nextEvent.ts - now : 0;
 
   const toggleImportance = (lvl: ImportanceLevel) => {
     setImportanceLevels((prev) => {
@@ -418,10 +465,28 @@ export default function EconomicCalendar() {
           </div>
         )}
 
-        {grouped.map(([date, events]) => (
+        {grouped.map(([date, events]) => {
+          const isToday = date === today;
+          const currentTimeStr = new Date(now).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          return (
           <section key={date}>
-            <header className="px-4 py-2 bg-muted/30 border-b border-border sticky top-0 backdrop-blur-sm z-[1]">
-              <h3 className="text-sm font-semibold text-foreground">{formatDateHeader(date)}</h3>
+            <header
+              className={cn(
+                'px-4 py-2 border-b sticky top-0 backdrop-blur-sm z-[1] flex items-center justify-between gap-2',
+                isToday
+                  ? 'bg-emerald-500/15 border-emerald-500/40'
+                  : 'bg-muted/30 border-border',
+              )}
+            >
+              <h3 className={cn('text-sm font-semibold', isToday ? 'text-emerald-300' : 'text-foreground')}>
+                {formatDateHeader(date)}
+                {isToday && <span className="ms-2 text-[10px] uppercase tracking-wider bg-emerald-500/30 text-emerald-100 rounded px-1.5 py-0.5">היום</span>}
+              </h3>
+              {isToday && (
+                <span className="text-[11px] font-mono text-emerald-200/90 tabular-nums">
+                  עכשיו · {currentTimeStr}
+                </span>
+              )}
             </header>
 
             {/* Column headers (desktop only) */}
@@ -435,18 +500,36 @@ export default function EconomicCalendar() {
             </div>
 
             <ul className="divide-y divide-border/50">
-              {events.map((ev) => (
+              {events.map((ev) => {
+                const rowKey = eventRowKey(ev);
+                const isNext = rowKey === nextEventKey;
+                return (
                 <li
-                  key={eventRowKey(ev)}
-                  className="px-4 py-2.5 hover:bg-muted/20 transition-colors"
+                  key={rowKey}
+                  className={cn(
+                    'px-4 py-2.5 transition-colors',
+                    isNext
+                      ? 'bg-emerald-500/15 border-r-2 border-emerald-400 hover:bg-emerald-500/20'
+                      : 'hover:bg-muted/20',
+                  )}
                 >
                   {/* Desktop row */}
                   <div className="hidden lg:grid grid-cols-[56px_72px_minmax(0,1fr)_70px_70px_70px] gap-3 items-center text-sm">
-                    <span className="text-xs font-mono text-muted-foreground">{ev.time || '—'}</span>
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className={cn('text-xs font-mono', isNext ? 'text-emerald-300 font-semibold' : 'text-muted-foreground')}>{ev.time || '—'}</span>
+                      {isNext && (
+                        <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 rounded px-1 tabular-nums animate-pulse">
+                          {formatCountdown(countdownMs)}
+                        </span>
+                      )}
+                    </div>
                     <CountryFlag code={ev.countryCode} name={ev.country} />
                     <div className="flex items-center gap-2 min-w-0">
                       <ImportanceBulls level={ev.importance} />
-                      <span className="text-foreground truncate" title={ev.event}>{ev.event}</span>
+                      <span className={cn('truncate', isNext ? 'text-emerald-100 font-semibold' : 'text-foreground')} title={ev.event}>{ev.event}</span>
+                      {isNext && (
+                        <span className="text-[9px] uppercase tracking-wider bg-emerald-500/30 text-emerald-100 rounded px-1.5 py-0.5 shrink-0">הבא</span>
+                      )}
                     </div>
                     <span className={cn('text-end font-mono text-sm truncate', valueClass(ev.actual, ev.forecast))} title={ev.actual ?? undefined}>
                       {ev.actual ?? '—'}
@@ -459,9 +542,17 @@ export default function EconomicCalendar() {
                   <div className="lg:hidden flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                        <span className="text-xs font-mono text-muted-foreground">{ev.time || '—'}</span>
+                        <span className={cn('text-xs font-mono', isNext ? 'text-emerald-300 font-semibold' : 'text-muted-foreground')}>{ev.time || '—'}</span>
+                        {isNext && (
+                          <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 rounded px-1 tabular-nums animate-pulse">
+                            {formatCountdown(countdownMs)}
+                          </span>
+                        )}
                         <CountryFlag code={ev.countryCode} name={ev.country} />
                         <ImportanceBulls level={ev.importance} />
+                        {isNext && (
+                          <span className="text-[9px] uppercase tracking-wider bg-emerald-500/30 text-emerald-100 rounded px-1.5 py-0.5">הבא</span>
+                        )}
                       </div>
                     </div>
                     <p className="text-sm text-foreground leading-snug break-words">{ev.event}</p>
@@ -481,10 +572,12 @@ export default function EconomicCalendar() {
                     </div>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </section>
-        ))}
+          );
+        })}
       </div>
 
       <div className="px-4 py-2 text-[10px] text-muted-foreground text-center border-t border-border">
