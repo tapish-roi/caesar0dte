@@ -1336,46 +1336,46 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
   return (
     <div className="h-full flex flex-col" dir="rtl">
       {/* Header */}
-      <div className="px-8 pt-8 pb-0 shrink-0">
-        <div className="flex items-center gap-3 mb-5">
+      <div className="px-4 md:px-8 pt-4 md:pt-8 pb-0 shrink-0">
+        <div className="flex flex-wrap items-center gap-3 mb-5">
           {onBack && (
-            <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
               <ChevronRight className="w-4 h-4" />חזרה
             </button>
           )}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <ClipboardList className="w-5 h-5 text-primary" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">מבחנים</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-foreground truncate">מבחנים</h1>
               <p className="text-sm text-muted-foreground">{quizzes.length} מבחנים</p>
             </div>
           </div>
-          <div className="mr-auto flex gap-2">
+          <div className="w-full sm:w-auto sm:mr-auto flex flex-wrap gap-2">
             <button
               onClick={() => setView(view === 'submissions' ? 'list' : 'submissions')}
-              className={`flex items-center gap-2 h-9 px-4 rounded-lg border text-sm font-medium transition-all ${
+              className={`flex items-center gap-2 h-9 px-3 sm:px-4 rounded-lg border text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                 view === 'submissions' ? 'bg-accent/10 border-accent/30 text-accent' : 'border-border text-foreground hover:bg-muted'
               }`}
             >
-              <Users className="w-4 h-4" />
+              <Users className="w-4 h-4 shrink-0" />
               תוצאות תלמידים
               {submissions.length > 0 && (
-                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">{submissions.length}</span>
+                <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center shrink-0">{submissions.length}</span>
               )}
             </button>
             <button
               onClick={() => navigate(initialLessonId ? `/mentor/quiz/new?lessonId=${initialLessonId}` : '/mentor/quiz/new')}
-              className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
+              className="flex items-center gap-2 h-9 px-3 sm:px-4 rounded-lg bg-primary text-primary-foreground text-xs sm:text-sm font-medium hover:opacity-90 transition-all whitespace-nowrap"
             >
-              <Plus className="w-4 h-4" />צור מבחן חדש
+              <Plus className="w-4 h-4 shrink-0" />צור מבחן חדש
             </button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-8 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8">
         <AnimatePresence mode="wait">
           {/* ── Quizzes List ── */}
           {view === 'list' && (
