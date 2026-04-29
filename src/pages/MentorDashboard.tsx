@@ -1096,8 +1096,8 @@ export default function MentorDashboard() {
                                 <><EyeOff className="w-4 h-4 shrink-0" />השיעור טרם פורסם לתלמידים</>
                               )}
                             </div>
-                            <div className="flex items-start justify-between gap-4">
-                              <h2 className="text-xl font-bold text-foreground">{lesson.title}</h2>
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <h2 className="text-xl font-bold text-foreground break-words min-w-0 flex-1">{lesson.title}</h2>
                               <div className="flex items-center gap-2 shrink-0">
                                 <button
                                   onClick={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
