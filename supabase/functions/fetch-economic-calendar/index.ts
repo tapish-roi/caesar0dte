@@ -165,7 +165,9 @@ Deno.serve(async (req) => {
 
     // Investing widget — week view, importance 1-3, multi country
     const widgetUrl =
-      "https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&category=_employment,_economicActivity,_inflation,_credit,_centralBanks,_confidenceIndex,_balance,_Bonds&importance=1,2,3&features=datepicker,timezone&countries=5,72,4,17,37,32,12,6,22,11,35,25,178&calType=week&timeZone=15&lang=1";
+      // timeZone=55 → "(GMT) Coordinated Universal Time" — UTC, so the
+      // client can reliably convert to the user's local timezone.
+      "https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&category=_employment,_economicActivity,_inflation,_credit,_centralBanks,_confidenceIndex,_balance,_Bonds&importance=1,2,3&features=datepicker,timezone&countries=5,72,4,17,37,32,12,6,22,11,35,25,178&calType=week&timeZone=55&lang=1";
 
     const fcRes = await fetch(FIRECRAWL_API, {
       method: "POST",
