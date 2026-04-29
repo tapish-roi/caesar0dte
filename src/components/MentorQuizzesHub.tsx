@@ -410,23 +410,23 @@ function QuizBuilder({
         </div>
 
         {/* Add question buttons */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <button
             onClick={() => addQuestion('multiple_choice')}
-            className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+            className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap"
           >
-            <List className="w-4 h-4 text-primary" />הוסף שאלה אמריקאית
+            <List className="w-4 h-4 text-primary shrink-0" />הוסף שאלה אמריקאית
           </button>
           <button
             onClick={() => addQuestion('free_text')}
-            className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+            className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap"
           >
-            <AlignLeft className="w-4 h-4 text-accent" />הוסף שאלה פתוחה
+            <AlignLeft className="w-4 h-4 text-accent shrink-0" />הוסף שאלה פתוחה
           </button>
         </div>
 
         {/* Save buttons */}
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => handleSave(false)}
             disabled={isSaving || !title.trim()}
