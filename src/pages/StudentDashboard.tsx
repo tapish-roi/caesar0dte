@@ -1211,7 +1211,7 @@ export default function StudentDashboard() {
 
           {/* ──────── LESSONS ──────── */}
           {activeTab === 'lessons' && (
-            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8">
+            <motion.div key={lessonViewMode ? `lesson-view-${selectedLesson}` : 'lessons'} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 pb-24 md:pb-8">
 
               {/* Mobile back button for lesson view */}
               {lessonViewMode && isMobile && (
