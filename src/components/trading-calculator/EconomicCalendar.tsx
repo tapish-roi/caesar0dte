@@ -55,10 +55,66 @@ function todayStr(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+const SOURCE_TZ = 'Asia/Jerusalem';
+const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// Compute the offset (in minutes) of a given UTC instant in a target IANA tz.
+function tzOffsetMinutes(utcMs: number, tz: string): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  const parts = dtf.formatToParts(new Date(utcMs));
+  const map: Record<string, string> = {};
+  for (const p of parts) if (p.type !== 'literal') map[p.type] = p.value;
+  const asUtc = Date.UTC(
+    Number(map.year), Number(map.month) - 1, Number(map.day),
+    Number(map.hour), Number(map.minute), Number(map.second),
+  );
+  return (asUtc - utcMs) / 60000;
+}
+
+// Treat "YYYY-MM-DD HH:MM" as wall-clock time in `tz` and return UTC ms.
+function zonedWallClockToUtc(date: string, time: string, tz: string): number {
+  const [Y, M, D] = date.split('-').map(Number);
+  const [h, m] = time.split(':').map(Number);
+  const guess = Date.UTC(Y, (M ?? 1) - 1, D ?? 1, h ?? 0, m ?? 0, 0);
+  // Iterate twice to converge across DST boundaries.
+  let offset = tzOffsetMinutes(guess, tz);
+  let ts = guess - offset * 60000;
+  offset = tzOffsetMinutes(ts, tz);
+  ts = guess - offset * 60000;
+  return ts;
+}
+
 function eventTimestamp(ev: { date: string; time: string }): number {
-  // The edge fn requests timeZone=15 (Tel Aviv). Treat times as user-local.
+  // Edge fn requests timeZone=15 (Tel Aviv) — convert from Israel wall time.
   const t = ev.time && /^\d{2}:\d{2}$/.test(ev.time) ? ev.time : '23:59';
-  return new Date(`${ev.date}T${t}:00`).getTime();
+  return zonedWallClockToUtc(ev.date, t, SOURCE_TZ);
+}
+
+// Format a UTC timestamp as HH:MM in the user's local timezone.
+function formatLocalTime(utcMs: number): string {
+  return new Intl.DateTimeFormat('he-IL', {
+    timeZone: USER_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(utcMs));
+}
+
+// Local YYYY-MM-DD for an event (may shift to neighbouring day across TZs).
+function eventLocalDate(ev: { date: string; time: string }): string {
+  const ts = eventTimestamp(ev);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: USER_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date(ts));
+  const map: Record<string, string> = {};
+  for (const p of parts) if (p.type !== 'literal') map[p.type] = p.value;
+  return `${map.year}-${map.month}-${map.day}`;
 }
 
 function formatCountdown(ms: number): string {
