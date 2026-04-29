@@ -489,6 +489,9 @@ export default function EconomicCalendar() {
         </div>
 
         <div className="flex items-center gap-3">
+          <span className="text-[11px] text-muted-foreground hidden md:inline" title={`שעות מוצגות באזור הזמן שלך: ${USER_TZ}`}>
+            🕒 {USER_TZ}
+          </span>
           {data?.fetchedAt && (
             <span className="text-[11px] text-muted-foreground hidden sm:inline">
               עודכן {new Date(data.fetchedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
