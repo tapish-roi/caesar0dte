@@ -322,8 +322,14 @@ export default function EconomicCalendar() {
         continue;
       }
 
-      if (!map.has(ev.date)) map.set(ev.date, []);
-      map.get(ev.date)!.push(ev);
+      const localDate = eventLocalDate(ev);
+      if (!map.has(localDate)) map.set(localDate, []);
+      map.get(localDate)!.push(ev);
+    }
+
+    // Sort each day's events by their actual local timestamp (TZ-correct order).
+    for (const list of map.values()) {
+      list.sort((a, b) => eventTimestamp(a) - eventTimestamp(b));
     }
 
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
