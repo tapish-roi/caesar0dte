@@ -925,10 +925,10 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {/* Mobile Bottom Nav */}
-      {!lessonViewMode && (
-        <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
-      )}
+      {/* Mobile Bottom Nav — visible at all times so students can navigate
+          even while inside a lesson (back to lessons list, community, Q&A,
+          calculator, etc.). */}
+      <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
 
       {/* Mobile Profile - full screen overlay */}
       {isMobile && profileOpen && (
