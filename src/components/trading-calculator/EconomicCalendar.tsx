@@ -178,6 +178,14 @@ export default function EconomicCalendar() {
     () => new Set<string>(initialFilters.countries),
   );
   const [countrySearch, setCountrySearch] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const today = useMemo(() => todayStr(), [now]);
 
   // Persist filter state across reloads / tab switches.
   useEffect(() => {
