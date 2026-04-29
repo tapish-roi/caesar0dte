@@ -787,12 +787,12 @@ function QuizDetail({
           </div>
 
           {/* Add question buttons */}
-          <div className="flex gap-2 mb-6">
-            <button onClick={() => addEditQuestion('multiple_choice')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all">
-              <List className="w-4 h-4 text-primary" />הוסף שאלה אמריקאית
+          <div className="flex flex-wrap gap-2 mb-6">
+            <button onClick={() => addEditQuestion('multiple_choice')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap">
+              <List className="w-4 h-4 text-primary shrink-0" />הוסף שאלה אמריקאית
             </button>
-            <button onClick={() => addEditQuestion('free_text')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all">
-              <AlignLeft className="w-4 h-4 text-accent" />הוסף שאלה פתוחה
+            <button onClick={() => addEditQuestion('free_text')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap">
+              <AlignLeft className="w-4 h-4 text-accent shrink-0" />הוסף שאלה פתוחה
             </button>
           </div>
 
