@@ -259,7 +259,7 @@ export default function EconomicCalendar() {
   }, [importanceLevels, selectedCountries]);
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery<ApiResponse>({
-    queryKey: ['economic-calendar'],
+    queryKey: ['economic-calendar', 'utc-v2'],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('fetch-economic-calendar');
       if (error) throw new Error(error.message);
