@@ -360,7 +360,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                     exit={{ height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="pr-11 pl-3 pb-3 space-y-2">
+                    <div className="pr-3 sm:pr-11 pl-3 pb-3 space-y-2">
                       {/* Existing mentor answers */}
                       {q.answers!.map(a => {
                         const isEditingThis = editingAnswer === a.id;
