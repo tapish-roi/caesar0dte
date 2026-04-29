@@ -631,20 +631,20 @@ function QuizDetail({
   if (isEditing) {
     return (
       <div className="h-full flex flex-col" dir="rtl">
-        <div className="px-8 pt-8 pb-0 shrink-0">
-          <div className="flex items-center gap-3 mb-5">
+        <div className="px-4 md:px-8 pt-4 md:pt-8 pb-0 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
             <button onClick={() => setIsEditing(false)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
               <ChevronRight className="w-4 h-4" />ביטול עריכה
             </button>
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                 <ClipboardList className="w-4 h-4 text-primary" />
               </div>
-              <h1 className="text-xl font-bold text-foreground">עריכת מבחן</h1>
+              <h1 className="text-xl font-bold text-foreground truncate">עריכת מבחן</h1>
             </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto px-8 pb-8">
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 pb-8">
           {/* Meta */}
           <div className="bg-card border border-border rounded-xl p-5 mb-5 space-y-4">
             <div>
