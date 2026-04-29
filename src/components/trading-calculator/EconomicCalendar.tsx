@@ -55,10 +55,66 @@ function todayStr(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+const SOURCE_TZ = 'Asia/Jerusalem';
+const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+// Compute the offset (in minutes) of a given UTC instant in a target IANA tz.
+function tzOffsetMinutes(utcMs: number, tz: string): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  const parts = dtf.formatToParts(new Date(utcMs));
+  const map: Record<string, string> = {};
+  for (const p of parts) if (p.type !== 'literal') map[p.type] = p.value;
+  const asUtc = Date.UTC(
+    Number(map.year), Number(map.month) - 1, Number(map.day),
+    Number(map.hour), Number(map.minute), Number(map.second),
+  );
+  return (asUtc - utcMs) / 60000;
+}
+
+// Treat "YYYY-MM-DD HH:MM" as wall-clock time in `tz` and return UTC ms.
+function zonedWallClockToUtc(date: string, time: string, tz: string): number {
+  const [Y, M, D] = date.split('-').map(Number);
+  const [h, m] = time.split(':').map(Number);
+  const guess = Date.UTC(Y, (M ?? 1) - 1, D ?? 1, h ?? 0, m ?? 0, 0);
+  // Iterate twice to converge across DST boundaries.
+  let offset = tzOffsetMinutes(guess, tz);
+  let ts = guess - offset * 60000;
+  offset = tzOffsetMinutes(ts, tz);
+  ts = guess - offset * 60000;
+  return ts;
+}
+
 function eventTimestamp(ev: { date: string; time: string }): number {
-  // The edge fn requests timeZone=15 (Tel Aviv). Treat times as user-local.
+  // Edge fn requests timeZone=15 (Tel Aviv) — convert from Israel wall time.
   const t = ev.time && /^\d{2}:\d{2}$/.test(ev.time) ? ev.time : '23:59';
-  return new Date(`${ev.date}T${t}:00`).getTime();
+  return zonedWallClockToUtc(ev.date, t, SOURCE_TZ);
+}
+
+// Format a UTC timestamp as HH:MM in the user's local timezone.
+function formatLocalTime(utcMs: number): string {
+  return new Intl.DateTimeFormat('he-IL', {
+    timeZone: USER_TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(utcMs));
+}
+
+// Local YYYY-MM-DD for an event (may shift to neighbouring day across TZs).
+function eventLocalDate(ev: { date: string; time: string }): string {
+  const ts = eventTimestamp(ev);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: USER_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date(ts));
+  const map: Record<string, string> = {};
+  for (const p of parts) if (p.type !== 'literal') map[p.type] = p.value;
+  return `${map.year}-${map.month}-${map.day}`;
 }
 
 function formatCountdown(ms: number): string {
@@ -266,8 +322,14 @@ export default function EconomicCalendar() {
         continue;
       }
 
-      if (!map.has(ev.date)) map.set(ev.date, []);
-      map.get(ev.date)!.push(ev);
+      const localDate = eventLocalDate(ev);
+      if (!map.has(localDate)) map.set(localDate, []);
+      map.get(localDate)!.push(ev);
+    }
+
+    // Sort each day's events by their actual local timestamp (TZ-correct order).
+    for (const list of map.values()) {
+      list.sort((a, b) => eventTimestamp(a) - eventTimestamp(b));
     }
 
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
@@ -427,6 +489,9 @@ export default function EconomicCalendar() {
         </div>
 
         <div className="flex items-center gap-3">
+          <span className="text-[11px] text-muted-foreground hidden md:inline" title={`שעות מוצגות באזור הזמן שלך: ${USER_TZ}`}>
+            🕒 {USER_TZ}
+          </span>
           {data?.fetchedAt && (
             <span className="text-[11px] text-muted-foreground hidden sm:inline">
               עודכן {new Date(data.fetchedAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
@@ -516,7 +581,7 @@ export default function EconomicCalendar() {
                   {/* Desktop row */}
                   <div className="hidden lg:grid grid-cols-[56px_72px_minmax(0,1fr)_70px_70px_70px] gap-3 items-center text-sm">
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className={cn('text-xs font-mono', isNext ? 'text-emerald-300 font-semibold' : 'text-muted-foreground')}>{ev.time || '—'}</span>
+                      <span className={cn('text-xs font-mono', isNext ? 'text-emerald-300 font-semibold' : 'text-muted-foreground')}>{ev.time ? formatLocalTime(eventTimestamp(ev)) : '—'}</span>
                       {isNext && (
                         <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 rounded px-1 tabular-nums animate-pulse">
                           {formatCountdown(countdownMs)}
@@ -542,7 +607,7 @@ export default function EconomicCalendar() {
                   <div className="lg:hidden flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                        <span className={cn('text-xs font-mono', isNext ? 'text-emerald-300 font-semibold' : 'text-muted-foreground')}>{ev.time || '—'}</span>
+                        <span className={cn('text-xs font-mono', isNext ? 'text-emerald-300 font-semibold' : 'text-muted-foreground')}>{ev.time ? formatLocalTime(eventTimestamp(ev)) : '—'}</span>
                         {isNext && (
                           <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 rounded px-1 tabular-nums animate-pulse">
                             {formatCountdown(countdownMs)}
