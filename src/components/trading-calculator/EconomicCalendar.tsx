@@ -465,10 +465,28 @@ export default function EconomicCalendar() {
           </div>
         )}
 
-        {grouped.map(([date, events]) => (
+        {grouped.map(([date, events]) => {
+          const isToday = date === today;
+          const currentTimeStr = new Date(now).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          return (
           <section key={date}>
-            <header className="px-4 py-2 bg-muted/30 border-b border-border sticky top-0 backdrop-blur-sm z-[1]">
-              <h3 className="text-sm font-semibold text-foreground">{formatDateHeader(date)}</h3>
+            <header
+              className={cn(
+                'px-4 py-2 border-b sticky top-0 backdrop-blur-sm z-[1] flex items-center justify-between gap-2',
+                isToday
+                  ? 'bg-emerald-500/15 border-emerald-500/40'
+                  : 'bg-muted/30 border-border',
+              )}
+            >
+              <h3 className={cn('text-sm font-semibold', isToday ? 'text-emerald-300' : 'text-foreground')}>
+                {formatDateHeader(date)}
+                {isToday && <span className="ms-2 text-[10px] uppercase tracking-wider bg-emerald-500/30 text-emerald-100 rounded px-1.5 py-0.5">היום</span>}
+              </h3>
+              {isToday && (
+                <span className="text-[11px] font-mono text-emerald-200/90 tabular-nums">
+                  עכשיו · {currentTimeStr}
+                </span>
+              )}
             </header>
 
             {/* Column headers (desktop only) */}
