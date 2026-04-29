@@ -273,6 +273,19 @@ export default function EconomicCalendar() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered, selectedCountries]);
 
+  // Find the closest upcoming event (in the future) among the filtered list.
+  const nextEvent = useMemo(() => {
+    let best: { ev: EconomicEvent; ts: number } | null = null;
+    for (const ev of filtered) {
+      const ts = eventTimestamp(ev);
+      if (!Number.isFinite(ts) || ts <= now) continue;
+      if (!best || ts < best.ts) best = { ev, ts };
+    }
+    return best;
+  }, [filtered, now]);
+  const nextEventKey = nextEvent ? eventRowKey(nextEvent.ev) : null;
+  const countdownMs = nextEvent ? nextEvent.ts - now : 0;
+
   const toggleImportance = (lvl: ImportanceLevel) => {
     setImportanceLevels((prev) => {
       const next = new Set(prev);
