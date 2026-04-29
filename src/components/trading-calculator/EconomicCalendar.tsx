@@ -572,7 +572,8 @@ export default function EconomicCalendar() {
                     </div>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </section>
           );
