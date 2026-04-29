@@ -55,7 +55,9 @@ function todayStr(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-const SOURCE_TZ = 'Asia/Jerusalem';
+// Edge function requests the calendar in UTC (timeZone=55), so we treat the
+// raw timestamps as UTC and convert to the user's resolved IANA timezone.
+const SOURCE_TZ = 'UTC';
 const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 // Compute the offset (in minutes) of a given UTC instant in a target IANA tz.
