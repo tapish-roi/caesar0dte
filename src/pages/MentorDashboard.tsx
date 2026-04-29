@@ -1073,9 +1073,9 @@ export default function MentorDashboard() {
                     const lesson = lessons.find(l => l.id === selectedLesson);
                     if (!lesson) return null;
                     return (
-                      <motion.div key={lesson.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col md:flex-row gap-6 items-start">
-                        {/* Left column: lesson content */}
-                        <div className="flex-1 min-w-0 bg-card rounded-xl card-shadow overflow-hidden">
+                       <motion.div key={lesson.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex flex-col lg:flex-row gap-6 items-start w-full min-w-0">
+                         {/* Left column: lesson content */}
+                         <div className="flex-1 min-w-0 w-full bg-card rounded-xl card-shadow overflow-hidden">
                           {/* Video area */}
                           <div className="aspect-video bg-foreground/5 border-b border-border flex items-center justify-center">
                             {lesson.video_url ? (
@@ -1096,8 +1096,8 @@ export default function MentorDashboard() {
                                 <><EyeOff className="w-4 h-4 shrink-0" />השיעור טרם פורסם לתלמידים</>
                               )}
                             </div>
-                            <div className="flex items-start justify-between gap-4">
-                              <h2 className="text-xl font-bold text-foreground">{lesson.title}</h2>
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <h2 className="text-xl font-bold text-foreground break-words min-w-0 flex-1">{lesson.title}</h2>
                               <div className="flex items-center gap-2 shrink-0">
                                 <button
                                   onClick={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
@@ -1140,7 +1140,7 @@ export default function MentorDashboard() {
                           </div>
                         </div>
                         {/* Right column: quiz panel */}
-                        <div className="w-full md:w-80 shrink-0">
+                        <div className="w-full lg:w-80 shrink-0 min-w-0">
                           <LessonQuizPanel lessonId={lesson.id} mentorId={user!.id} onCreateQuiz={() => { setQuizNavLessonId(lesson.id); setActiveTab('quizzes'); }} />
                         </div>
                       </motion.div>
