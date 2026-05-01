@@ -16,6 +16,7 @@ import {
   Pencil, X, Check, Upload, Play, ChevronLeft, Link2, Copy,
 } from 'lucide-react';
 import LiveRoom from '@/components/LiveRoom';
+import ZoomHub from '@/components/ZoomHub';
 
 interface ScheduledLive {
   id: string;
@@ -46,7 +47,7 @@ interface Props {
   userName: string;
 }
 
-type SubTab = 'live' | 'scheduled' | 'recordings';
+type SubTab = 'live' | 'scheduled' | 'recordings' | 'zoom';
 
 // Upload a blob (auto-recorded session) to storage and return public URL
 async function uploadRecordingBlob(mentorId: string, blob: Blob): Promise<string> {
@@ -252,6 +253,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
 
   const tabs: { key: SubTab; label: string; icon: typeof Radio }[] = [
     { key: 'live', label: 'שידור חי', icon: Radio },
+    { key: 'zoom', label: 'Zoom', icon: Video },
     { key: 'scheduled', label: 'לוח מודעות', icon: CalendarDays },
     { key: 'recordings', label: 'לייבים מוקלטים', icon: Video },
   ];
@@ -281,7 +283,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
     <div className="p-4 md:p-8 max-w-3xl" dir="rtl">
       <div className="mb-6">
         <h1 className="text-xl md:text-2xl font-bold text-foreground">ניהול לייב</h1>
-        <p className="text-sm text-muted-foreground mt-1">נהל שידורים, לוח מודעות והקלטות</p>
+        <p className="text-sm text-muted-foreground mt-1">נהל שידורים, Zoom, לוח מודעות והקלטות</p>
       </div>
 
       {/* Sub-tabs — horizontal scroll on mobile to prevent overflow */}
@@ -618,6 +620,12 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                 )}
               </>
             )}
+          </motion.div>
+        )}
+        {/* ── ZOOM TAB ── */}
+        {subTab === 'zoom' && (
+          <motion.div key="zoom" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <ZoomHub userId={userId} userName={userName} />
           </motion.div>
         )}
       </AnimatePresence>
