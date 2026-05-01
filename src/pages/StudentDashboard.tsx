@@ -25,6 +25,7 @@ import { Switch } from '@/components/ui/switch';
 import LiveViewer from '@/components/LiveViewer';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubStudent from '@/components/LiveHubStudent';
+import ZoomHub from '@/components/ZoomHub';
 import LessonQA from '@/components/LessonQA';
 import StudentMyQuestions from '@/components/StudentMyQuestions';
 import MobileBottomNav from '@/components/MobileBottomNav';
@@ -33,7 +34,7 @@ import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
-type SidebarTab = 'lessons' | 'community' | 'live' | 'questions' | 'calculator';
+type SidebarTab = 'lessons' | 'community' | 'live' | 'questions' | 'calculator' | 'zoom';
 type PostType = 'discussion' | 'media' | 'live';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -904,7 +905,7 @@ export default function StudentDashboard() {
   const studentNavItems = [
     { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
     { key: 'community' as const, label: 'קהילה', icon: Users },
-    
+    { key: 'zoom' as const, label: 'Zoom', icon: Video },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion },
     { key: 'calculator' as const, label: 'מחשבון מסחר', icon: Calculator },
   ];
@@ -1144,7 +1145,7 @@ export default function StudentDashboard() {
                 {([
                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                   { key: 'community', label: 'קהילה', icon: Users },
-                  
+                  { key: 'zoom', label: 'Zoom', icon: Video },
                   { key: 'questions', label: 'השאלות שלי', icon: MessageCircleQuestion },
                   { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
                 ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
@@ -1610,6 +1611,13 @@ export default function StudentDashboard() {
                   ))}
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {/* ──────── ZOOM ──────── */}
+          {activeTab === 'zoom' && user && (
+            <motion.div key="zoom" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <ZoomHub userId={user.id} userName={profile?.full_name || user?.email || 'תלמיד'} />
             </motion.div>
           )}
 

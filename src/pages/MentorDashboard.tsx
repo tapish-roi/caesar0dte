@@ -21,6 +21,7 @@ import TradingCalculator from '@/components/TradingCalculator';
 import { useToast } from '@/hooks/use-toast';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
+import ZoomHub from '@/components/ZoomHub';
 import MentorQuestionsHub from '@/components/MentorQuestionsHub';
 import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
@@ -166,7 +167,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
   );
 }
 
-type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes' | 'calculator';
+type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes' | 'calculator' | 'zoom';
 type PostType = 'discussion' | 'media';
 type LessonViewMode = { categoryId: string; categoryTitle: string } | null;
 
@@ -853,7 +854,7 @@ export default function MentorDashboard() {
     { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
     { key: 'community' as const, label: 'קהילה', icon: Users },
     { key: 'students' as const, label: 'תלמידים', icon: GraduationCap },
-    
+    { key: 'zoom' as const, label: 'Zoom', icon: Video },
     { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
     { key: 'quizzes' as const, label: 'מבחנים', icon: ClipboardList },
     { key: 'calculator' as const, label: 'מחשבון מסחר', icon: Calculator },
@@ -990,7 +991,7 @@ export default function MentorDashboard() {
                    { key: 'lessons', label: 'שיעורים', icon: BookOpen },
                    { key: 'community', label: 'קהילה', icon: Users },
                    { key: 'students', label: 'תלמידים', icon: GraduationCap },
-                   
+                   { key: 'zoom', label: 'Zoom', icon: Video },
                    { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
                    { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
                    { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
@@ -1602,6 +1603,13 @@ export default function MentorDashboard() {
           {activeTab === 'live' && user && (
             <motion.div key="live" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <LiveHubMentor mentorId={user.id} userId={user.id} userName={mentorProfile?.full_name || user?.email || 'מנטור'} />
+            </motion.div>
+          )}
+
+          {/* ──────── ZOOM ──────── */}
+          {activeTab === 'zoom' && user && (
+            <motion.div key="zoom" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <ZoomHub userId={user.id} userName={mentorProfile?.full_name || user?.email || 'מנטור'} />
             </motion.div>
           )}
 
