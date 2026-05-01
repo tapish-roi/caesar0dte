@@ -1,30 +1,30 @@
 /**
- * ZoomHub — Anyone on the platform can start or join a video call.
- * Uses LiveRoomLK (LiveKit SFU) for the actual video/audio.
+ * ZoomHub — Share and join real Zoom meetings.
  *
  * Any authenticated user can:
- *  - Start a new call (they become the host)
- *  - See all active calls across the platform
- *  - Join any active call
- *  - Share a link for others to join directly
+ *  - Post an active Zoom meeting link (title + URL or meeting ID)
+ *  - See all active Zoom sessions posted by anyone
+ *  - Click "Join on Zoom" to open the meeting in Zoom (browser/app)
+ *  - End their own session when done
  */
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
-  Video, VideoOff, Users, Plus, Copy, Link2,
-  PhoneOff, Loader2, RefreshCw,
+  Video, VideoOff, Users, ExternalLink, Copy,
+  Plus, PhoneOff, Loader2, RefreshCw, Link2,
 } from 'lucide-react';
-import LiveRoomLK from '@/components/LiveRoomLK';
 
-interface ActiveSession {
+interface ZoomSession {
   id: string;
+  host_id: string;
+  host_name: string;
   title: string;
-  mentor_id: string;
+  zoom_url: string;
   status: string;
-  viewer_count: number;
+  created_at: string;
 }
 
 interface Props {
@@ -32,86 +32,89 @@ interface Props {
   userName: string;
 }
 
+/** Normalise a raw Zoom input into a full joinable URL */
+function normaliseZoomUrl(raw: string): string {
+  const trimmed = raw.trim();
+  // Already a full URL
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  // Plain meeting ID like 123 456 789
+  const digits = trimmed.replace(/\s+/g, '');
+  if (/^\d{9,11}$/.test(digits)) return `https://zoom.us/j/${digits}`;
+  // zoom.us/j/... without protocol
+  if (trimmed.startsWith('zoom.us/')) return `https://${trimmed}`;
+  return trimmed;
+}
+
 export default function ZoomHub({ userId, userName }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
-  const [newCallTitle, setNewCallTitle] = useState('');
+  const [title, setTitle] = useState('');
+  const [zoomInput, setZoomInput] = useState('');
 
-  const { data: activeSessions = [], refetch, isFetching } = useQuery<ActiveSession[]>({
-    queryKey: ['zoom-active-sessions'],
+  const { data: sessions = [], isFetching, refetch } = useQuery<ZoomSession[]>({
+    queryKey: ['zoom-sessions'],
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.from('live_sessions') as any)
-        .select('id, title, mentor_id, status, viewer_count')
+      const { data, error } = await (supabase.from('zoom_sessions') as any)
+        .select('id, host_id, host_name, title, zoom_url, status, created_at')
         .eq('status', 'active')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
-    refetchInterval: 10000,
+    refetchInterval: 15000,
   });
 
-  const startCall = useMutation({
-    mutationFn: async (title: string) => {
+  const postSession = useMutation({
+    mutationFn: async () => {
+      const zoom_url = normaliseZoomUrl(zoomInput);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.from('live_sessions') as any)
-        .insert({ mentor_id: userId, title, status: 'active' })
-        .select('id, title, mentor_id, status, viewer_count')
+      const { data, error } = await (supabase.from('zoom_sessions') as any)
+        .insert({ host_id: userId, host_name: userName, title, zoom_url, status: 'active' })
+        .select('id, host_id, host_name, title, zoom_url, status, created_at')
         .single();
       if (error) throw error;
-      return data as ActiveSession;
+      return data as ZoomSession;
     },
-    onSuccess: (data) => {
-      setActiveSession(data);
-      setNewCallTitle('');
-      qc.invalidateQueries({ queryKey: ['zoom-active-sessions'] });
-      toast({ title: 'שיחה נפתחה!' });
+    onSuccess: () => {
+      setTitle('');
+      setZoomInput('');
+      qc.invalidateQueries({ queryKey: ['zoom-sessions'] });
+      toast({ title: 'שיחת Zoom פורסמה!' });
     },
-    onError: () => toast({ title: 'שגיאה בפתיחת שיחה', variant: 'destructive' }),
+    onError: () => toast({ title: 'שגיאה בפרסום השיחה', variant: 'destructive' }),
   });
 
-  const endCall = useCallback(async (sessionId: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase.from('live_sessions') as any)
-      .update({ status: 'ended', ended_at: new Date().toISOString() })
-      .eq('id', sessionId);
-    setActiveSession(null);
-    qc.invalidateQueries({ queryKey: ['zoom-active-sessions'] });
-  }, [qc]);
+  const endSession = useMutation({
+    mutationFn: async (id: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.from('zoom_sessions') as any)
+        .update({ status: 'ended', ended_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['zoom-sessions'] });
+      toast({ title: 'שיחה הוסרה' });
+    },
+    onError: () => toast({ title: 'שגיאה', variant: 'destructive' }),
+  });
 
-  const copyLink = (sessionId: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/livestream?session=${sessionId}&lk=1`);
-    toast({ title: 'הקישור הועתק!' });
+  const copyLink = (url: string) => {
+    navigator.clipboard.writeText(url);
+    toast({ title: 'קישור Zoom הועתק!' });
   };
 
-  // ── In a call ──
-  if (activeSession) {
-    const isHost = activeSession.mentor_id === userId;
-    return (
-      <LiveRoomLK
-        sessionId={activeSession.id}
-        mentorId={activeSession.mentor_id}
-        userId={userId}
-        userName={userName}
-        sessionTitle={activeSession.title}
-        isMentor={isHost}
-        onClose={() => {
-          if (isHost) endCall(activeSession.id);
-          else setActiveSession(null);
-        }}
-      />
-    );
-  }
+  const canPost = title.trim() && zoomInput.trim();
 
   return (
     <div className="p-4 md:p-8 max-w-2xl" dir="rtl">
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-foreground">שיחות וידאו</h1>
-          <p className="text-sm text-muted-foreground mt-1">פתח שיחה חדשה או הצטרף לשיחה פעילה</p>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">Zoom</h1>
+          <p className="text-sm text-muted-foreground mt-1">שתף קישור Zoom כדי שאחרים יוכלו להצטרף</p>
         </div>
         <button
           onClick={() => refetch()}
@@ -123,51 +126,58 @@ export default function ZoomHub({ userId, userName }: Props) {
         </button>
       </div>
 
-      {/* Start new call */}
+      {/* Post a new Zoom session */}
       <div className="bg-card rounded-2xl card-shadow p-5 mb-6 border border-border">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Video className="w-5 h-5 text-primary" />
+          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+            <Video className="w-5 h-5 text-blue-500" />
           </div>
           <div>
-            <h2 className="font-semibold text-foreground text-sm">פתח שיחה חדשה</h2>
-            <p className="text-xs text-muted-foreground">תתחבר עם אחרים בוידאו + שמע</p>
+            <h2 className="font-semibold text-foreground text-sm">פתח שיחת Zoom</h2>
+            <p className="text-xs text-muted-foreground">הזן כינוי לשיחה וקישור / מזהה הפגישה</p>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
+
+        <div className="space-y-2">
           <input
-            value={newCallTitle}
-            onChange={e => setNewCallTitle(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && newCallTitle.trim() && startCall.mutate(newCallTitle)}
-            placeholder="שם השיחה (לדוגמה: ניתוח שוק בוקר)"
-            className="flex-1 min-w-0 h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary text-right"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            placeholder="שם הפגישה (לדוגמה: ניתוח בוקר)"
+            className="w-full h-10 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/60 text-right"
+          />
+          <input
+            value={zoomInput}
+            onChange={e => setZoomInput(e.target.value)}
+            placeholder="קישור Zoom או מזהה פגישה — 123 456 7890"
+            className="w-full h-10 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/60 font-mono"
+            dir="ltr"
           />
           <button
-            onClick={() => newCallTitle.trim() && startCall.mutate(newCallTitle)}
-            disabled={!newCallTitle.trim() || startCall.isPending}
-            className="h-11 px-5 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shrink-0"
+            onClick={() => canPost && postSession.mutate()}
+            disabled={!canPost || postSession.isPending}
+            className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {startCall.isPending
+            {postSession.isPending
               ? <Loader2 className="w-4 h-4 animate-spin" />
               : <Plus className="w-4 h-4" />
             }
-            <span>{startCall.isPending ? 'פותח...' : 'התחל שיחה'}</span>
+            {postSession.isPending ? 'מפרסם...' : 'שתף שיחה'}
           </button>
         </div>
       </div>
 
-      {/* Active sessions */}
+      {/* Active Zoom sessions */}
       <div>
         <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-          שיחות פעילות
-          {activeSessions.length > 0 && (
-            <span className="text-xs font-normal text-muted-foreground">({activeSessions.length})</span>
+          <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+          פגישות Zoom פעילות
+          {sessions.length > 0 && (
+            <span className="text-xs font-normal text-muted-foreground">({sessions.length})</span>
           )}
         </h2>
 
         <AnimatePresence mode="popLayout">
-          {activeSessions.length === 0 ? (
+          {sessions.length === 0 ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }}
@@ -178,13 +188,12 @@ export default function ZoomHub({ userId, userName }: Props) {
               <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
                 <VideoOff className="w-8 h-8 text-muted-foreground opacity-40" />
               </div>
-              <p className="font-semibold text-foreground mb-1">אין שיחות פעילות כרגע</p>
-              <p className="text-sm text-muted-foreground">פתח שיחה חדשה ושתף את הקישור</p>
+              <p className="font-semibold text-foreground mb-1">אין פגישות Zoom פעילות</p>
+              <p className="text-sm text-muted-foreground">שתף קישור Zoom כדי שהקהילה תוכל להצטרף</p>
             </motion.div>
           ) : (
-            activeSessions.map(session => {
-              const isMySession = session.mentor_id === userId;
-              const shareLink = `${window.location.origin}/livestream?session=${session.id}&lk=1`;
+            sessions.map(session => {
+              const isHost = session.host_id === userId;
               return (
                 <motion.div
                   key={session.id}
@@ -192,51 +201,56 @@ export default function ZoomHub({ userId, userName }: Props) {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.97 }}
-                  className="bg-card rounded-xl card-shadow p-4 mb-3 border border-destructive/20"
+                  className="bg-card rounded-xl card-shadow p-4 mb-3 border border-blue-500/20"
                 >
-                  <div className="flex items-center gap-3 mb-3 min-w-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse shrink-0" />
+                  {/* Title row */}
+                  <div className="flex items-center gap-3 mb-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
                     <p className="font-bold text-sm text-foreground flex-1 truncate">{session.title}</p>
-                    <span className="text-xs text-destructive font-bold shrink-0">LIVE</span>
-                    {isMySession && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium shrink-0">
-                        השיחה שלי
+                    {isHost && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-medium shrink-0">
+                        שלי
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                  {/* Host */}
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
                     <Users className="w-3.5 h-3.5" />
-                    <span>{session.viewer_count > 0 ? `${session.viewer_count} משתתפים` : 'פעיל'}</span>
+                    <span>מארח: {session.host_name}</span>
                   </div>
 
-                  {/* Shareable link */}
+                  {/* Zoom URL display */}
                   <div className="flex items-center gap-2 mb-3 bg-muted/40 rounded-lg px-3 py-2 min-w-0">
                     <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     <span className="text-xs text-muted-foreground truncate flex-1 min-w-0 font-mono select-all" dir="ltr">
-                      {shareLink}
+                      {session.zoom_url}
                     </span>
                     <button
-                      onClick={() => copyLink(session.id)}
-                      className="shrink-0 h-7 px-2.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all flex items-center gap-1"
+                      onClick={() => copyLink(session.zoom_url)}
+                      className="shrink-0 h-7 px-2.5 rounded-md bg-blue-500/10 text-blue-500 text-xs font-medium hover:bg-blue-500/20 transition-all flex items-center gap-1"
                     >
                       <Copy className="w-3 h-3" />
                       העתק
                     </button>
                   </div>
 
+                  {/* Actions */}
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => setActiveSession(session)}
-                      className="flex-1 h-10 bg-destructive text-destructive-foreground rounded-xl text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                    <a
+                      href={session.zoom_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2"
                     >
-                      <Video className="w-4 h-4" />
-                      {isMySession ? 'חזור לשיחה' : 'הצטרף'}
-                    </button>
-                    {isMySession && (
+                      <ExternalLink className="w-4 h-4" />
+                      הצטרף ב-Zoom
+                    </a>
+                    {isHost && (
                       <button
-                        onClick={() => endCall(session.id)}
-                        className="h-10 px-4 border border-destructive/30 text-destructive rounded-xl text-sm font-medium hover:bg-destructive/10 transition-all flex items-center gap-1.5"
+                        onClick={() => endSession.mutate(session.id)}
+                        disabled={endSession.isPending}
+                        className="h-10 px-4 border border-destructive/30 text-destructive rounded-xl text-sm font-medium hover:bg-destructive/10 transition-all flex items-center gap-1.5 disabled:opacity-50"
                       >
                         <PhoneOff className="w-4 h-4" />
                         סיים
