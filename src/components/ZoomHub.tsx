@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   Video, VideoOff, Users, ExternalLink, Copy,
   Plus, PhoneOff, Loader2, RefreshCw, Link2, ChevronDown,
-  CalendarClock, Clock, Trash2,
+  CalendarClock, Clock, Trash2, CalendarPlus,
 } from 'lucide-react';
 
 interface ZoomSession {
@@ -85,6 +85,25 @@ function formatScheduledTime(iso: string) {
     weekday: 'short', day: '2-digit', month: '2-digit',
     hour: '2-digit', minute: '2-digit',
   });
+}
+
+/** Opens Google Calendar with a pre-filled event for the scheduled Zoom. */
+function openGoogleCalendar(title: string, hostName: string, scheduledAt: string, zoomUrl: string) {
+  const start = new Date(scheduledAt);
+  const end = new Date(start.getTime() + 60 * 60 * 1000); // 1-hour default
+
+  const fmt = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `זום עם ${hostName}`,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: `${title}\n\nקישור לפגישת Zoom:\n${zoomUrl}`,
+    location: zoomUrl,
+  });
+
+  window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, '_blank');
 }
 
 export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
@@ -477,6 +496,14 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                       <ExternalLink className="w-3.5 h-3.5" />
                       {isPast ? 'הצטרף' : 'הצטרף מוקדם'}
                     </a>
+                    <button
+                      onClick={() => openGoogleCalendar(s.title, s.host_name, s.scheduled_at, s.zoom_url)}
+                      className="h-9 px-3 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/20 text-xs flex items-center gap-1.5 transition-all"
+                      title="הוסף ל-Google Calendar"
+                    >
+                      <CalendarPlus className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">יומן</span>
+                    </button>
                     <button
                       onClick={() => copyLink(s.zoom_url)}
                       className="h-9 px-3 rounded-xl bg-muted text-muted-foreground hover:text-foreground text-xs flex items-center gap-1 transition-all"
