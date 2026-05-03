@@ -54,6 +54,8 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
   const { data: sessions = [], isFetching, refetch } = useQuery<ZoomSession[]>({
     queryKey: ['zoom-sessions'],
     queryFn: async () => {
+      // Sync with Zoom API to auto-close any ended meetings
+      await supabase.functions.invoke('sync-zoom-sessions').catch(() => {/* non-fatal */});
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase.from('zoom_sessions') as any)
         .select('id, host_id, host_name, title, zoom_url, status, created_at')
