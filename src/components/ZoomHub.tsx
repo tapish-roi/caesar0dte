@@ -8,7 +8,7 @@
  * Falls back to manual link paste if the user prefers to use their
  * own Zoom account instead.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,6 +50,19 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
   const [title, setTitle] = useState('');
   const [showManual, setShowManual] = useState(false);
   const [manualUrl, setManualUrl] = useState('');
+
+  // Realtime: instantly reflect DB changes on all clients (mentor + student)
+  useEffect(() => {
+    const channel = supabase
+      .channel('zoom_sessions_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'zoom_sessions' },
+        () => { qc.invalidateQueries({ queryKey: ['zoom-sessions'] }); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
 
   const { data: sessions = [], isFetching, refetch } = useQuery<ZoomSession[]>({
     queryKey: ['zoom-sessions'],
