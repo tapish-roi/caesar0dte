@@ -1,12 +1,13 @@
 /**
  * create-zoom-meeting — Server-to-Server OAuth edge function.
  *
- * Creates an instant Zoom meeting on behalf of the platform account
- * and returns the join URL + meeting ID.
+ * Creates a Zoom meeting (instant or scheduled) on behalf of the platform account.
+ * Pass `scheduled_at` (ISO string) to create a scheduled meeting (type 2).
+ * Omit it for an instant meeting (type 1).
  *
- * Required Supabase secrets (set via Dashboard → Settings → Edge Functions):
- *   ZOOM_ACCOUNT_ID   — from Zoom marketplace app
- *   ZOOM_CLIENT_ID    — from Zoom marketplace app
+ * Required Supabase secrets:
+ *   ZOOM_ACCOUNT_ID    — from Zoom marketplace app
+ *   ZOOM_CLIENT_ID     — from Zoom marketplace app
  *   ZOOM_CLIENT_SECRET — from Zoom marketplace app
  */
 
@@ -32,7 +33,11 @@ Deno.serve(async (req) => {
     }
 
     // ── Parse request body ────────────────────────────────────────────
-    const { title } = await req.json() as { title?: string };
+    const { title, scheduled_at } = await req.json() as {
+      title?: string;
+      scheduled_at?: string; // ISO 8601 — if provided, creates a scheduled meeting
+    };
+
     if (!title?.trim()) {
       return new Response(JSON.stringify({ error: "Missing meeting title" }), {
         status: 400,
@@ -41,22 +46,18 @@ Deno.serve(async (req) => {
     }
 
     // ── Zoom credentials ──────────────────────────────────────────────
-    const accountId = Deno.env.get("ZOOM_ACCOUNT_ID");
-    const clientId = Deno.env.get("ZOOM_CLIENT_ID");
+    const accountId    = Deno.env.get("ZOOM_ACCOUNT_ID");
+    const clientId     = Deno.env.get("ZOOM_CLIENT_ID");
     const clientSecret = Deno.env.get("ZOOM_CLIENT_SECRET");
 
     if (!accountId || !clientId || !clientSecret) {
-      console.error("Missing Zoom env vars");
       return new Response(
         JSON.stringify({ error: "Zoom credentials not configured on server" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // ── Step 1: get access token via Server-to-Server OAuth ───────────
+    // ── Step 1: get access token ──────────────────────────────────────
     const tokenRes = await fetch(
       `https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${accountId}`,
       {
@@ -69,47 +70,48 @@ Deno.serve(async (req) => {
     );
 
     if (!tokenRes.ok) {
-      const err = await tokenRes.text();
-      console.error("Zoom token error:", err);
+      console.error("Zoom token error:", await tokenRes.text());
       return new Response(
         JSON.stringify({ error: "Failed to authenticate with Zoom" }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const { access_token } = await tokenRes.json() as { access_token: string };
 
-    // ── Step 2: create instant meeting ────────────────────────────────
+    // ── Step 2: create meeting (instant or scheduled) ─────────────────
+    const isScheduled = !!scheduled_at;
+    const meetingBody: Record<string, unknown> = {
+      topic: title.trim(),
+      type: isScheduled ? 2 : 1, // 1 = instant, 2 = scheduled
+      settings: {
+        join_before_host: true,
+        waiting_room: false,
+        mute_upon_entry: false,
+        approval_type: 2,
+      },
+    };
+
+    if (isScheduled) {
+      meetingBody.start_time = scheduled_at; // ISO 8601, e.g. "2026-05-10T09:00:00Z"
+      meetingBody.duration = 60;             // default 60 min; user can adjust in Zoom
+      meetingBody.timezone = "Asia/Jerusalem";
+    }
+
     const meetingRes = await fetch("https://api.zoom.us/v2/users/me/meetings", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${access_token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        topic: title.trim(),
-        type: 1, // instant meeting
-        settings: {
-          join_before_host: true,
-          waiting_room: false,
-          mute_upon_entry: false,
-          approval_type: 2, // no registration required
-        },
-      }),
+      body: JSON.stringify(meetingBody),
     });
 
     if (!meetingRes.ok) {
-      const err = await meetingRes.text();
-      console.error("Zoom meeting creation error:", err);
+      console.error("Zoom meeting creation error:", await meetingRes.text());
       return new Response(
         JSON.stringify({ error: "Failed to create Zoom meeting" }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -117,6 +119,7 @@ Deno.serve(async (req) => {
       id: number;
       join_url: string;
       password: string;
+      start_time?: string;
     };
 
     return new Response(
@@ -124,11 +127,9 @@ Deno.serve(async (req) => {
         meeting_id: meeting.id,
         join_url: meeting.join_url,
         password: meeting.password,
+        start_time: meeting.start_time,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
