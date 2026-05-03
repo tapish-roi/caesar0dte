@@ -8,6 +8,7 @@ type Tab = 'mentor' | 'student';
 type MentorMode = 'login' | 'signup';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 const premiumEase = [0.22, 1, 0.36, 1] as const;
 
 export default function AuthPage() {
@@ -33,7 +34,7 @@ export default function AuthPage() {
         // Mentor signup — use Edge Function to create user + profile + role atomically
         const res = await fetch(`${SUPABASE_URL}/functions/v1/create-mentor`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
           body: JSON.stringify({ email, password, fullName, phone }),
         });
         const json = await res.json();

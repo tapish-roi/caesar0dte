@@ -1617,7 +1617,7 @@ export default function StudentDashboard() {
           {/* ──────── ZOOM ──────── */}
           {activeTab === 'zoom' && user && (
             <motion.div key="zoom" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <ZoomHub userId={user.id} userName={profile?.full_name || user?.email || 'תלמיד'} />
+              <ZoomHub userId={user.id} userName={profile?.full_name || user?.email || 'תלמיד'} isMentor={false} />
             </motion.div>
           )}
 

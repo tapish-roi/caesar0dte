@@ -1609,7 +1609,7 @@ export default function MentorDashboard() {
           {/* ──────── ZOOM ──────── */}
           {activeTab === 'zoom' && user && (
             <motion.div key="zoom" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <ZoomHub userId={user.id} userName={mentorProfile?.full_name || user?.email || 'מנטור'} />
+              <ZoomHub userId={user.id} userName={mentorProfile?.full_name || user?.email || 'מנטור'} isMentor={true} />
             </motion.div>
           )}
 

@@ -31,6 +31,7 @@ interface ZoomSession {
 interface Props {
   userId: string;
   userName: string;
+  isMentor?: boolean;
 }
 
 function normaliseZoomUrl(raw: string): string {
@@ -42,7 +43,7 @@ function normaliseZoomUrl(raw: string): string {
   return trimmed;
 }
 
-export default function ZoomHub({ userId, userName }: Props) {
+export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -65,7 +66,7 @@ export default function ZoomHub({ userId, userName }: Props) {
   });
 
   /** Save a zoom_url to the zoom_sessions table */
-  const saveSession = async (zoom_url: string, sessionTitle: string) => {
+  const saveSession = async (zoom_url: string, sessionTitle: string, meeting_id?: number) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase.from('zoom_sessions') as any).insert({
       host_id: userId,
@@ -73,6 +74,7 @@ export default function ZoomHub({ userId, userName }: Props) {
       title: sessionTitle,
       zoom_url,
       status: 'active',
+      ...(meeting_id ? { meeting_id: String(meeting_id) } : {}),
     });
     if (error) throw error;
   };
@@ -85,7 +87,7 @@ export default function ZoomHub({ userId, userName }: Props) {
       });
       if (error) throw new Error(error.message || 'Failed to create meeting');
       if (data?.error) throw new Error(data.error);
-      await saveSession(data.join_url, title);
+      await saveSession(data.join_url, title, data.meeting_id);
       return data;
     },
     onSuccess: () => {
@@ -160,8 +162,8 @@ export default function ZoomHub({ userId, userName }: Props) {
         </button>
       </div>
 
-      {/* Create meeting card */}
-      <div className="bg-card rounded-2xl card-shadow p-5 mb-6 border border-border">
+      {/* Create meeting card — mentors only */}
+      {isMentor && <div className="bg-card rounded-2xl card-shadow p-5 mb-6 border border-border">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
             <Video className="w-5 h-5 text-blue-500" />
@@ -234,7 +236,7 @@ export default function ZoomHub({ userId, userName }: Props) {
             )}
           </AnimatePresence>
         </div>
-      </div>
+      </div>}
 
       {/* Active sessions */}
       <div>
