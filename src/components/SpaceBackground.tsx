@@ -19,28 +19,28 @@ import { useEffect, useRef, useState } from 'react';
 // ── Accent stars (22) — varied color + twinkle timing ─────────────────────
 type StarColor = 'cyan' | 'gold' | 'purple' | 'white';
 const LARGE_STARS: { x: number; y: number; size: number; op: number; delay: number; dur: number; color: StarColor }[] = [
-  { x:  6, y: 14, size: 4, op: 0.55, delay: 0.0, dur: 6.2, color: 'cyan'   },
-  { x: 18, y: 58, size: 3, op: 0.50, delay: 2.4, dur: 8.5, color: 'gold'   },
-  { x: 28, y: 32, size: 5, op: 0.60, delay: 5.1, dur: 7.0, color: 'white'  },
-  { x: 35, y: 81, size: 3, op: 0.45, delay: 1.2, dur: 9.3, color: 'purple' },
-  { x: 47, y: 19, size: 4, op: 0.55, delay: 3.7, dur: 5.8, color: 'cyan'   },
-  { x: 54, y: 68, size: 3, op: 0.50, delay: 6.3, dur: 7.6, color: 'gold'   },
-  { x: 62, y: 44, size: 5, op: 0.58, delay: 4.0, dur: 6.4, color: 'white'  },
-  { x: 70, y: 88, size: 3, op: 0.48, delay: 2.0, dur: 8.9, color: 'purple' },
-  { x: 78, y: 25, size: 4, op: 0.55, delay: 1.5, dur: 5.5, color: 'cyan'   },
-  { x: 85, y: 61, size: 3, op: 0.52, delay: 4.8, dur: 7.1, color: 'gold'   },
-  { x: 92, y: 10, size: 4, op: 0.58, delay: 3.2, dur: 6.8, color: 'white'  },
-  { x: 97, y: 75, size: 3, op: 0.47, delay: 7.0, dur: 9.0, color: 'purple' },
-  { x: 12, y: 90, size: 3, op: 0.50, delay: 0.8, dur: 6.0, color: 'gold'   },
-  { x: 22, y: 44, size: 4, op: 0.53, delay: 5.5, dur: 7.8, color: 'cyan'   },
-  { x: 42, y: 95, size: 3, op: 0.45, delay: 2.9, dur: 8.2, color: 'purple' },
-  { x: 58, y:  5, size: 4, op: 0.60, delay: 1.1, dur: 5.9, color: 'white'  },
-  { x: 66, y: 77, size: 3, op: 0.48, delay: 6.7, dur: 7.3, color: 'gold'   },
-  { x: 73, y: 38, size: 5, op: 0.55, delay: 3.4, dur: 6.1, color: 'cyan'   },
-  { x: 81, y: 92, size: 3, op: 0.50, delay: 0.5, dur: 8.7, color: 'purple' },
-  { x: 88, y: 48, size: 4, op: 0.57, delay: 4.2, dur: 5.7, color: 'white'  },
-  { x: 94, y: 30, size: 3, op: 0.52, delay: 2.6, dur: 7.9, color: 'gold'   },
-  { x:  3, y: 40, size: 4, op: 0.53, delay: 5.9, dur: 6.5, color: 'cyan'   },
+  { x:  6, y: 14, size: 2.5, op: 0.28, delay: 0.0, dur: 6.2, color: 'cyan'   },
+  { x: 18, y: 58, size: 2,   op: 0.25, delay: 2.4, dur: 8.5, color: 'gold'   },
+  { x: 28, y: 32, size: 3,   op: 0.30, delay: 5.1, dur: 7.0, color: 'white'  },
+  { x: 35, y: 81, size: 2,   op: 0.22, delay: 1.2, dur: 9.3, color: 'purple' },
+  { x: 47, y: 19, size: 2.5, op: 0.27, delay: 3.7, dur: 5.8, color: 'cyan'   },
+  { x: 54, y: 68, size: 2,   op: 0.25, delay: 6.3, dur: 7.6, color: 'gold'   },
+  { x: 62, y: 44, size: 3,   op: 0.28, delay: 4.0, dur: 6.4, color: 'white'  },
+  { x: 70, y: 88, size: 2,   op: 0.23, delay: 2.0, dur: 8.9, color: 'purple' },
+  { x: 78, y: 25, size: 2.5, op: 0.27, delay: 1.5, dur: 5.5, color: 'cyan'   },
+  { x: 85, y: 61, size: 2,   op: 0.25, delay: 4.8, dur: 7.1, color: 'gold'   },
+  { x: 92, y: 10, size: 2.5, op: 0.28, delay: 3.2, dur: 6.8, color: 'white'  },
+  { x: 97, y: 75, size: 2,   op: 0.22, delay: 7.0, dur: 9.0, color: 'purple' },
+  { x: 12, y: 90, size: 2,   op: 0.25, delay: 0.8, dur: 6.0, color: 'gold'   },
+  { x: 22, y: 44, size: 2.5, op: 0.26, delay: 5.5, dur: 7.8, color: 'cyan'   },
+  { x: 42, y: 95, size: 2,   op: 0.22, delay: 2.9, dur: 8.2, color: 'purple' },
+  { x: 58, y:  5, size: 2.5, op: 0.28, delay: 1.1, dur: 5.9, color: 'white'  },
+  { x: 66, y: 77, size: 2,   op: 0.23, delay: 6.7, dur: 7.3, color: 'gold'   },
+  { x: 73, y: 38, size: 3,   op: 0.27, delay: 3.4, dur: 6.1, color: 'cyan'   },
+  { x: 81, y: 92, size: 2,   op: 0.24, delay: 0.5, dur: 8.7, color: 'purple' },
+  { x: 88, y: 48, size: 2.5, op: 0.27, delay: 4.2, dur: 5.7, color: 'white'  },
+  { x: 94, y: 30, size: 2,   op: 0.25, delay: 2.6, dur: 7.9, color: 'gold'   },
+  { x:  3, y: 40, size: 2.5, op: 0.26, delay: 5.9, dur: 6.5, color: 'cyan'   },
 ];
 
 // ── Shooting stars ────────────────────────────────────────────────────────
@@ -119,8 +119,8 @@ export default function SpaceBackground() {
       const ts = t * 0.001;
       for (const s of stars) {
         // sinusoidal brightness — each star at its own frequency + phase
-        const brightness = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(ts * s.speed + s.phase));
-        const alpha = reducedMotion ? 0.5 : brightness;
+        const brightness = 0.10 + 0.25 * (0.5 + 0.5 * Math.sin(ts * s.speed + s.phase));
+        const alpha = reducedMotion ? 0.18 : brightness;
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
         // slight saturation for non-white hues, pure white for hue=0
@@ -130,8 +130,8 @@ export default function SpaceBackground() {
 
         // soft glow for larger stars
         if (s.r > 1.0 && !reducedMotion) {
-          const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 4);
-          grd.addColorStop(0, `hsla(${s.hue}, 70%, 85%, ${(alpha * 0.4).toFixed(3)})`);
+          const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 3);
+          grd.addColorStop(0, `hsla(${s.hue}, 70%, 85%, ${(alpha * 0.2).toFixed(3)})`);
           grd.addColorStop(1, 'transparent');
           ctx.beginPath();
           ctx.arc(s.x, s.y, s.r * 4, 0, Math.PI * 2);

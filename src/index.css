@@ -282,7 +282,7 @@
 
   /* Far layer — dense distant star field, 30+ stars per tile, cool+warm mix */
   .space-layer-far {
-    opacity: 0.65;
+    opacity: 0.30;
     mix-blend-mode: screen;
     background-image:
       /* cool cyan-white cluster */
@@ -333,7 +333,7 @@
 
   /* Near layer — 12 brighter foreground stars, varied warm+cool colors */
   .space-layer-near {
-    opacity: 0.75;
+    opacity: 0.35;
     mix-blend-mode: screen;
     background-image:
       radial-gradient(1.5px 1.5px at  8%  18%, hsla(42,  90%, 80%, 0.90) 50%, transparent 100%),
@@ -358,7 +358,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.08;
+    opacity: 0.05;
     mix-blend-mode: screen;
     background:
       radial-gradient(ellipse 120% 35% at 50% 0%,
