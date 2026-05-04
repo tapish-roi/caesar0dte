@@ -266,10 +266,10 @@
     position: relative;
   }
 
-  /* === Space Background — 3-Layer Parallax + Noise =========================
-     The wrapper is fixed full-viewport. Layers paint ABOVE the page UI but
-     are pointer-events:none and use additive blend modes (screen / soft-light)
-     so they only add subtle light/texture and never obscure content. */
+  /* === Space Background — Enhanced 3-Layer Parallax + Canvas + Aurora ======
+     All layers sit behind the UI (pointer-events:none). GPU-accelerated via
+     will-change:transform and transform3d only. blend modes keep them additive
+     so they never obscure content. */
   .space-layer {
     position: absolute;
     inset: -50%;
@@ -277,64 +277,109 @@
     height: 200%;
     will-change: transform;
     pointer-events: none;
+    transition: transform 0.4s ease-out; /* smooth mouse parallax */
   }
 
-  /* Far layer — many tiny faint stars, slowest, lowest contrast */
+  /* Far layer — dense distant star field, 30+ stars per tile, cool+warm mix */
   .space-layer-far {
-    opacity: 0.6;
+    opacity: 0.65;
     mix-blend-mode: screen;
     background-image:
-      radial-gradient(1px 1px at 20% 30%, hsla(195, 30%, 95%, 0.7) 50%, transparent 100%),
-      radial-gradient(1px 1px at 70% 80%, hsla(195, 30%, 95%, 0.55) 50%, transparent 100%),
-      radial-gradient(1px 1px at 40% 60%, hsla(195, 30%, 95%, 0.6) 50%, transparent 100%),
-      radial-gradient(1px 1px at 90% 15%, hsla(195, 30%, 95%, 0.5) 50%, transparent 100%),
-      radial-gradient(1px 1px at 10% 85%, hsla(195, 30%, 95%, 0.6) 50%, transparent 100%),
-      radial-gradient(1px 1px at 55% 5%, hsla(195, 30%, 95%, 0.55) 50%, transparent 100%);
+      /* cool cyan-white cluster */
+      radial-gradient(0.8px 0.8px at  7%  12%, hsla(200, 40%, 95%, 0.75) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 18%  47%, hsla(195, 30%, 95%, 0.65) 50%, transparent 100%),
+      radial-gradient(0.8px 0.8px at 26%  83%, hsla(210, 35%, 90%, 0.60) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 34%  22%, hsla(195, 30%, 95%, 0.70) 50%, transparent 100%),
+      radial-gradient(0.6px 0.6px at 42%  68%, hsla(200, 40%, 95%, 0.55) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 51%   8%, hsla(195, 30%, 95%, 0.65) 50%, transparent 100%),
+      radial-gradient(0.8px 0.8px at 59%  55%, hsla(205, 35%, 92%, 0.60) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 67%  31%, hsla(195, 30%, 95%, 0.70) 50%, transparent 100%),
+      radial-gradient(0.6px 0.6px at 74%  77%, hsla(200, 40%, 95%, 0.55) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 82%  14%, hsla(195, 30%, 95%, 0.65) 50%, transparent 100%),
+      radial-gradient(0.8px 0.8px at 89%  62%, hsla(205, 35%, 92%, 0.60) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 95%  38%, hsla(195, 30%, 95%, 0.70) 50%, transparent 100%),
+      /* warm gold-amber stars */
+      radial-gradient(1px   1px   at 13%  35%, hsla(42, 85%, 85%, 0.65) 50%, transparent 100%),
+      radial-gradient(0.8px 0.8px at 29%  58%, hsla(38, 80%, 80%, 0.60) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 44%  91%, hsla(45, 90%, 88%, 0.70) 50%, transparent 100%),
+      radial-gradient(0.8px 0.8px at 63%  17%, hsla(42, 85%, 85%, 0.60) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 78%  44%, hsla(38, 80%, 80%, 0.65) 50%, transparent 100%),
+      radial-gradient(0.6px 0.6px at 88%  79%, hsla(45, 90%, 88%, 0.55) 50%, transparent 100%),
+      /* extra scatter — tiny sub-pixel dots */
+      radial-gradient(0.5px 0.5px at  3%  72%, hsla(195, 20%, 90%, 0.50) 50%, transparent 100%),
+      radial-gradient(0.5px 0.5px at 22%   4%, hsla(42,  20%, 90%, 0.45) 50%, transparent 100%),
+      radial-gradient(0.5px 0.5px at 38%  43%, hsla(220, 20%, 90%, 0.50) 50%, transparent 100%),
+      radial-gradient(0.5px 0.5px at 56%  88%, hsla(195, 20%, 90%, 0.45) 50%, transparent 100%),
+      radial-gradient(0.5px 0.5px at 71%   6%, hsla(42,  20%, 90%, 0.50) 50%, transparent 100%),
+      radial-gradient(0.5px 0.5px at 84%  52%, hsla(220, 20%, 90%, 0.45) 50%, transparent 100%),
+      radial-gradient(0.5px 0.5px at 97%  25%, hsla(195, 20%, 90%, 0.50) 50%, transparent 100%);
     background-size: 220px 220px;
     background-repeat: repeat;
     animation: space-drift-far 150s linear infinite;
   }
 
-  /* Mid layer — soft nebula glows, slow drift, the depth "anchor" */
+  /* Mid layer — 5 nebula blobs: blue, indigo, purple, magenta, teal — breathe slowly */
   .space-layer-mid {
-    opacity: 0.5;
+    animation: space-drift-mid 75s linear infinite, nebula-breathe 22s ease-in-out infinite;
     mix-blend-mode: soft-light;
     background-image:
-      radial-gradient(circle at 25% 30%, hsla(200, 80%, 60%, 0.45), transparent 45%),
-      radial-gradient(circle at 75% 70%, hsla(220, 70%, 55%, 0.4), transparent 50%),
-      radial-gradient(circle at 50% 90%, hsla(190, 75%, 58%, 0.3), transparent 55%);
+      radial-gradient(ellipse 55% 40% at 22% 28%, hsla(200, 85%, 62%, 0.50), transparent 70%),
+      radial-gradient(ellipse 50% 45% at 78% 65%, hsla(225, 75%, 58%, 0.45), transparent 70%),
+      radial-gradient(ellipse 45% 35% at 50% 88%, hsla(190, 78%, 60%, 0.35), transparent 70%),
+      radial-gradient(ellipse 40% 50% at 88% 18%, hsla(270, 65%, 55%, 0.38), transparent 70%),
+      radial-gradient(ellipse 48% 38% at 12% 72%, hsla(320, 60%, 55%, 0.32), transparent 70%);
     background-size: 100% 100%;
-    animation: space-drift-mid 75s linear infinite;
   }
 
-  /* Near layer — sparse, slightly brighter foreground stars */
+  /* Near layer — 12 brighter foreground stars, varied warm+cool colors */
   .space-layer-near {
-    opacity: 0.7;
+    opacity: 0.75;
     mix-blend-mode: screen;
     background-image:
-      radial-gradient(1.5px 1.5px at 30% 40%, hsla(42, 90%, 80%, 0.85) 50%, transparent 100%),
-      radial-gradient(1.5px 1.5px at 80% 20%, hsla(195, 60%, 95%, 0.8) 50%, transparent 100%),
-      radial-gradient(1.5px 1.5px at 60% 75%, hsla(38, 85%, 75%, 0.75) 50%, transparent 100%),
-      radial-gradient(1.5px 1.5px at 15% 65%, hsla(195, 60%, 95%, 0.7) 50%, transparent 100%);
+      radial-gradient(1.5px 1.5px at  8%  18%, hsla(42,  90%, 80%, 0.90) 50%, transparent 100%),
+      radial-gradient(2px   2px   at 23%  72%, hsla(195, 65%, 95%, 0.85) 50%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 37%  41%, hsla(38,  85%, 78%, 0.80) 50%, transparent 100%),
+      radial-gradient(2px   2px   at 52%   9%, hsla(195, 65%, 95%, 0.85) 50%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 64%  61%, hsla(45,  88%, 82%, 0.80) 50%, transparent 100%),
+      radial-gradient(2px   2px   at 79%  28%, hsla(195, 65%, 95%, 0.90) 50%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 91%  85%, hsla(42,  90%, 80%, 0.80) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 15%  54%, hsla(220, 70%, 90%, 0.75) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 46%  88%, hsla(38,  82%, 76%, 0.70) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 68%   4%, hsla(195, 60%, 92%, 0.75) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 83%  47%, hsla(42,  88%, 82%, 0.70) 50%, transparent 100%),
+      radial-gradient(1px   1px   at 97%  67%, hsla(220, 70%, 90%, 0.75) 50%, transparent 100%);
     background-size: 480px 480px;
     background-repeat: repeat;
     animation: space-drift-near 38s linear infinite;
   }
 
-  /* Static noise overlay — fine grain SVG, soft-light blend, ~4% opacity */
+  /* Aurora strip — faint northern-lights band across upper screen */
+  .space-aurora {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.08;
+    mix-blend-mode: screen;
+    background:
+      radial-gradient(ellipse 120% 35% at 50% 0%,
+        hsla(280, 80%, 65%, 0.9) 0%,
+        hsla(195, 90%, 65%, 0.6) 40%,
+        transparent 70%);
+    animation: aurora-shift 30s ease-in-out infinite alternate;
+  }
+
+  /* Static noise overlay — fine grain SVG, soft-light blend, ~5% opacity */
   .space-noise {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    opacity: 0.04;
+    opacity: 0.05;
     mix-blend-mode: soft-light;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
     background-size: 160px 160px;
   }
 
-  /* Diagonal drifts — different vectors per layer for natural depth.
-     Each animation translates by exactly one tile of background-size so
-     the loop is invisible. */
+  /* Drift keyframes */
   @keyframes space-drift-far {
     from { transform: translate3d(0, 0, 0); }
     to   { transform: translate3d(-220px, -220px, 0); }
@@ -347,62 +392,93 @@
     from { transform: translate3d(0, 0, 0); }
     to   { transform: translate3d(-480px, 240px, 0); }
   }
+
+  /* Nebula breathing — slow opacity pulse makes the sky feel alive */
+  @keyframes nebula-breathe {
+    0%, 100% { opacity: 0.48; }
+    50%       { opacity: 0.68; }
+  }
+
+  /* Aurora slow color-position drift */
+  @keyframes aurora-shift {
+    0%   { background-position: 0% 0%; transform: scaleX(1); }
+    50%  { background-position: 30% 0%; transform: scaleX(1.15); }
+    100% { background-position: 60% 0%; transform: scaleX(0.95); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .space-layer-far,
     .space-layer-mid,
-    .space-layer-near {
-      animation: none;
-    }
+    .space-layer-near,
+    .space-aurora { animation: none; }
+    .space-layer { transition: none; }
   }
 
-  /* === Additions: large accent stars === */
+  /* === Large accent stars — 22 positions, 4 color variants === */
   .space-large-star {
     position: absolute;
     border-radius: 9999px;
-    background: hsla(195, 60%, 96%, 1);
     opacity: var(--star-op, 0.5);
-    /* Sharp core + very soft glow — single small shadow, no halo ring */
-    box-shadow:
-      0 0 4px hsla(195, 70%, 90%, 0.55),
-      0 0 8px hsla(200, 80%, 75%, 0.25);
     will-change: opacity, transform;
-    animation: space-large-star-twinkle 7s ease-in-out infinite;
+    animation: space-large-star-twinkle var(--twinkle-dur, 7s) ease-in-out infinite;
     pointer-events: none;
     transform: translate(-50%, -50%);
   }
+  /* Color variants applied via inline style in the component */
+  .space-large-star.star-cyan {
+    background: hsla(195, 70%, 96%, 1);
+    box-shadow: 0 0 5px hsla(195, 80%, 85%, 0.6), 0 0 12px hsla(200, 90%, 70%, 0.25);
+  }
+  .space-large-star.star-gold {
+    background: hsla(45, 95%, 88%, 1);
+    box-shadow: 0 0 5px hsla(42, 90%, 80%, 0.6), 0 0 12px hsla(38, 85%, 65%, 0.25);
+  }
+  .space-large-star.star-purple {
+    background: hsla(270, 80%, 92%, 1);
+    box-shadow: 0 0 5px hsla(270, 70%, 80%, 0.6), 0 0 12px hsla(275, 75%, 65%, 0.25);
+  }
+  .space-large-star.star-white {
+    background: hsla(0, 0%, 98%, 1);
+    box-shadow: 0 0 4px hsla(0, 0%, 95%, 0.55), 0 0 10px hsla(200, 30%, 80%, 0.20);
+  }
   @keyframes space-large-star-twinkle {
     0%, 100% { opacity: var(--star-op, 0.5); transform: translate(-50%, -50%) scale(1); }
-    50%      { opacity: calc(var(--star-op, 0.5) * 0.55); transform: translate(-50%, -50%) scale(0.92); }
+    40%      { opacity: calc(var(--star-op, 0.5) * 1.2); transform: translate(-50%, -50%) scale(1.08); }
+    70%      { opacity: calc(var(--star-op, 0.5) * 0.5); transform: translate(-50%, -50%) scale(0.90); }
   }
 
-  /* === Additions: shooting stars === */
+  /* === Shooting stars — cyan + gold variants === */
   .space-shooting-star {
     position: absolute;
-    height: 1.5px;
+    height: 2px;
     pointer-events: none;
     will-change: transform, opacity;
     border-radius: 9999px;
-    /* Bright head on the leading edge, fading trail behind */
-    background: linear-gradient(
-      to right,
-      hsla(195, 100%, 96%, 0) 0%,
-      hsla(195, 90%, 92%, 0.35) 60%,
-      hsla(195, 100%, 98%, 0.95) 95%,
-      hsla(195, 100%, 100%, 1) 100%
-    );
-    /* Subtle bloom around the head only */
-    filter: drop-shadow(0 0 2px hsla(195, 90%, 90%, 0.6));
     opacity: 0;
     transform-origin: 100% 50%;
   }
-  /* Down-right diagonal — head points down-right (~30deg) */
+  .space-shooting-star.shoot-cyan {
+    background: linear-gradient(to right,
+      hsla(195, 100%, 96%, 0) 0%,
+      hsla(195, 90%, 92%, 0.30) 55%,
+      hsla(195, 100%, 98%, 0.95) 92%,
+      hsla(195, 100%, 100%, 1) 100%);
+    filter: drop-shadow(0 0 3px hsla(195, 90%, 90%, 0.7));
+  }
+  .space-shooting-star.shoot-gold {
+    background: linear-gradient(to right,
+      hsla(42, 100%, 90%, 0) 0%,
+      hsla(42, 90%, 85%, 0.30) 55%,
+      hsla(45, 100%, 92%, 0.95) 92%,
+      hsla(45, 100%, 100%, 1) 100%);
+    filter: drop-shadow(0 0 3px hsla(42, 90%, 85%, 0.7));
+  }
   .space-shooting-star.shoot-dir-r {
     transform: rotate(28deg) translate3d(0, 0, 0);
     animation-name: space-shoot-r;
     animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
     animation-fill-mode: forwards;
   }
-  /* Down-left diagonal — mirrored */
   .space-shooting-star.shoot-dir-l {
     transform: rotate(152deg) translate3d(0, 0, 0);
     animation-name: space-shoot-l;
@@ -410,14 +486,14 @@
     animation-fill-mode: forwards;
   }
   @keyframes space-shoot-r {
-    0%   { opacity: 0; transform: rotate(28deg) translate3d(0, 0, 0); }
-    10%  { opacity: 1; }
-    100% { opacity: 0; transform: rotate(28deg) translate3d(70vw, 0, 0); }
+    0%   { opacity: 0; transform: rotate(28deg)  translate3d(0, 0, 0); }
+    8%   { opacity: 1; }
+    100% { opacity: 0; transform: rotate(28deg)  translate3d(75vw, 0, 0); }
   }
   @keyframes space-shoot-l {
     0%   { opacity: 0; transform: rotate(152deg) translate3d(0, 0, 0); }
-    10%  { opacity: 1; }
-    100% { opacity: 0; transform: rotate(152deg) translate3d(70vw, 0, 0); }
+    8%   { opacity: 1; }
+    100% { opacity: 0; transform: rotate(152deg) translate3d(75vw, 0, 0); }
   }
   @media (prefers-reduced-motion: reduce) {
     .space-large-star { animation: none; }
