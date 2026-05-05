@@ -7,6 +7,8 @@ import MediaLightbox, { useMediaLightbox } from '@/components/MediaLightbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+
+const SUPABASE_URL = "https://dnsguhzzgxvymtjrraok.supabase.co";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp, LayoutGrid, BookOpen, Users, Plus, Video, FileText,
@@ -590,7 +592,7 @@ export default function MentorDashboard() {
       if (isEmail) {
         const { data: { session } } = await supabase.auth.getSession();
         const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-student`,
+          `${SUPABASE_URL}/functions/v1/invite-student`,
           {
             method: 'POST',
             headers: {
