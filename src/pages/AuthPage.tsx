@@ -7,8 +7,8 @@ import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info, Loader2 } from 'luc
 type Tab = 'mentor' | 'student';
 type MentorMode = 'login' | 'signup';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+const SUPABASE_URL = "https://dnsguhzzgxvymtjrraok.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuc2d1aHp6Z3h2eW10anJyYW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MTA2MjAsImV4cCI6MjA5MzI4NjYyMH0.5llm0eyAmfbHi19YHYnUc2nHDi1yITpXrw-ccKcEyms";
 const premiumEase = [0.22, 1, 0.36, 1] as const;
 
 export default function AuthPage() {
