@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,9 @@ import { LayoutGroup, AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import DashboardReveal from "@/components/DashboardReveal";
 import LightspeedTransition from "@/components/LightspeedTransition";
+import SpaceBackground from "@/components/SpaceBackground";
+import SpaceUniverse from "@/components/SpaceUniverse";
+import { useActiveTab, type PlanetId } from "@/lib/activeTabStore";
 import AuthPage from "./pages/AuthPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import MentorDashboard from "./pages/MentorDashboard";
@@ -49,6 +52,28 @@ function LoadingSpinner({ text = "טוען..." }: { text?: string }) {
       </div>
     </motion.div>
   );
+}
+
+/**
+ * RouteToPlanet — for non-tabbed routes, derive the active planet from the
+ * URL. Dashboards override this via their own activeTab → setPlanet effect.
+ */
+function RouteToPlanet() {
+  const location = useLocation();
+  const setPlanet = useActiveTab(s => s.setPlanet);
+  useEffect(() => {
+    const p = location.pathname;
+    let next: PlanetId = 'auth';
+    if (p === '/auth') next = 'auth';
+    else if (p.startsWith('/quiz')) next = 'quiz';
+    else if (p.startsWith('/mentor/quiz')) next = 'quizzes';
+    else if (p === '/livestream') next = 'livestream';
+    else if (p === '/journal' || p === '/dashboard' || p === '/analytics') next = 'journal';
+    else if (p === '/accept-invite') next = 'auth';
+    else if (p === '/') return; // dashboards manage themselves
+    setPlanet(next);
+  }, [location.pathname, setPlanet]);
+  return null;
 }
 
 function AppRoutes() {
@@ -173,6 +198,12 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          {/* Global backdrop — rendered once for the whole app so route
+              transitions don't flash the background and the SpaceUniverse
+              can persist its WebGL state across navigation. */}
+          <SpaceBackground />
+          <SpaceUniverse />
+          <RouteToPlanet />
           <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>

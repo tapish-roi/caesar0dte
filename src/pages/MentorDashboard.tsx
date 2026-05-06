@@ -7,6 +7,7 @@ import MediaLightbox, { useMediaLightbox } from '@/components/MediaLightbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useActiveTab, type PlanetId } from '@/lib/activeTabStore';
 
 const SUPABASE_URL = "https://dnsguhzzgxvymtjrraok.supabase.co";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -29,7 +30,6 @@ import MentorQuizzesHub from '@/components/MentorQuizzesHub';
 import LessonQA from '@/components/LessonQA';
 import LessonStudentProgress from '@/components/LessonStudentProgress';
 import MobileBottomNav from '@/components/MobileBottomNav';
-import SpaceBackground from '@/components/SpaceBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ChevronLeft } from 'lucide-react';
@@ -219,6 +219,8 @@ export default function MentorDashboard() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
+  const setPlanet = useActiveTab(s => s.setPlanet);
+  useEffect(() => { setPlanet(activeTab as PlanetId); }, [activeTab, setPlanet]);
   const [quizNavLessonId, setQuizNavLessonId] = useState<string | null>(null);
   // (journal moved to /journal route)
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
@@ -864,7 +866,6 @@ export default function MentorDashboard() {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden relative" dir="rtl">
-      <SpaceBackground />
       {/* Draft lesson alert */}
       <AlertDialog open={!!draftAlertLessonId} onOpenChange={(open) => { if (!open) setDraftAlertLessonId(null); }}>
         <AlertDialogContent dir="rtl" className="text-white">
