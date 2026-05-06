@@ -3,7 +3,6 @@ import MediaLightbox, { useMediaLightbox } from '@/components/MediaLightbox';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useActiveTab, type PlanetId } from '@/lib/activeTabStore';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -30,6 +29,7 @@ import ZoomHub from '@/components/ZoomHub';
 import LessonQA from '@/components/LessonQA';
 import StudentMyQuestions from '@/components/StudentMyQuestions';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import SpaceBackground from '@/components/SpaceBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -492,8 +492,6 @@ export default function StudentDashboard() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<SidebarTab>('lessons');
-  const setPlanet = useActiveTab(s => s.setPlanet);
-  useEffect(() => { setPlanet(activeTab as PlanetId); }, [activeTab, setPlanet]);
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
@@ -914,6 +912,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden relative" dir="rtl">
+      <SpaceBackground />
       {/* Mobile Header */}
       {isMobile && !lessonViewMode && (
         <div className="fixed top-0 left-0 right-0 z-30">
