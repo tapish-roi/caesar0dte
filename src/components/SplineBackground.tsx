@@ -10,9 +10,9 @@ const FRAME = {
 };
 
 const PLANET_NAMES: Record<Planet, string> = {
-  earth: 'Earth',
-  moon: 'Moon',
-  mars: 'Mars',
+  earth: 'earth',
+  moon: 'moon',
+  mars: 'mars',
 };
 
 export type Planet = 'earth' | 'moon' | 'mars';
