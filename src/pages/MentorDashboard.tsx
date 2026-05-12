@@ -30,6 +30,7 @@ import LessonQA from '@/components/LessonQA';
 import LessonStudentProgress from '@/components/LessonStudentProgress';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import SpaceBackground from '@/components/SpaceBackground';
+import SplineBackground from '@/components/SplineBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ChevronLeft } from 'lucide-react';
@@ -863,7 +864,11 @@ export default function MentorDashboard() {
   ];
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden relative" dir="rtl">
+    <div className="flex h-screen bg-background overflow-hidden relative isolate" dir="rtl">
+      {/* Spline 3D scene sits at z-[-1] (behind everything in-flow). The
+          original starfield mounts above it (z-[5], additive screen blend)
+          so distant stars layer over the Spline scene. */}
+      <SplineBackground />
       <SpaceBackground />
       {/* Draft lesson alert */}
       <AlertDialog open={!!draftAlertLessonId} onOpenChange={(open) => { if (!open) setDraftAlertLessonId(null); }}>

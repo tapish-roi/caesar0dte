@@ -250,19 +250,10 @@
       opacity 180ms ease,
       transform 180ms ease;
   }
-  /* Main content gradient background — preserved as the "Mid anchor" wash */
+  /* Overlay removed for now — main content area is fully transparent so
+     the Spline scene + starfield show through cleanly. */
   .main-content-gradient {
-    background: linear-gradient(
-      160deg,
-      hsl(220, 45%, 15%) 0%,
-      hsl(200, 50%, 22%) 30%,
-      hsl(190, 45%, 28%) 55%,
-      hsl(210, 40%, 20%) 80%,
-      hsl(230, 35%, 16%) 100%
-    );
-    /* Allow the fixed SpaceBackground (z-0) to show through faintly via
-       semi-transparent gradient stops — keep the wash itself opaque so
-       readability never drops. The parallax layers live behind it. */
+    background: transparent;
     position: relative;
   }
 
