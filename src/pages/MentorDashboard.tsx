@@ -30,7 +30,7 @@ import LessonQA from '@/components/LessonQA';
 import LessonStudentProgress from '@/components/LessonStudentProgress';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import SpaceBackground from '@/components/SpaceBackground';
-import SplineBackground from '@/components/SplineBackground';
+import SplineBackground, { type Planet } from '@/components/SplineBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ChevronLeft } from 'lucide-react';
@@ -868,7 +868,11 @@ export default function MentorDashboard() {
       {/* Spline 3D scene sits at z-[-1] (behind everything in-flow). The
           original starfield mounts above it (z-[5], additive screen blend)
           so distant stars layer over the Spline scene. */}
-      <SplineBackground />
+      <SplineBackground activePlanet={
+        activeTab === 'lessons' ? 'earth' :
+        activeTab === 'community' ? 'moon' :
+        activeTab === 'students' ? 'mars' : 'earth' as Planet
+      } />
       <SpaceBackground />
       {/* Draft lesson alert */}
       <AlertDialog open={!!draftAlertLessonId} onOpenChange={(open) => { if (!open) setDraftAlertLessonId(null); }}>

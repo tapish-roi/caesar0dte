@@ -30,7 +30,7 @@ import LessonQA from '@/components/LessonQA';
 import StudentMyQuestions from '@/components/StudentMyQuestions';
 import MobileBottomNav from '@/components/MobileBottomNav';
 import SpaceBackground from '@/components/SpaceBackground';
-import SplineBackground from '@/components/SplineBackground';
+import SplineBackground, { type Planet } from '@/components/SplineBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -916,7 +916,11 @@ export default function StudentDashboard() {
       {/* Spline 3D scene sits at z-[-1] (behind everything in-flow). The
           original starfield mounts above it (z-[5], additive screen blend)
           so distant stars layer over the Spline scene. */}
-      <SplineBackground />
+      <SplineBackground activePlanet={
+        activeTab === 'lessons' ? 'earth' :
+        activeTab === 'community' ? 'moon' :
+        activeTab === 'live' ? 'mars' : 'earth' as Planet
+      } />
       <SpaceBackground />
       {/* Mobile Header */}
       {isMobile && !lessonViewMode && (
