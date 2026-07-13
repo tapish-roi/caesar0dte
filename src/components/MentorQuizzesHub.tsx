@@ -78,6 +78,19 @@ interface DraftQuestion {
 
 function genId() { return Math.random().toString(36).slice(2); }
 
+// Bound a promise so a stalled request can never hang the UI forever. supabase-js
+// serialises requests behind an auth lock that a bad persisted session can wedge,
+// which would otherwise leave the quizzes list spinning indefinitely. On timeout
+// the query rejects → react-query surfaces an error state with a retry button.
+function withTimeout<T>(p: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    Promise.resolve(p),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`timeout after ${ms}ms: ${label}`)), ms),
+    ),
+  ]);
+}
+
 const defaultDraftQuestion = (): DraftQuestion => ({
   id: genId(),
   text: '',
@@ -1136,10 +1149,13 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
     },
   });
 
-  const { data: quizzes = [], isLoading } = useQuery<Quiz[]>({
+  const { data: quizzes = [], isLoading, isError, refetch, isFetching } = useQuery<Quiz[]>({
     queryKey: ['mentor-quizzes', mentorId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('quizzes').select('*').eq('mentor_id', mentorId).order('created_at', { ascending: false });
+      const { data, error } = await withTimeout(
+        supabase.from('quizzes').select('*').eq('mentor_id', mentorId).order('created_at', { ascending: false }),
+        15000, 'load quizzes',
+      );
       if (error) throw error;
       const enriched = await Promise.all((data ?? []).map(async (quiz) => {
         const [lessonRes, qCountRes, subCountRes] = await Promise.all([
@@ -1410,6 +1426,21 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                 <div className="text-center py-20 text-muted-foreground">
                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                   <p className="text-sm">טוען מבחנים...</p>
+                </div>
+              ) : isError ? (
+                <div className="text-center py-20 text-muted-foreground">
+                  <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                  <p className="font-medium">לא הצלחנו לטעון את המבחנים</p>
+                  <p className="text-sm mt-1">ייתכן שחיבור הרשת איטי או שהחיבור נותק. נסה/י שוב.</p>
+                  <button
+                    onClick={() => refetch()}
+                    disabled={isFetching}
+                    className="mt-4 inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    {isFetching
+                      ? <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />טוען...</>
+                      : 'נסה שוב'}
+                  </button>
                 </div>
               ) : filteredQuizzes.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">

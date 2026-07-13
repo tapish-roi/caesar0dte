@@ -112,22 +112,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (_event, session) => {
         try {
           if (!active) return;
-
-          // Before trusting ANY session supabase hands us, confirm the token is
-          // genuine with the server. A session restored from localStorage may be
-          // forged/tampered; without this, the app would paint a dashboard for a
-          // credential-less visitor (data stays protected by RLS, but the UI must
-          // still refuse to render). A definitive rejection purges the session and
-          // routes back to /auth; a network error leaves it alone.
-          if (session?.access_token && _event !== 'SIGNED_OUT') {
-            const verdict = await validateAccessToken(session.access_token);
-            if (!active) return;
-            if (verdict === 'invalid') {
-              hardLocalSignOut();
-              return;
-            }
-          }
-
+          // NOTE: this callback runs while supabase-js holds its auth lock
+          // (e.g. during session recovery / token refresh). Do NOT await a
+          // network request here — it would hold the lock and stall every data
+          // query. Server-side session validation is done in a separate effect
+          // below, decoupled from the lock.
           setSession(session);
           setUser(session?.user ?? null);
 
@@ -152,6 +141,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearTimeout(timeout);
     };
   }, []);
+
+  // Server-side session validation, decoupled from supabase's auth-state
+  // callback (which runs while the auth lock is held). A session restored from
+  // localStorage may be forged/tampered — supabase-js trusts it locally, so
+  // without this a credential-less visitor would paint the app (data stays
+  // protected by RLS, but the UI must still refuse to render). validateAccessToken
+  // uses a raw fetch (no auth lock) and a definitive rejection purges the session
+  // and routes back to /auth; a network error leaves it alone. Re-runs whenever
+  // the access token changes (initial load, refresh, login).
+  useEffect(() => {
+    const token = session?.access_token;
+    if (!token) return;
+    let active = true;
+    (async () => {
+      const verdict = await validateAccessToken(token);
+      if (active && verdict === 'invalid') hardLocalSignOut();
+    })();
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.access_token]);
 
   // If user is set but role is still null (e.g. stale session on reload), re-fetch role
   useEffect(() => {
