@@ -5,7 +5,6 @@ import {
   Activity,
   Calculator,
   CalendarRange,
-  Construction,
   RefreshCw,
   Loader2,
 } from 'lucide-react';
@@ -18,6 +17,7 @@ import TickerCard from './trading-calculator/TickerCard';
 import TickerInputTable from './trading-calculator/TickerInputTable';
 import EconomicCalendar from './trading-calculator/EconomicCalendar';
 import PositionCalculatorSection from './position-calculator/PositionCalculatorSection';
+import ComingSoonCard from './trading-calculator/ComingSoonCard';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Trading Calculator (מחשבון מסחר) — 3 sections via PageToggle:
@@ -229,13 +229,8 @@ export default function TradingCalculator() {
   // The מחשבון מסחר section is temporarily disabled while it's being rebuilt.
   // Remove this early return to restore the full calculator.
   return (
-    <div className="p-4 md:p-8 mx-auto max-w-2xl min-h-[60vh] flex items-center justify-center" dir="rtl">
-      <div className="flex flex-col items-center text-center gap-5 rounded-2xl border border-border bg-card/50 px-8 py-14 w-full">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-          <Construction className="w-8 h-8 text-primary" />
-        </div>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">בקרוב...</h1>
-      </div>
+    <div className="p-4 md:p-8 mx-auto max-w-2xl" dir="rtl">
+      <ComingSoonCard />
     </div>
   );
 
