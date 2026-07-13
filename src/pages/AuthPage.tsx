@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info, Loader2 } from 'lucide-react';
+import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info, Loader2, ArrowRight, CheckCircle } from 'lucide-react';
 import PlanetBackground from '@/components/PlanetBackground';
 
 type Tab = 'mentor' | 'student';
@@ -21,7 +21,37 @@ export default function AuthPage() {
   const [phone, setPhone] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Forgot-password sub-flow (shared across both tabs)
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const { toast } = useToast();
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    try {
+      // Build the redirect from BASE_URL so it lands on our reset page whether the
+      // app is served at root (dev / custom domain) or under the "/caesar0dte/"
+      // GitHub Pages sub-path. This URL must be allow-listed in Supabase Auth.
+      const redirectTo = `${window.location.origin}${import.meta.env.BASE_URL}reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), { redirectTo });
+      if (error) throw error;
+      setForgotSent(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
+      toast({ title: 'שגיאה', description: message, variant: 'destructive' });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const closeForgot = () => {
+    setForgotOpen(false);
+    setForgotSent(false);
+    setForgotEmail('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,6 +210,58 @@ export default function AuthPage() {
           </div>
 
           <div className="p-8">
+            {forgotOpen ? (
+              <motion.div key="forgot" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <button
+                  type="button"
+                  onClick={closeForgot}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+                >
+                  <ArrowRight className="w-4 h-4" /> חזרה
+                </button>
+
+                {forgotSent ? (
+                  <div className="text-center py-6 space-y-4">
+                    <div className="w-14 h-14 rounded-full bg-accent/15 flex items-center justify-center mx-auto">
+                      <CheckCircle className="w-7 h-7 text-accent" />
+                    </div>
+                    <h2 className="text-xl font-bold text-foreground">קישור נשלח</h2>
+                    <p className="text-sm text-muted-foreground">
+                      אם קיים חשבון עבור כתובת זו, נשלח אליו קישור לאיפוס הסיסמה. בדוק/י את תיבת הדואר
+                      (וגם את תיקיית הספאם).
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-xl font-bold text-foreground mb-1">איפוס סיסמה</h2>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      הזן/י את כתובת המייל שלך ונשלח לך קישור לאיפוס הסיסמה.
+                    </p>
+                    <form onSubmit={handleForgot} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-1.5">אימייל</label>
+                        <input
+                          type="email"
+                          value={forgotEmail}
+                          onChange={e => setForgotEmail(e.target.value)}
+                          required
+                          placeholder="you@example.com"
+                          dir="ltr"
+                          className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={forgotLoading}
+                        className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                      >
+                        {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'שלח קישור איפוס'}
+                      </button>
+                    </form>
+                  </>
+                )}
+              </motion.div>
+            ) : (
             <AnimatePresence mode="wait">
 
               {/* ── STUDENT TAB ── */}
@@ -245,6 +327,15 @@ export default function AuthPage() {
                       {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'כניסה'}
                     </button>
                   </form>
+                  <div className="text-center mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setForgotOpen(true)}
+                      className="text-sm text-accent font-medium hover:underline"
+                    >
+                      שכחתי סיסמה?
+                    </button>
+                  </div>
                 </motion.div>
               )}
 
@@ -373,6 +464,18 @@ export default function AuthPage() {
                     </button>
                   </form>
 
+                  {mentorMode === 'login' && (
+                    <div className="text-center mt-4">
+                      <button
+                        type="button"
+                        onClick={() => setForgotOpen(true)}
+                        className="text-sm text-accent font-medium hover:underline"
+                      >
+                        שכחתי סיסמה?
+                      </button>
+                    </div>
+                  )}
+
                   <p className="text-center text-xs text-muted-foreground mt-6">
                     {mentorMode === 'login' ? 'אין לך חשבון מנטור?' : 'כבר רשום?'}{' '}
                     <button
@@ -386,6 +489,7 @@ export default function AuthPage() {
               )}
 
             </AnimatePresence>
+            )}
           </div>
         </motion.div>
       </div>

@@ -14,6 +14,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Route-level code splitting — each page loads only when navigated to
 const AcceptInvitePage = lazy(() => import("./pages/AcceptInvitePage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const MentorDashboard = lazy(() => import("./pages/MentorDashboard"));
 const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
 const StudentQuizPage = lazy(() => import("./pages/StudentQuizPage"));
@@ -88,6 +89,10 @@ function AppRoutes() {
 
   // Determine the current "phase" for shared layout animation
   const isAcceptInvite = typeof window !== 'undefined' && window.location.pathname === '/accept-invite';
+  // Password-recovery landing. endsWith so it matches under the GitHub Pages
+  // "/caesar0dte/" sub-path too. Handled before auth-phase gating because the
+  // recovery token creates a session that would otherwise route to a dashboard.
+  const isResetPassword = typeof window !== 'undefined' && window.location.pathname.endsWith('/reset-password');
   const phase: 'auth' | 'loading-role' | 'dashboard' = loading
     ? 'auth'
     : (!user || roleCheckPending)
@@ -106,6 +111,17 @@ function AppRoutes() {
     }
     prevPhaseRef.current = phase;
   }, [phase, isAcceptInvite]);
+
+  if (isResetPassword) {
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="*" element={<ResetPasswordPage />} />
+        </Routes>
+      </Suspense>
+    );
+  }
 
   if (loading) return <LoadingSpinner />;
 
