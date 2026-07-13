@@ -22,6 +22,42 @@ const AuthContext = createContext<AuthContextType>({
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Public project identifiers (same values as integrations/supabase/client.ts —
+// the anon key is a public client key). Needed here to validate a persisted
+// session and to purge it from storage without going through the auth lock.
+const SUPABASE_URL = 'https://dnsguhzzgxvymtjrraok.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuc2d1aHp6Z3h2eW10anJyYW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MTA2MjAsImV4cCI6MjA5MzI4NjYyMH0.5llm0eyAmfbHi19YHYnUc2nHDi1yITpXrw-ccKcEyms';
+const AUTH_STORAGE_KEY = 'sb-dnsguhzzgxvymtjrraok-auth-token';
+
+// Independently confirm with the server that a session's access token is
+// genuine. supabase-js restores sessions from localStorage and trusts them
+// locally, so a forged/tampered token (attacker-writable storage) would
+// otherwise paint the app. This uses a raw fetch — NOT supabase.auth.getUser()
+// — because a poisoned session can wedge the client's auth lock, hanging every
+// SDK call; a plain fetch bypasses that entirely and returns in milliseconds.
+//   'valid'   – server accepted the JWT (200)
+//   'invalid' – server rejected it (401/403): forged, expired, or revoked
+//   'unknown' – network/timeout: cannot decide, so do NOT punish the user
+const validateAccessToken = async (
+  token: string,
+): Promise<'valid' | 'invalid' | 'unknown'> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    });
+    if (res.ok) return 'valid';
+    if (res.status === 401 || res.status === 403) return 'invalid';
+    return 'unknown';
+  } catch {
+    return 'unknown';
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -57,12 +93,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Tear down a session locally without relying on the supabase client, whose
+  // auth lock can be wedged by a poisoned session. Removing the storage key
+  // directly guarantees the forged/expired session is gone on the next load;
+  // the SDK sign-out is best-effort and must not be awaited (it may hang).
+  const hardLocalSignOut = () => {
+    try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch { /* storage disabled */ }
+    void supabase.auth.signOut({ scope: 'local' }).catch(() => { /* lock may be wedged */ });
+    setSession(null);
+    setUser(null);
+    setRole(null);
+    setLoading(false);
+  };
+
   useEffect(() => {
     let active = true;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         try {
           if (!active) return;
+
+          // Before trusting ANY session supabase hands us, confirm the token is
+          // genuine with the server. A session restored from localStorage may be
+          // forged/tampered; without this, the app would paint a dashboard for a
+          // credential-less visitor (data stays protected by RLS, but the UI must
+          // still refuse to render). A definitive rejection purges the session and
+          // routes back to /auth; a network error leaves it alone.
+          if (session?.access_token && _event !== 'SIGNED_OUT') {
+            const verdict = await validateAccessToken(session.access_token);
+            if (!active) return;
+            if (verdict === 'invalid') {
+              hardLocalSignOut();
+              return;
+            }
+          }
+
           setSession(session);
           setUser(session?.user ?? null);
 
