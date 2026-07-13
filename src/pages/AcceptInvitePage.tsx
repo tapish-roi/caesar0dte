@@ -57,7 +57,6 @@ export default function AcceptInvitePage() {
             // Let Supabase process the hash token
             // onAuthStateChange will fire — wait for session
             await new Promise<void>((resolve, reject) => {
-              const timeout = setTimeout(() => reject(new Error('תם הזמן לאימות הטוקן')), 8000);
               const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
                 if (session?.user) {
                   clearTimeout(timeout);
@@ -67,6 +66,11 @@ export default function AcceptInvitePage() {
                   else resolve();
                 }
               });
+              // Always tear down the listener on timeout too, or it leaks for the page's life.
+              const timeout = setTimeout(() => {
+                subscription.unsubscribe();
+                reject(new Error('תם הזמן לאימות הטוקן'));
+              }, 8000);
             });
           } else {
             throw new Error('לא ניתן להתחבר עם פרטים אלה. אנא בדוק/י את כתובת המייל.');
@@ -78,10 +82,11 @@ export default function AcceptInvitePage() {
       if (mentorId) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          await supabase.from('community_members').upsert(
+          const { error: joinErr } = await supabase.from('community_members').upsert(
             { student_id: session.user.id, mentor_id: mentorId },
             { onConflict: 'student_id,mentor_id' } as never
           );
+          if (joinErr) throw new Error('החשבון נוצר אך ההצטרפות לקהילת המנטור נכשלה. נסה/י שוב.');
         }
       }
 

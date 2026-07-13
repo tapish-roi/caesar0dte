@@ -7,15 +7,17 @@
  * 2. If no session ID, show active sessions the user can join
  * 3. Requires authentication — redirects to /auth if not logged in
  */
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Radio, ArrowRight, Users, Wifi, WifiOff } from 'lucide-react';
-import LiveRoom from '@/components/LiveRoom';
-import LiveRoomLK from '@/components/LiveRoomLK';
+// Lazy-loaded — LiveRoom is huge and LiveRoomLK pulls the entire LiveKit stack;
+// neither should weigh down the initial bundle or the lobby view of this page.
+const LiveRoom = lazy(() => import('@/components/LiveRoom'));
+const LiveRoomLK = lazy(() => import('@/components/LiveRoomLK'));
 
 interface ActiveSession {
   id: string;
@@ -118,10 +120,25 @@ export default function LivestreamPage() {
         navigate('/');
       },
     };
-    return useLiveKit ? (
-      <LiveRoomLK {...commonProps} />
-    ) : (
-      <LiveRoom {...commonProps} onSessionEnd={undefined} />
+    return (
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
+            <div className="text-center space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-destructive/20 flex items-center justify-center mx-auto">
+                <div className="w-5 h-5 border-2 border-destructive border-t-transparent rounded-full animate-spin" />
+              </div>
+              <p className="text-sm text-muted-foreground">מתחבר ללייב...</p>
+            </div>
+          </div>
+        }
+      >
+        {useLiveKit ? (
+          <LiveRoomLK {...commonProps} />
+        ) : (
+          <LiveRoom {...commonProps} onSessionEnd={undefined} />
+        )}
+      </Suspense>
     );
   }
 

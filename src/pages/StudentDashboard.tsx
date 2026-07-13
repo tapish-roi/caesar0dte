@@ -29,10 +29,10 @@ import ZoomHub from '@/components/ZoomHub';
 import LessonQA from '@/components/LessonQA';
 import StudentMyQuestions from '@/components/StudentMyQuestions';
 import MobileBottomNav from '@/components/MobileBottomNav';
-import SpaceBackground from '@/components/SpaceBackground';
-import SplineBackground, { type Planet } from '@/components/SplineBackground';
+import PlanetBackground, { type Planet } from '@/components/PlanetBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useLiquidGlass } from '@/hooks/use-liquid-glass';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 type SidebarTab = 'lessons' | 'community' | 'live' | 'questions' | 'calculator' | 'zoom';
@@ -488,6 +488,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
 export default function StudentDashboard() {
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
+  const sidebarGlassRef = useLiquidGlass<HTMLElement>();
 
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -912,16 +913,20 @@ export default function StudentDashboard() {
   ];
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden relative isolate" dir="rtl">
-      {/* Spline 3D scene sits at z-[-1] (behind everything in-flow). The
-          original starfield mounts above it (z-[5], additive screen blend)
-          so distant stars layer over the Spline scene. */}
-      <SplineBackground activePlanet={
-        activeTab === 'lessons' ? 'earth' :
-        activeTab === 'community' ? 'moon' :
-        activeTab === 'live' ? 'mars' : 'earth' as Planet
+    <div className="flex h-screen bg-transparent overflow-hidden relative isolate" dir="rtl">
+      {/* Lightweight three.js planet scene at z-[-1] (behind everything).
+          Each nav tab focuses a different planet with a crossfade. ~10x
+          lighter than the old Spline scene (no physics engine), 30fps-capped,
+          DPR-clamped — smooth on low-end machines. */}
+      <PlanetBackground activePlanet={
+        activeTab === 'lessons'    ? 'earth' :   // tab 1
+        activeTab === 'community'  ? 'moon' :    // tab 2
+        activeTab === 'zoom'       ? 'mars' :    // tab 3
+        activeTab === 'questions'  ? 'jupiter' : // tab 4
+        activeTab === 'calculator' ? 'saturn' :  // tab 5
+        activeTab === 'live'       ? 'neptune' : // tab 6
+        'earth' as Planet
       } />
-      <SpaceBackground />
       {/* Mobile Header */}
       {isMobile && !lessonViewMode && (
         <div className="fixed top-0 left-0 right-0 z-30">
@@ -983,7 +988,7 @@ export default function StudentDashboard() {
       )}
 
       {/* Sidebar - hidden on mobile */}
-      <aside className="hidden md:flex w-64 bg-sidebar border-s border-sidebar-border flex-col shrink-0 h-full">
+      <aside ref={sidebarGlassRef} className="hidden md:flex w-64 liquid-glass-sidebar border-s border-[var(--lg-border)] flex-col shrink-0 h-full">
         <AnimatePresence mode="wait">
           {lessonViewMode ? (
             /* ── Lesson View Mode Sidebar ── */
@@ -1175,7 +1180,7 @@ export default function StudentDashboard() {
                       disabled
                         ? 'is-disabled text-muted-foreground/40 cursor-not-allowed'
                         : activeTab === key
-                          ? 'is-active bg-sidebar-accent text-sidebar-foreground'
+                          ? 'is-active lg-nav-active text-sidebar-foreground'
                           : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     }`}
                   >

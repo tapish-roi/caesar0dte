@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info, Loader2 } from 'lucide-react';
+import PlanetBackground from '@/components/PlanetBackground';
 
 type Tab = 'mentor' | 'student';
 type MentorMode = 'login' | 'signup';
@@ -29,6 +30,7 @@ export default function AuthPage() {
     try {
       // Set guard flag to prevent AuthContext from navigating away during role check
       sessionStorage.setItem('auth_role_check', 'pending');
+      window.dispatchEvent(new Event('auth-role-check-changed'));
 
       if (tab === 'mentor' && mentorMode === 'signup') {
         // Mentor signup — use Edge Function to create user + profile + role atomically
@@ -95,15 +97,20 @@ export default function AuthPage() {
       setLoading(false);
     } finally {
       sessionStorage.removeItem('auth_role_check');
+      window.dispatchEvent(new Event('auth-role-check-changed'));
     }
   };
 
   return (
     <motion.div
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden auth-bg"
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4, ease: premiumEase }}
     >
+      {/* Live 3D planet scene behind the login card (same background as the
+          dashboards), so the space theme is visible before signing in. */}
+      <PlanetBackground activePlanet="earth" />
+
       {/* Background blobs */}
       <motion.div
         className="fixed inset-0 pointer-events-none overflow-hidden"

@@ -35,6 +35,17 @@ export function parseCsvText(csv: string): Record<string, string>[] {
   return out;
 }
 
+/**
+ * Parse a broker date string to an ISO timestamp, returning null (never throwing)
+ * on empty or unparseable input. `new Date(x).toISOString()` throws RangeError on
+ * an Invalid Date, which would otherwise abort the whole import.
+ */
+export function safeDateIso(dateStr: string | undefined | null): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 export function getField(row: Record<string, string>, ...keys: string[]): string {
   for (const k of keys) {
     if (row[k] != null && row[k] !== '') return row[k];

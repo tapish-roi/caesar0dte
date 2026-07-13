@@ -24,7 +24,10 @@ const groupKeyFor = (t: { symbol: string; option_legs?: unknown; strike?: number
   const legs = (t.option_legs as Array<{ right?: string }> | null | undefined) ?? null;
   if (legs && legs.length > 1) return `OPT|${t.symbol}|MULTI|${t.expiry_date ?? '-'}`;
   const right = legs?.[0]?.right ?? '?';
-  return `OPT|${t.symbol}|${right}|${t.strike ?? '-'}|${t.expiry_date ?? '-'}|${t.side ?? '-'}`;
+  // Deliberately exclude `side`: an expiration row is the CLOSING action and its
+  // recorded side can be the opposite of the open position's, which would otherwise
+  // cause the match to miss and insert a duplicate closed trade.
+  return `OPT|${t.symbol}|${right}|${t.strike ?? '-'}|${t.expiry_date ?? '-'}`;
 };
 
 export function reconcileExpirations(
@@ -70,13 +73,22 @@ export function reconcileExpirations(
     const queue = queues.get(k);
     if (queue && queue.length) {
       const open = queue.shift()!;
+      // Contract multiplier is a property of the OPEN position (an option), not of the
+      // parsed expiration row whose option_legs may be absent — reading p.option_legs
+      // here dropped the ×100 and produced P&L off by 100×.
+      const openIsOption = !!(open.option_legs || open.strike != null);
+      const mult = openIsOption ? 100 : 1;
+      // Expired worthless: a long loses the premium paid, a short keeps it.
+      const premiumPnl = open.entry_price
+        ? Number(open.entry_price) * Number(open.quantity) * mult * (open.side === 'long' ? -1 : 1)
+        : 0;
       toUpdate.push({
         id: open.id,
         patch: {
           status: 'closed',
           exit_price: 0,
           exit_date: p.exit_date ?? p.expiry_date ?? new Date().toISOString(),
-          net_pnl: -Number(open.commission ?? 0) - (open.entry_price ? Number(open.entry_price) * Number(open.quantity) * (p.option_legs ? 100 : 1) * (open.side === 'long' ? 1 : -1) : 0),
+          net_pnl: premiumPnl - Number(open.commission ?? 0),
         },
       });
       matched++;

@@ -102,8 +102,8 @@ export default function JournalCharts({ trades, strategies }: Props) {
             <YAxis tick={{ fontSize: 10 }} />
             <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
             <Bar dataKey="count">
-              {histogram.map((b, i) => (
-                <Cell key={i} fill={b.lo >= 0 ? 'hsl(142 76% 45%)' : 'hsl(var(--destructive))'} />
+              {histogram.map((b) => (
+                <Cell key={b.range} fill={b.lo >= 0 ? 'hsl(142 76% 45%)' : 'hsl(var(--destructive))'} />
               ))}
             </Bar>
           </BarChart>
@@ -115,7 +115,7 @@ export default function JournalCharts({ trades, strategies }: Props) {
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie data={winLoss} dataKey="value" nameKey="name" outerRadius={80} label>
-              {winLoss.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+              {winLoss.map((w, i) => <Cell key={w.name} fill={COLORS[i]} />)}
             </Pie>
             <Legend />
             <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
@@ -132,7 +132,7 @@ export default function JournalCharts({ trades, strategies }: Props) {
             <YAxis tick={{ fontSize: 10 }} />
             <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
             <Bar dataKey="pnl">
-              {byStrategy.map((d, i) => <Cell key={i} fill={d.pnl >= 0 ? 'hsl(142 76% 45%)' : 'hsl(var(--destructive))'} />)}
+              {byStrategy.map((d) => <Cell key={d.name} fill={d.pnl >= 0 ? 'hsl(142 76% 45%)' : 'hsl(var(--destructive))'} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -147,7 +147,7 @@ export default function JournalCharts({ trades, strategies }: Props) {
             <YAxis tick={{ fontSize: 10 }} />
             <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} />
             <Bar dataKey="pnl">
-              {bySymbol.map((d, i) => <Cell key={i} fill={d.pnl >= 0 ? 'hsl(142 76% 45%)' : 'hsl(var(--destructive))'} />)}
+              {bySymbol.map((d) => <Cell key={d.name} fill={d.pnl >= 0 ? 'hsl(142 76% 45%)' : 'hsl(var(--destructive))'} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>

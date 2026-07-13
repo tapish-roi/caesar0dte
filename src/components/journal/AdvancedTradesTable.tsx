@@ -53,6 +53,11 @@ export default function AdvancedTradesTable({ trades, strategies, isReadOnly, on
   const currentPage = Math.min(page, totalPages - 1);
   const view = sorted.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
+  // Only act on selections that still exist in the current (filtered) trade set —
+  // `selected` persists across pages and filter changes and can hold stale ids.
+  const tradeIds = useMemo(() => new Set(trades.map((t) => t.id)), [trades]);
+  const selectedIds = useMemo(() => [...selected].filter((id) => tradeIds.has(id)), [selected, tradeIds]);
+
   const toggleSort = (k: SortKey) => {
     if (k === sortKey) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortKey(k); setSortDir('desc'); }
@@ -88,9 +93,9 @@ export default function AdvancedTradesTable({ trades, strategies, isReadOnly, on
 
   return (
     <Card className="bg-card/60 backdrop-blur" dir="rtl">
-      {selected.size > 0 && !isReadOnly && (
+      {selectedIds.length > 0 && !isReadOnly && (
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-muted/30">
-          <span className="text-xs">{selected.size} נבחרו</span>
+          <span className="text-xs">{selectedIds.length} נבחרו</span>
           <Popover>
             <PopoverTrigger asChild>
               <Button size="sm" variant="outline" className="gap-1"><Tag className="h-3 w-3" /> הוסף תגיות</Button>
@@ -102,7 +107,7 @@ export default function AdvancedTradesTable({ trades, strategies, isReadOnly, on
                 onClick={() => {
                   const tags = tagInput.split(',').map((t) => t.trim()).filter(Boolean);
                   if (tags.length) {
-                    onBulkAddTags([...selected], tags);
+                    onBulkAddTags(selectedIds, tags);
                     setTagInput(''); setSelected(new Set());
                   }
                 }}
@@ -111,7 +116,7 @@ export default function AdvancedTradesTable({ trades, strategies, isReadOnly, on
           </Popover>
           <Button
             size="sm" variant="destructive" className="gap-1 ms-auto"
-            onClick={() => { onBulkDelete([...selected]); setSelected(new Set()); }}
+            onClick={() => { onBulkDelete(selectedIds); setSelected(new Set()); }}
           ><Trash2 className="h-3 w-3" /> מחק נבחרים</Button>
         </div>
       )}

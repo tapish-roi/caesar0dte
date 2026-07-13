@@ -82,15 +82,21 @@ export default function TradeCard({
   //   originalShares*(entry − newStop) + addShares*(addPrice − newStop) = riskAmount
   // ⇒ addShares = (riskAmount − originalShares*(entry − newStop)) / (addPrice − newStop)
   //
-  // Sign-aware via absolute values so it works for both long and short.
+  // The original-position term must be SIGNED (not abs): if the new stop is moved
+  // past entry to lock in a gain, that term is negative (a credit), freeing up more
+  // risk budget for the add. Using abs would wrongly treat a locked gain as spent risk.
   const addPriceNum = parseFloat(addPrice) || 0;
   const addStopNum = parseFloat(addStopPrice) || 0;
   const newRiskPerShare = addPriceNum && addStopNum && addPriceNum !== addStopNum
     ? Math.abs(addPriceNum - addStopNum)
     : 0;
 
+  // Signed remaining risk of the original position measured from entry to the new stop.
+  const originalSignedRiskPerShare = sideForCalc === 'long'
+    ? entryNum - addStopNum
+    : addStopNum - entryNum;
   const originalRiskAtNewStop =
-    addStopNum && entryNum ? result.shares * Math.abs(entryNum - addStopNum) : 0;
+    addStopNum && entryNum ? result.shares * originalSignedRiskPerShare : 0;
   const remainingRiskBudget = riskAmount - originalRiskAtNewStop;
   const addShares = newRiskPerShare > 0 && remainingRiskBudget > 0
     ? Math.floor(remainingRiskBudget / newRiskPerShare)

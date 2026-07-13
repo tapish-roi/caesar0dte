@@ -20,7 +20,7 @@ export default function MobileBottomNav({ items, activeTab, onTabChange }: Mobil
   const { toast } = useToast();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--glass-border)] backdrop-blur-md flex md:hidden h-16 pb-[env(safe-area-inset-bottom)]" style={{ background: 'var(--glass-bg)' }}>
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--lg-border)] flex md:hidden h-16 pb-[env(safe-area-inset-bottom)]" style={{ background: 'var(--lg-bg-strong)', backdropFilter: 'blur(var(--lg-blur)) saturate(var(--lg-saturate))', WebkitBackdropFilter: 'blur(var(--lg-blur)) saturate(var(--lg-saturate))' }}>
       {items.map(({ key, label, icon: Icon, badge, disabled }) => {
         const isActive = activeTab === key;
         return (

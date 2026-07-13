@@ -18,11 +18,33 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── Gate: only allow-listed emails may create a mentor account ──────
+    // MENTOR_ALLOWED_EMAILS is a Supabase secret: comma- or newline-separated
+    // list of authorized addresses. Not visible to clients; edit it server-side
+    // to add/remove mentors. Fails closed — if it is unset, no one can sign up.
+    const allowRaw = Deno.env.get('MENTOR_ALLOWED_EMAILS') ?? '';
+    const allowList = allowRaw
+      .split(/[,\n]/)
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (allowList.length === 0) {
+      console.error('MENTOR_ALLOWED_EMAILS is not configured — rejecting mentor signup');
+      return new Response(
+        JSON.stringify({ error: 'הרשמת מנטורים אינה זמינה כרגע. פנה למנהל המערכת.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    if (!allowList.includes(String(email).trim().toLowerCase())) {
+      return new Response(
+        JSON.stringify({ error: 'אימייל זה אינו מורשה ליצירת חשבון מנטור.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    console.log('SUPABASE_URL:', supabaseUrl ? 'set' : 'MISSING');
-    console.log('SUPABASE_SERVICE_ROLE_KEY:', serviceRoleKey ? 'set' : 'MISSING');
 
     // Admin client with service role key
     const adminClient = createClient(

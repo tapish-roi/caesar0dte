@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { lazy, Suspense, useState, useMemo } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import PerformanceSummary from '@/components/journal/PerformanceSummary';
 import JournalFilters, { applyFilters, emptyFilters, type JournalFilterState } from '@/components/journal/JournalFilters';
-import JournalCharts from '@/components/journal/JournalCharts';
+// Lazy — sole recharts consumer; keeps recharts out of the initial bundle
+const JournalCharts = lazy(() => import('@/components/journal/JournalCharts'));
 import AdvancedTradesTable from '@/components/journal/AdvancedTradesTable';
 import TradeDetailPanel from '@/components/journal/TradeDetailPanel';
 import TradeImportModal from '@/components/journal/TradeImportModal';
@@ -63,7 +64,11 @@ function JournalContent() {
         </span>
       </div>
 
-      {showAnalytics && <JournalCharts trades={filtered} strategies={strategies} />}
+      {showAnalytics && (
+        <Suspense fallback={<div className="h-64 rounded-xl bg-muted/30 animate-pulse" />}>
+          <JournalCharts trades={filtered} strategies={strategies} />
+        </Suspense>
+      )}
 
       <AdvancedTradesTable
         trades={filtered}

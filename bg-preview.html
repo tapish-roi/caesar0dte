@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Background preview (dev only)</title>
+  </head>
+  <body>
+    <!-- Dev-only harness: renders PlanetBackground standalone so the scene can
+         be reviewed without logging in. Served by `npm run dev` only — the
+         production build ignores this file (index.html is the sole entry). -->
+    <div id="root"></div>
+    <script type="module" src="/src/bg-preview.tsx"></script>
+  </body>
+</html>

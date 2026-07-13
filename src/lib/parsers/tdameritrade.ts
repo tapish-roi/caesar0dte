@@ -8,7 +8,7 @@
  * emit closed positions when matched. Anything still open → status='open'.
  */
 import type { ParseResult, NormalizedTrade, NormalizedSide, NormalizedStatus } from './types';
-import { parseCsvText, getField } from './csv';
+import { parseCsvText, getField, safeDateIso } from './csv';
 
 const isBuy = (desc: string) => /\bBOUGHT?\b|\bBUY\b|\bBOT\b/i.test(desc);
 const isSell = (desc: string) => /\bSOLD?\b|\bSELL\b/i.test(desc);
@@ -69,7 +69,7 @@ export function parseTdAmeritrade(csvText: string): ParseResult {
 
     const isOpt = isOption(desc, sym);
     const dateStr = getField(row, 'DATE', 'Date');
-    const date = dateStr ? new Date(dateStr).toISOString() : null;
+    const date = safeDateIso(dateStr);
     const qty = Math.abs(num(getField(row, 'QUANTITY', 'Quantity')));
     const price = Math.abs(num(getField(row, 'PRICE', 'Price')));
     const commission = Math.abs(num(getField(row, 'COMMISSION', 'Commission')) +

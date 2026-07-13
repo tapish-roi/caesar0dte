@@ -157,15 +157,3 @@ export function calculatePosition(i: PositionInputs): PositionResult {
 export function rPriceAt(n: number, side: Side, entryPrice: number, riskPerShare: number): number {
   return side === 'long' ? entryPrice + n * riskPerShare : entryPrice - n * riskPerShare;
 }
-
-export function blendedScaleOutR(rrRatio: number): number {
-  // 1/3 at +1R, 1/3 at +2R, 1/3 at target
-  return (1 + 2 + rrRatio) / 3;
-}
-
-export function consecutiveLossesUntilHalved(riskPctOfAccount: number): number {
-  // ln(0.5) / ln(1 − r), rounded
-  if (riskPctOfAccount <= 0 || riskPctOfAccount >= 100) return 0;
-  const r = riskPctOfAccount / 100;
-  return Math.round(Math.log(0.5) / Math.log(1 - r));
-}

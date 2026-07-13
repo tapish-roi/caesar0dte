@@ -1930,6 +1930,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopScreenShare, stopSpeakingDetection]);
 
+  // Tear down all media tracks / peers / audio contexts on unmount, regardless of
+  // how the room is closed (leave button, parent clearing activeSession, route change).
+  // Uses a ref so the unmount effect always runs the latest cleanup without re-firing.
+  const cleanupMediaTracksRef = useRef(cleanupMediaTracks);
+  cleanupMediaTracksRef.current = cleanupMediaTracks;
+  useEffect(() => () => cleanupMediaTracksRef.current(), []);
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Force mute (mentor)
   // ─────────────────────────────────────────────────────────────────────────────

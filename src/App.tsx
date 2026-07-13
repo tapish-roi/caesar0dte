@@ -5,19 +5,22 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LayoutGroup, AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import DashboardReveal from "@/components/DashboardReveal";
 import LightspeedTransition from "@/components/LightspeedTransition";
+// AuthPage stays eager — it's the first paint for logged-out users
 import AuthPage from "./pages/AuthPage";
-import AcceptInvitePage from "./pages/AcceptInvitePage";
-import MentorDashboard from "./pages/MentorDashboard";
-import StudentDashboard from "./pages/StudentDashboard";
-import StudentQuizPage from "./pages/StudentQuizPage";
-import MentorQuizEditor from "./pages/MentorQuizEditor";
-import LivestreamPage from "./pages/LivestreamPage";
-import JournalPage from "./pages/JournalPage";
-import NotFound from "./pages/NotFound";
 import ProtectedRoute from "@/components/ProtectedRoute";
+
+// Route-level code splitting — each page loads only when navigated to
+const AcceptInvitePage = lazy(() => import("./pages/AcceptInvitePage"));
+const MentorDashboard = lazy(() => import("./pages/MentorDashboard"));
+const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
+const StudentQuizPage = lazy(() => import("./pages/StudentQuizPage"));
+const MentorQuizEditor = lazy(() => import("./pages/MentorQuizEditor"));
+const LivestreamPage = lazy(() => import("./pages/LivestreamPage"));
+const JournalPage = lazy(() => import("./pages/JournalPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,7 +57,7 @@ function LoadingSpinner({ text = "טוען..." }: { text?: string }) {
 function AppRoutes() {
   const { user, role, loading, session } = useAuth();
   const queryClient = useQueryClient();
-  const prevTokenRef = useRef<string | null>(null);
+  const prevUserIdRef = useRef<string | null>(null);
   const [roleCheckPending, setRoleCheckPending] = useState(() =>
     typeof window !== 'undefined' && sessionStorage.getItem('auth_role_check') === 'pending'
   );
@@ -65,26 +68,23 @@ function AppRoutes() {
       setRoleCheckPending(sessionStorage.getItem('auth_role_check') === 'pending');
     };
     window.addEventListener('storage', handler);
-    // Also poll briefly since sessionStorage events don't fire in same tab
-    const interval = setInterval(handler, 200);
+    // Same-tab writes don't fire 'storage' — writers dispatch this custom event instead
+    window.addEventListener('auth-role-check-changed', handler);
     return () => {
       window.removeEventListener('storage', handler);
-      clearInterval(interval);
+      window.removeEventListener('auth-role-check-changed', handler);
     };
   }, []);
 
-  // Invalidate all cached queries when the access token changes (login/logout/session refresh)
+  // Invalidate all cached queries when the user identity changes (login/logout/account switch).
+  // Routine token refreshes for the same user keep the cache — data is user-scoped, not token-scoped.
   useEffect(() => {
-    const token = session?.access_token ?? null;
-    if (prevTokenRef.current !== null && prevTokenRef.current !== token) {
+    const userId = session?.user?.id ?? null;
+    if (prevUserIdRef.current !== userId) {
       queryClient.invalidateQueries();
     }
-    if (token !== null && prevTokenRef.current === null) {
-      // First time we get a real token — invalidate stale anon-key results
-      queryClient.invalidateQueries();
-    }
-    prevTokenRef.current = token;
-  }, [session?.access_token, queryClient]);
+    prevUserIdRef.current = userId;
+  }, [session?.user?.id, queryClient]);
 
   // Determine the current "phase" for shared layout animation
   const isAcceptInvite = typeof window !== 'undefined' && window.location.pathname === '/accept-invite';
@@ -111,10 +111,12 @@ function AppRoutes() {
 
   if (isAcceptInvite) {
     return (
-      <Routes>
-        <Route path="/accept-invite" element={<AcceptInvitePage />} />
-        <Route path="*" element={<AcceptInvitePage />} />
-      </Routes>
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/accept-invite" element={<AcceptInvitePage />} />
+          <Route path="*" element={<AcceptInvitePage />} />
+        </Routes>
+      </Suspense>
     );
   }
 
@@ -123,11 +125,13 @@ function AppRoutes() {
       <AnimatePresence mode="wait" initial={false}>
         {phase === 'auth' && (
           <motion.div key="auth" exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: premiumEase }}>
-            <Routes>
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/accept-invite" element={<AcceptInvitePage />} />
-              <Route path="*" element={<Navigate to="/auth" replace />} />
-            </Routes>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/accept-invite" element={<AcceptInvitePage />} />
+                <Route path="*" element={<Navigate to="/auth" replace />} />
+              </Routes>
+            </Suspense>
           </motion.div>
         )}
 
@@ -138,22 +142,24 @@ function AppRoutes() {
         {phase === 'dashboard' && (
           <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, ease: premiumEase }}>
             <DashboardReveal>
-              <Routes>
-                <Route
-                  path="/"
-                  element={role === 'mentor' ? <MentorDashboard /> : <StudentDashboard />}
-                />
-                <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
-                <Route path="/mentor/quiz/new" element={<MentorQuizEditor />} />
-                <Route path="/mentor/quiz/edit/:quizId" element={<MentorQuizEditor />} />
-                <Route path="/livestream" element={<LivestreamPage />} />
-                <Route path="/journal" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
-                <Route path="/dashboard" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
-                <Route path="/analytics" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
-                <Route path="/accept-invite" element={<AcceptInvitePage />} />
-                <Route path="/auth" element={<Navigate to="/" replace />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                  <Route
+                    path="/"
+                    element={role === 'mentor' ? <MentorDashboard /> : <StudentDashboard />}
+                  />
+                  <Route path="/quiz/:quizId" element={<StudentQuizPage />} />
+                  <Route path="/mentor/quiz/new" element={<MentorQuizEditor />} />
+                  <Route path="/mentor/quiz/edit/:quizId" element={<MentorQuizEditor />} />
+                  <Route path="/livestream" element={<LivestreamPage />} />
+                  <Route path="/journal" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
+                  <Route path="/dashboard" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
+                  <Route path="/analytics" element={<ProtectedRoute><JournalPage /></ProtectedRoute>} />
+                  <Route path="/accept-invite" element={<AcceptInvitePage />} />
+                  <Route path="/auth" element={<Navigate to="/" replace />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </DashboardReveal>
           </motion.div>
         )}
@@ -172,7 +178,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
           <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>

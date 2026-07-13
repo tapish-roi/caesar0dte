@@ -7,7 +7,7 @@
  * an execution and FIFO match per Instrument.
  */
 import type { ParseResult, NormalizedTrade, NormalizedSide } from './types';
-import { parseCsvText, getField } from './csv';
+import { parseCsvText, getField, safeDateIso } from './csv';
 
 interface Exec {
   external_id: string;
@@ -40,7 +40,7 @@ export function parseNinjaTrader(csvText: string): ParseResult {
     const price = Math.abs(num(getField(row, 'Price')));
     const commission = Math.abs(num(getField(row, 'Commission')));
     const dateStr = getField(row, 'Time', 'Date', 'Date/Time');
-    const date = dateStr ? new Date(dateStr).toISOString() : null;
+    const date = safeDateIso(dateStr);
     const id = getField(row, 'Trade #', 'TradeID', 'ID') || `nt-${idx}`;
     if (!qty || !price) {
       errors.push({ row: idx + 1, message: `שורה ללא כמות/מחיר: ${sym}` });

@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Upload, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { parseAny } from '@/lib/parsers/detect';
-import { dedupAgainstExisting } from '@/lib/dedup';
+import { dedupAgainstExisting, tradeFingerprint } from '@/lib/dedup';
 import { reconcileExpirations } from '@/lib/expiration-matcher';
 import { useTrades } from '@/contexts/TradesContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,11 +37,12 @@ export default function TradeImportModal({ open, onClose }: Props) {
       const r = parseAny(text);
       setParsed(r);
       const existingIds = new Set(trades.map((t) => t.external_id).filter(Boolean) as string[]);
-      const existingFps = new Set<string>(); // simple: rely on external_id
+      const existingFps = new Set<string>(trades.map((t) => tradeFingerprint(t)));
       const { fresh: f, duplicates: d } = dedupAgainstExisting(
         r.trades.map((p) => ({
           external_id: p.external_id, symbol: p.symbol, entry_date: p.entry_date,
           quantity: p.quantity, entry_price: p.entry_price, side: p.side,
+          strike: p.strike, expiry_date: p.expiry_date,
         })),
         existingIds, existingFps,
       );
@@ -65,8 +66,12 @@ export default function TradeImportModal({ open, onClose }: Props) {
       for (const u of rec.toUpdate) {
         await supabase.from('trades').update(u.patch).eq('id', u.id);
       }
-      // Insert new trades (dedupe handled by upsert on external_id)
-      const result = await addTrades(rec.toInsert);
+      // Drop rows that duplicate existing trades (by external_id or content fingerprint)
+      // before inserting — external_id upsert alone misses trades without broker IDs.
+      const existingIds = new Set(trades.map((t) => t.external_id).filter(Boolean) as string[]);
+      const existingFps = new Set<string>(trades.map((t) => tradeFingerprint(t)));
+      const { fresh: freshToInsert } = dedupAgainstExisting(rec.toInsert, existingIds, existingFps);
+      const result = await addTrades(freshToInsert);
       await refetch();
       toast({
         title: 'ייבוא הצליח',

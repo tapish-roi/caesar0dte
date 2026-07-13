@@ -24,7 +24,10 @@ export default function PerformanceSummary({ trades, showDemo }: Props) {
     const avgWin = wins.length ? winSum / wins.length : 0;
     const avgLoss = losses.length ? lossSum / losses.length : 0;
     const profitFactor = lossSum < 0 ? winSum / Math.abs(lossSum) : winSum > 0 ? Infinity : 0;
-    const winRate = closed.length ? wins.length / closed.length : 0;
+    // Win rate over decisive trades only — breakeven (net_pnl === 0) trades don't
+    // belong in the denominator, or a strategy that never lost can still show <100%.
+    const decisive = wins.length + losses.length;
+    const winRate = decisive ? wins.length / decisive : 0;
     const best = closed.reduce((b, x) => (Number(x.net_pnl) > Number(b?.net_pnl ?? -Infinity) ? x : b), closed[0]);
     const worst = closed.reduce((b, x) => (Number(x.net_pnl) < Number(b?.net_pnl ?? Infinity) ? x : b), closed[0]);
 

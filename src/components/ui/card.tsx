@@ -1,18 +1,32 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { useLiquidGlass } from "@/hooks/use-liquid-glass";
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-2xl border border-[var(--glass-border)] text-card-foreground shadow-card backdrop-blur-sm transition-all duration-300 hover:shadow-card-hover hover:brightness-105",
-      className
-    )}
-    style={{ background: 'var(--glass-bg)' }}
-    {...props}
-  />
-));
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => {
+  const glassRef = useLiquidGlass<HTMLDivElement>();
+
+  // Merge the forwarded ref with the internal liquid-glass ref.
+  const setRefs = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      (glassRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      if (typeof ref === "function") ref(node);
+      else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    },
+    [ref, glassRef]
+  );
+
+  return (
+    <div
+      ref={setRefs}
+      className={cn(
+        "liquid-glass rounded-2xl text-card-foreground transition-all duration-300",
+        className
+      )}
+      {...props}
+    />
+  );
+});
 Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(

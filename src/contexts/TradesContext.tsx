@@ -164,11 +164,15 @@ export function TradesProvider({ children, viewingUserId = null }: ProviderProps
         toast({ title: 'שגיאת עדכון תגיות', description: error.message, variant: 'destructive' });
       }
     } else {
-      // add: per-row merge to avoid duplicates
-      for (const t of trades.filter((x) => ids.includes(x.id))) {
-        const merged = Array.from(new Set([...(t.tags ?? []), ...tags]));
-        await supabase.from('trades').update({ tags: merged }).eq('id', t.id);
-      }
+      // add: per-row merge to avoid duplicates — run updates in parallel (was sequential N+1)
+      await Promise.all(
+        trades
+          .filter((x) => ids.includes(x.id))
+          .map((t) => {
+            const merged = Array.from(new Set([...(t.tags ?? []), ...tags]));
+            return supabase.from('trades').update({ tags: merged }).eq('id', t.id);
+          })
+      );
     }
     await refetch();
   };

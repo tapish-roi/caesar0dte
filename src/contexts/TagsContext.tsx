@@ -45,18 +45,21 @@ export function TagsProvider({ children, viewingUserId = null }: { children: Rea
     if (isReadOnly || !user?.id) return;
     const trimmed = name.trim();
     if (!trimmed) return;
-    const { error } = await supabase.from('user_tags').insert({ user_id: user.id, name: trimmed });
+    const { data, error } = await supabase
+      .from('user_tags').insert({ user_id: user.id, name: trimmed })
+      .select().single();
     if (error && !error.message.includes('duplicate')) {
       toast({ title: 'שגיאה ביצירת תגית', description: error.message, variant: 'destructive' });
-    } else {
-      await refetch();
+    } else if (data) {
+      // Insert the returned row locally, keeping the name-sorted order
+      setTags((curr) => [...curr, data as UserTag].sort((a, b) => a.name.localeCompare(b.name)));
     }
   };
 
   const deleteTag = async (id: string) => {
     if (isReadOnly) return;
     const { error } = await supabase.from('user_tags').delete().eq('id', id);
-    if (!error) await refetch();
+    if (!error) setTags((curr) => curr.filter((t) => t.id !== id));
   };
 
   const value = useMemo(() => ({

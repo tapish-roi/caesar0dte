@@ -11,6 +11,8 @@
  *   ZOOM_CLIENT_SECRET — from Zoom marketplace app
  */
 
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -23,13 +25,45 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // ── Auth: require valid Supabase session ──────────────────────────
+    // ── Auth: require a valid Supabase session belonging to a mentor ──
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Validate the caller's JWT (previously only the "Bearer " prefix was checked,
+    // so any string passed — this actually verifies the token against auth).
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user: caller }, error: authError } =
+      await callerClient.auth.getUser();
+    if (authError || !caller) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Only mentors may create Zoom meetings.
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: roleRow } = await adminClient
+      .from("user_roles").select("role")
+      .eq("user_id", caller.id).eq("role", "mentor").maybeSingle();
+    if (!roleRow) {
+      return new Response(
+        JSON.stringify({ error: "Only mentors can create meetings" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // ── Parse request body ────────────────────────────────────────────

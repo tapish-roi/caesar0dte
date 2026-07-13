@@ -49,6 +49,22 @@
     --card-shadow: var(--glass-shadow);
     --card-shadow-hover: var(--glass-shadow-hover);
 
+    /* === Liquid Glass (Apple-style) === */
+    --lg-blur: 28px;
+    --lg-saturate: 180%;
+    --lg-bg:        hsla(200, 42%, 13%, 0.72);   /* card/popover base — readable */
+    --lg-bg-strong: hsla(220, 34%, 11%, 0.52);   /* sidebar — more transparent glass */
+    --lg-highlight: hsla(0, 0%, 100%, 0.10);     /* top edge light catch */
+    --lg-inner-stroke: hsla(0, 0%, 100%, 0.08);  /* 1px inset top stroke */
+    --lg-border: hsla(195, 45%, 60%, 0.16);      /* hairline refractive border */
+    --lg-sheen: hsla(195, 80%, 75%, 0.14);       /* cursor specular tint (cyan) */
+    --lg-sheen-core: hsla(190, 90%, 82%, 0.22);  /* brighter sheen core */
+    --lg-edge-light: hsla(190, 80%, 90%, 0.55);  /* top specular "light catch" streak */
+    --lg-ease: cubic-bezier(0.22, 1, 0.36, 1);   /* premium ease-out expo */
+    --lg-shadow: 0 8px 34px rgba(0, 0, 0, 0.34), inset 0 1px 0 hsla(0, 0%, 100%, 0.06);
+    --lg-shadow-hover: 0 18px 52px rgba(0, 0, 0, 0.42), 0 0 26px hsla(190, 65%, 55%, 0.16),
+                       inset 0 1px 0 hsla(0, 0%, 100%, 0.10);
+
     /* Sidebar */
     --sidebar-background: 220 32% 11%;
     --sidebar-foreground: 195 20% 88%;
@@ -88,6 +104,10 @@
     --sidebar-accent-foreground: 195 20% 88%;
     --sidebar-border: 200 22% 16%;
     --sidebar-ring: 42 70% 50%;
+
+    /* === Liquid Glass — dark variant (slightly deeper) === */
+    --lg-bg:        hsla(200, 42%, 11%, 0.74);
+    --lg-bg-strong: hsla(220, 34%, 9%, 0.54);
   }
 }
 
@@ -107,7 +127,9 @@
   body {
     @apply text-foreground;
     font-family: 'IBM Plex Sans Hebrew', 'Segoe UI', system-ui, sans-serif;
-    background: hsl(220, 30%, 14%);
+    /* Spline scene provides the background — keep body near-black so
+       there's no flash of white while the 3D scene loads */
+    background: #050810;
     min-height: 100vh;
     min-height: 100dvh;
     font-feature-settings: "tnum";
@@ -182,14 +204,14 @@
        • Soft border + shadow  — clean separation from background */
   .bg-card {
     background-image:
-      linear-gradient(to bottom, hsla(0, 0%, 100%, 0.04), transparent 35%);
-    background-color: hsl(var(--card) / 0.96) !important;
-    backdrop-filter: blur(14px) saturate(120%);
-    -webkit-backdrop-filter: blur(14px) saturate(120%);
-    border: 1px solid hsla(0, 0%, 100%, 0.06);
+      linear-gradient(to bottom, var(--lg-highlight), transparent 32%);
+    background-color: var(--lg-bg) !important;
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+    border: 1px solid var(--lg-border);
     box-shadow:
-      0 8px 30px rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 hsla(0, 0%, 100%, 0.05);
+      var(--lg-shadow),
+      inset 0 1px 0 var(--lg-inner-stroke);
     transition:
       transform 200ms ease,
       box-shadow 200ms ease,
@@ -197,14 +219,177 @@
   }
   .bg-popover {
     background-image:
-      linear-gradient(to bottom, hsla(0, 0%, 100%, 0.04), transparent 35%);
-    background-color: hsl(var(--popover) / 0.97) !important;
-    backdrop-filter: blur(14px) saturate(120%);
-    -webkit-backdrop-filter: blur(14px) saturate(120%);
-    border: 1px solid hsla(0, 0%, 100%, 0.06);
+      linear-gradient(to bottom, var(--lg-highlight), transparent 32%);
+    background-color: var(--lg-bg) !important;
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+    border: 1px solid var(--lg-border);
     box-shadow:
-      0 8px 30px rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 hsla(0, 0%, 100%, 0.05);
+      var(--lg-shadow),
+      inset 0 1px 0 var(--lg-inner-stroke);
+  }
+
+  /* === Liquid Glass — reusable surfaces ==================================
+     Frosted, legible glass with an optional cursor-tracked specular sheen.
+     The sheen coordinates (--mx/--my) are set by the useLiquidGlass hook on
+     pointer move; without the hook the highlight simply sits at the top. */
+  .liquid-glass {
+    position: relative;
+    isolation: isolate;
+    background-image:
+      linear-gradient(to bottom, var(--lg-highlight), transparent 30%),
+      linear-gradient(to top, hsla(220, 40%, 4%, 0.18), transparent 40%);
+    background-color: var(--lg-bg);
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate));
+    border: 1px solid var(--lg-border);
+    box-shadow: var(--lg-shadow), inset 0 1px 0 var(--lg-inner-stroke);
+    transition:
+      box-shadow 260ms var(--lg-ease),
+      border-color 260ms var(--lg-ease),
+      transform 260ms var(--lg-ease);
+  }
+  /* Cursor-tracked specular sheen — dual-stop for a wetter "liquid" core */
+  .liquid-glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: radial-gradient(
+      220px circle at var(--mx, 50%) var(--my, 0%),
+      var(--lg-sheen-core) 0%,
+      var(--lg-sheen) 35%,
+      transparent 62%
+    );
+    opacity: 0;
+    transition: opacity 240ms var(--lg-ease);
+    pointer-events: none;
+  }
+  /* Top-edge specular "light catch" — the signature Apple glass rim highlight */
+  .liquid-glass::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      100deg,
+      transparent 0%,
+      var(--lg-edge-light) 42%,
+      hsla(45, 90%, 88%, 0.35) 55%,
+      transparent 72%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .liquid-glass:hover::before {
+    opacity: 1;
+  }
+  .liquid-glass:hover {
+    box-shadow: var(--lg-shadow-hover);
+    border-color: hsla(195, 55%, 65%, 0.28);
+    transform: translateY(-2px);
+  }
+  .liquid-glass:active {
+    transform: translateY(0) scale(0.995);
+    transition-duration: 120ms;
+  }
+
+  /* Sidebar variant — full-height panel, slightly more opaque, stronger blur,
+     inner top stroke + soft cast shadow along its inner edge. Carries the same
+     cursor sheen as .liquid-glass. */
+  .liquid-glass-sidebar {
+    position: relative;
+    isolation: isolate;
+    background-image:
+      linear-gradient(to bottom, var(--lg-highlight), transparent 16%),
+      linear-gradient(to bottom, transparent 70%, hsla(220, 40%, 4%, 0.22));
+    background-color: var(--lg-bg-strong);
+    backdrop-filter: blur(calc(var(--lg-blur) + 8px)) saturate(var(--lg-saturate));
+    -webkit-backdrop-filter: blur(calc(var(--lg-blur) + 8px)) saturate(var(--lg-saturate));
+    box-shadow:
+      inset 0 1px 0 var(--lg-inner-stroke),
+      4px 0 30px rgba(0, 0, 0, 0.28);
+  }
+  /* Very soft, diffuse ambient wash that follows the cursor — no bright core,
+     large falloff, slow fade. Intentionally subtle so it reads as gentle
+     ambient light on the glass rather than a moving spotlight. */
+  .liquid-glass-sidebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(
+      440px circle at var(--mx, 50%) var(--my, 30%),
+      hsla(195, 65%, 72%, 0.045),
+      transparent 68%
+    );
+    opacity: 0;
+    transition: opacity 480ms var(--lg-ease);
+    pointer-events: none;
+  }
+  /* Masked 1px specular rim around the whole panel — bright "light catch" at
+     the top, tapering down, matching the card edge treatment. */
+  .liquid-glass-sidebar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    padding: 1px;
+    background: linear-gradient(
+      to bottom,
+      var(--lg-edge-light) 0%,
+      hsla(45, 90%, 88%, 0.30) 12%,
+      hsla(195, 60%, 70%, 0.12) 40%,
+      transparent 78%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.7;
+    pointer-events: none;
+  }
+  .liquid-glass-sidebar:hover::before {
+    opacity: 1;
+  }
+
+  /* Active nav-tab "glass chip" — a gold-tinted liquid-glass pill used on the
+     selected sidebar item so the interior matches the panel's glass language. */
+  .lg-nav-active {
+    position: relative;
+    background-image:
+      linear-gradient(180deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.04)),
+      linear-gradient(to bottom, var(--lg-highlight), transparent 55%);
+    background-color: hsla(200, 40%, 20%, 0.32);
+    border: 1px solid hsl(var(--primary) / 0.24);
+    box-shadow:
+      inset 0 1px 0 var(--lg-inner-stroke),
+      0 2px 12px -3px hsl(var(--primary) / 0.30);
+    backdrop-filter: blur(8px) saturate(140%);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .liquid-glass::before,
+    .liquid-glass-sidebar::before {
+      display: none;
+    }
+    .liquid-glass,
+    .liquid-glass:hover,
+    .liquid-glass:active,
+    .liquid-glass-sidebar {
+      transition: none;
+      transform: none;
+    }
   }
 
   /* Opt-in: subtle hover lift for interactive cards/tiles. Apply

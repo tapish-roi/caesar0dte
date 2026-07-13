@@ -1110,6 +1110,78 @@ export type Database = {
         }
         Relationships: []
       }
+      zoom_scheduled: {
+        Row: {
+          created_at: string
+          host_id: string
+          host_name: string
+          id: string
+          meeting_id: string | null
+          scheduled_at: string
+          status: string
+          title: string
+          zoom_url: string
+        }
+        Insert: {
+          created_at?: string
+          host_id: string
+          host_name: string
+          id?: string
+          meeting_id?: string | null
+          scheduled_at: string
+          status?: string
+          title: string
+          zoom_url: string
+        }
+        Update: {
+          created_at?: string
+          host_id?: string
+          host_name?: string
+          id?: string
+          meeting_id?: string | null
+          scheduled_at?: string
+          status?: string
+          title?: string
+          zoom_url?: string
+        }
+        Relationships: []
+      }
+      zoom_sessions: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          host_id: string
+          host_name: string
+          id: string
+          meeting_id: string | null
+          status: string
+          title: string
+          zoom_url: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          host_id: string
+          host_name: string
+          id?: string
+          meeting_id?: string | null
+          status?: string
+          title: string
+          zoom_url: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          host_id?: string
+          host_name?: string
+          id?: string
+          meeting_id?: string | null
+          status?: string
+          title?: string
+          zoom_url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

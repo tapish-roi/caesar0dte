@@ -67,17 +67,21 @@ export function StrategiesProvider({ children, viewingUserId = null }: { childre
       toast({ title: 'שגיאת יצירה', description: error.message, variant: 'destructive' });
       return null;
     }
-    await refetch();
+    // Append the returned row locally (list is ordered by created_at asc, so new goes last)
+    setStrategies((curr) => [...curr, data as Strategy]);
     return data as Strategy;
   };
 
   const updateStrategy: StrategiesContextValue['updateStrategy'] = async (id, patch) => {
     if (!guard()) return;
-    const { error } = await supabase.from('strategies').update(patch).eq('id', id);
+    const { data, error } = await supabase
+      .from('strategies').update(patch).eq('id', id)
+      .select().single();
     if (error) {
       toast({ title: 'שגיאת עדכון', description: error.message, variant: 'destructive' });
     } else {
-      await refetch();
+      // Apply the server-returned row in place — no full-table refetch needed
+      setStrategies((curr) => curr.map((s) => (s.id === id ? (data as Strategy) : s)));
     }
   };
 
@@ -87,7 +91,7 @@ export function StrategiesProvider({ children, viewingUserId = null }: { childre
     if (error) {
       toast({ title: 'שגיאת מחיקה', description: error.message, variant: 'destructive' });
     } else {
-      await refetch();
+      setStrategies((curr) => curr.filter((s) => s.id !== id));
     }
   };
 

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Check, ChevronDown, X, CalendarDays } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import type { TradeRow } from '@/contexts/TradesContext';
 import type { Strategy } from '@/contexts/StrategiesContext';
@@ -156,8 +156,10 @@ export function applyFilters(trades: TradeRow[], f: JournalFilterState): TradeRo
     if (f.dateRange?.from) {
       const d = t.entry_date ? new Date(t.entry_date) : null;
       if (!d) return false;
-      if (d < f.dateRange.from) return false;
-      if (f.dateRange.to && d > f.dateRange.to) return false;
+      // Compare against day boundaries so a trade any time on the end day is included
+      // and one at the start of the from-day isn't excluded.
+      if (d < startOfDay(f.dateRange.from)) return false;
+      if (f.dateRange.to && d > endOfDay(f.dateRange.to)) return false;
     }
     return true;
   });
