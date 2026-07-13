@@ -527,9 +527,11 @@ interface Meteor {
 interface Spin { spin: THREE.Object3D; clouds?: THREE.Object3D }
 
 export function createPlanetScene(canvas: HTMLCanvasElement): SceneApi {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' });
-  const lowEnd = (navigator.hardwareConcurrency ?? 4) <= 4;
-  renderer.setPixelRatio(lowEnd ? 1 : Math.min(window.devicePixelRatio, 1.5));
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  // Render at full retina resolution (cap 2×) so the scene stays crisp on
+  // high-DPI phones. Very weak devices (≤2 cores) stay at 1.5× to protect them.
+  const lowEnd = (navigator.hardwareConcurrency ?? 4) <= 2;
+  renderer.setPixelRatio(lowEnd ? 1.5 : Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 1);
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.outputColorSpace = THREE.SRGBColorSpace; // sRGB-encode output (three's default) — bright, natural planets
