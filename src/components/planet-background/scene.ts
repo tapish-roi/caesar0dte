@@ -24,7 +24,10 @@ export type Planet = 'earth' | 'moon' | 'mars' | 'jupiter' | 'saturn' | 'neptune
 
 const ROTATION_PERIOD_S = 120; // one slow west→east turn — subtle, seamless
 const MAX_FPS = 30;
-const TEX = (f: string) => `/textures/${f}`;
+// Respect Vite's base path (e.g. "/caesar0dte/" on GitHub Pages) so texture URLs
+// resolve under the deployed sub-path instead of the domain root. BASE_URL ends
+// with a slash, so we don't add a leading one after it.
+const TEX = (f: string) => `${import.meta.env.BASE_URL}textures/${f}`;
 
 // Sun key-light from the right, slightly behind — the design's "deep space at
 // night" crescent on the eastern limb (this is the value the user tuned every

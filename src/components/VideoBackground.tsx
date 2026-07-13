@@ -11,7 +11,10 @@ export type Planet = 'earth' | 'moon' | 'mars' | 'saturn' | 'jupiter';
 
 // Assets live in public/backgrounds/. See public/backgrounds/README.md for specs.
 // Missing files degrade gracefully (see above) — ship the wiring before the media.
-const asset = (planet: Planet, ext: string) => `/backgrounds/${planet}.${ext}`;
+// Respect Vite's base path (e.g. "/caesar0dte/" on GitHub Pages) so asset URLs
+// resolve under the deployed sub-path. BASE_URL ends with a slash.
+const asset = (planet: Planet, ext: string) =>
+  `${import.meta.env.BASE_URL}backgrounds/${planet}.${ext}`;
 
 // Deep-space fallback shown when neither video nor poster is available.
 const SPACE_BG =
