@@ -16,11 +16,18 @@ import { useTags } from '@/contexts/TagsContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { formatBytes, uploadErrorText } from '@/lib/upload';
 
 interface Props {
   trade: TradeRow | null;
   onClose: () => void;
 }
+
+// The trade-images bucket carries no file_size_limit of its own, so uploads are
+// bounded by Supabase's project-wide global limit (50 MB by default). This guard
+// mirrors that so an oversize screenshot fails instantly with a readable message
+// rather than as an opaque network error after the bytes are already on the wire.
+const MAX_IMAGE_BYTES = 50 * 1024 ** 2; // 50 MB
 
 const fmt = (n: number | null | undefined) => n == null ? '—' : Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
 
@@ -69,21 +76,37 @@ export default function TradeDetailPanel({ trade, onClose }: Props) {
   };
   const removeTag = (t: string) => updateTradeTags(trade.id, (trade.tags ?? []).filter((x) => x !== t));
 
+  // Every await below can reject — a dropped connection, a CORS failure, or the
+  // proxy's 413 when the file is oversize (that one reaches the browser as an
+  // opaque network failure). Clearing the busy flag in a `finally` is what keeps
+  // a rejection from leaving the spinner turning forever with no way out.
   const onUpload = async (files: FileList | null) => {
     if (!files || !user) return;
     setUploading(true);
     const urls: string[] = [];
-    for (const f of Array.from(files)) {
-      const path = `${user.id}/${trade.id}/${crypto.randomUUID()}-${f.name}`;
-      const { error } = await supabase.storage.from('trade-images').upload(path, f);
-      if (error) {
-        toast({ title: 'שגיאת העלאה', description: error.message, variant: 'destructive' });
-      } else {
-        urls.push(path);
+    try {
+      for (const f of Array.from(files)) {
+        try {
+          if (f.size > MAX_IMAGE_BYTES) {
+            throw new Error(
+              `הקובץ גדול מדי (${formatBytes(f.size)}). הגודל המרבי הוא ${formatBytes(MAX_IMAGE_BYTES)}.`,
+            );
+          }
+          const path = `${user.id}/${trade.id}/${crypto.randomUUID()}-${f.name}`;
+          const { error } = await supabase.storage.from('trade-images').upload(path, f);
+          if (error) throw error;
+          urls.push(path);
+        } catch (err) {
+          // One bad file shouldn't abandon the rest of the selection.
+          toast({ title: 'שגיאה בהעלאה', description: uploadErrorText(err), variant: 'destructive' });
+        }
       }
+      if (urls.length) await updateTradeImages(trade.id, [...(trade.images ?? []), ...urls]);
+    } catch (err) {
+      toast({ title: 'שגיאה בשמירת התמונות', description: uploadErrorText(err), variant: 'destructive' });
+    } finally {
+      setUploading(false);
     }
-    if (urls.length) await updateTradeImages(trade.id, [...(trade.images ?? []), ...urls]);
-    setUploading(false);
   };
 
   const removeImage = async (path: string) => {

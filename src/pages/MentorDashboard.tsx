@@ -21,6 +21,7 @@ import {
 import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
 import { useToast } from '@/hooks/use-toast';
+import { formatBytes, uploadErrorText } from '@/lib/upload';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
 import ZoomHub from '@/components/ZoomHub';
@@ -169,6 +170,14 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
     </div>
   );
 }
+
+// Per-file upload cap. Mirrors the lesson-assets bucket's file_size_limit (see
+// supabase/migrations/20260713210000_lesson_assets_5gb_limit.sql). This check is
+// a courtesy so an oversize file fails instantly with a readable message instead
+// of after a long upload; the bucket limit is what actually enforces it, and
+// Supabase applies the SMALLER of the bucket limit and the project-wide global
+// limit — so raising this constant alone changes nothing.
+const MAX_UPLOAD_BYTES = 5 * 1024 ** 3; // 5 GiB
 
 type SidebarTab = 'lessons' | 'community' | 'students' | 'live' | 'questions' | 'quizzes' | 'calculator' | 'zoom';
 type PostType = 'discussion' | 'media';
@@ -441,37 +450,49 @@ export default function MentorDashboard() {
     },
   });
 
-  const handleFileUpload = async (file: File): Promise<string> => {
-    setIsUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `${user!.id}/${Date.now()}.${ext}`;
-    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
-    setIsUploading(false);
-    if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
-    return publicUrl;
+  // Every upload here goes through this one helper. The `finally` is the load-
+  // bearing part: `upload()` doesn't only return `{ error }` — it *rejects* on a
+  // network drop, and on a 413 from the size limit (the proxy's 413 carries no
+  // CORS headers, so the browser surfaces it as a failed fetch). Clearing the
+  // busy flag after the `await` instead of in a `finally` meant any of those left
+  // the spinner turning forever with no way out. That was the stuck upload.
+  const uploadAsset = async (
+    file: File,
+    path: string,
+    setBusy: (busy: boolean) => void,
+  ): Promise<string> => {
+    if (file.size > MAX_UPLOAD_BYTES) {
+      throw new Error(
+        `הקובץ גדול מדי (${formatBytes(file.size)}). הגודל המרבי הוא ${formatBytes(MAX_UPLOAD_BYTES)}.`,
+      );
+    }
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.storage
+        .from('lesson-assets')
+        .upload(path, file, { upsert: false });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+      return publicUrl;
+    } finally {
+      setBusy(false);
+    }
   };
 
+  const assetPath = (file: File, prefix = '') =>
+    `${prefix}${user!.id}/${Date.now()}.${file.name.split('.').pop()}`;
+
+  const handleFileUpload = (file: File): Promise<string> =>
+    uploadAsset(file, assetPath(file), setIsUploading);
+
   const handleAttachmentUpload = async (file: File): Promise<{ url: string; name: string }> => {
-    setIsAttachmentUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `attachments/${user!.id}/${Date.now()}.${ext}`;
-    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
-    setIsAttachmentUploading(false);
-    if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
-    return { url: publicUrl, name: file.name };
+    const url = await uploadAsset(file, assetPath(file, 'attachments/'), setIsAttachmentUploading);
+    return { url, name: file.name };
   };
 
   const handlePostFileUpload = async (file: File): Promise<{ url: string; type: string }> => {
-    setIsPostUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `posts/${user!.id}/${Date.now()}.${ext}`;
-    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
-    setIsPostUploading(false);
-    if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
-    return { url: publicUrl, type: file.type.startsWith('video') ? 'video' : 'image' };
+    const url = await uploadAsset(file, assetPath(file, 'posts/'), setIsPostUploading);
+    return { url, type: file.type.startsWith('video') ? 'video' : 'image' };
   };
 
   const createLesson = useMutation({
@@ -520,26 +541,12 @@ export default function MentorDashboard() {
     onError: () => toast({ title: 'שגיאה בעדכון השיעור', variant: 'destructive' }),
   });
 
-  const handleEditVideoUpload = async (file: File): Promise<string> => {
-    setIsEditVideoUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `${user!.id}/${Date.now()}.${ext}`;
-    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
-    setIsEditVideoUploading(false);
-    if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
-    return publicUrl;
-  };
+  const handleEditVideoUpload = (file: File): Promise<string> =>
+    uploadAsset(file, assetPath(file), setIsEditVideoUploading);
 
   const handleEditAttachmentUpload = async (file: File): Promise<{ url: string; name: string }> => {
-    setIsEditAttachmentUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `attachments/${user!.id}/${Date.now()}.${ext}`;
-    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
-    setIsEditAttachmentUploading(false);
-    if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
-    return { url: publicUrl, name: file.name };
+    const url = await uploadAsset(file, assetPath(file, 'attachments/'), setIsEditAttachmentUploading);
+    return { url, name: file.name };
   };
 
   const togglePublish = useMutation({
@@ -720,14 +727,8 @@ export default function MentorDashboard() {
   });
 
   const handleEditPostFileUpload = async (file: File): Promise<{ url: string; type: string }> => {
-    setIsEditPostUploading(true);
-    const ext = file.name.split('.').pop();
-    const path = `posts/${user!.id}/${Date.now()}.${ext}`;
-    const { data, error } = await supabase.storage.from('lesson-assets').upload(path, file, { upsert: false });
-    setIsEditPostUploading(false);
-    if (error) throw error;
-    const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
-    return { url: publicUrl, type: file.type.startsWith('video') ? 'video' : 'image' };
+    const url = await uploadAsset(file, assetPath(file, 'posts/'), setIsEditPostUploading);
+    return { url, type: file.type.startsWith('video') ? 'video' : 'image' };
   };
 
   const deletePost = useMutation({
@@ -877,6 +878,7 @@ export default function MentorDashboard() {
         activeTab === 'zoom'       ? 'jupiter' : // tab 4
         activeTab === 'questions'  ? 'saturn' :  // tab 5
         activeTab === 'quizzes'    ? 'neptune' : // tab 6 (מבחנים)
+        activeTab === 'calculator' ? 'hd' :      // tab 7 (מחשבון מסחר) — HD 189733 b
         'earth' as Planet
       } />
       {/* Draft lesson alert */}
@@ -1393,7 +1395,7 @@ export default function MentorDashboard() {
                           const { url, type } = await handlePostFileUpload(file);
                           setPostMediaUrl(url); setPostMediaType(type);
                           toast({ title: 'הקובץ הועלה בהצלחה' });
-                        } catch { toast({ title: 'שגיאה בהעלאה', variant: 'destructive' }); }
+                        } catch (err) { toast({ title: 'שגיאה בהעלאה', description: uploadErrorText(err), variant: 'destructive' }); }
                       }}
                     />
                     {postMediaUrl ? (
@@ -1847,7 +1849,7 @@ export default function MentorDashboard() {
                           const url = await handleFileUpload(file);
                           setLessonForm(f => ({ ...f, video_url: url }));
                           toast({ title: 'הקובץ הועלה בהצלחה' });
-                        } catch { toast({ title: 'שגיאה בהעלאה', variant: 'destructive' }); }
+                        } catch (err) { toast({ title: 'שגיאה בהעלאה', description: uploadErrorText(err), variant: 'destructive' }); }
                       }}
                     />
                     {lessonForm.video_url ? (
@@ -1867,7 +1869,7 @@ export default function MentorDashboard() {
                           : <>
                             <Upload className="w-5 h-5" />
                             <span className="text-xs font-medium">{isPresentation ? 'לחץ להעלאת מצגת או וידאו' : 'לחץ להעלאת וידאו'}</span>
-                            <span className="text-xs opacity-60">{isPresentation ? 'MP4, PDF, PPT, PPTX' : 'MP4, MOV, AVI'}</span>
+                            <span className="text-xs opacity-60">{isPresentation ? 'MP4, PDF, PPT, PPTX' : 'MP4, MOV, AVI'} · עד {formatBytes(MAX_UPLOAD_BYTES)}</span>
                           </>
                         }
                       </button>
@@ -2018,7 +2020,7 @@ export default function MentorDashboard() {
                             const { url, type } = await handleEditPostFileUpload(file);
                             setEditPostMediaUrl(url); setEditPostMediaType(type);
                             toast({ title: 'הקובץ הועלה בהצלחה' });
-                          } catch { toast({ title: 'שגיאה בהעלאה', variant: 'destructive' }); }
+                          } catch (err) { toast({ title: 'שגיאה בהעלאה', description: uploadErrorText(err), variant: 'destructive' }); }
                         }}
                       />
                       {editPostMediaUrl ? (
@@ -2119,7 +2121,7 @@ export default function MentorDashboard() {
                           const url = await handleEditVideoUpload(file);
                           setEditForm(f => ({ ...f, video_url: url }));
                           toast({ title: 'הוידאו הוחלף בהצלחה' });
-                        } catch { toast({ title: 'שגיאה בהעלאה', variant: 'destructive' }); }
+                        } catch (err) { toast({ title: 'שגיאה בהעלאה', description: uploadErrorText(err), variant: 'destructive' }); }
                       }}
                     />
                     {editForm.video_url ? (
