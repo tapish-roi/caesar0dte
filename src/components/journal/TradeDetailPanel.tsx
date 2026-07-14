@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { formatBytes, uploadErrorText } from '@/lib/upload';
+import { withTimeout, uploadTimeoutMs } from '@/lib/withTimeout';
 
 interface Props {
   trade: TradeRow | null;
@@ -93,7 +94,13 @@ export default function TradeDetailPanel({ trade, onClose }: Props) {
             );
           }
           const path = `${user.id}/${trade.id}/${crypto.randomUUID()}-${f.name}`;
-          const { error } = await supabase.storage.from('trade-images').upload(path, f);
+          // `finally` cannot rescue a promise that never settles; the watchdog is
+          // what forces a stalled connection to eventually reject.
+          const { error } = await withTimeout(
+            supabase.storage.from('trade-images').upload(path, f),
+            uploadTimeoutMs(f.size),
+            'ההעלאה',
+          );
           if (error) throw error;
           urls.push(path);
         } catch (err) {

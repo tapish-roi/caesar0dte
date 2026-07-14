@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { withTimeout } from '@/lib/withTimeout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ClipboardList, Plus, Trash2, Eye, EyeOff, BookOpen, Users,
@@ -77,19 +78,6 @@ interface DraftQuestion {
 }
 
 function genId() { return Math.random().toString(36).slice(2); }
-
-// Bound a promise so a stalled request can never hang the UI forever. supabase-js
-// serialises requests behind an auth lock that a bad persisted session can wedge,
-// which would otherwise leave the quizzes list spinning indefinitely. On timeout
-// the query rejects → react-query surfaces an error state with a retry button.
-function withTimeout<T>(p: PromiseLike<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    Promise.resolve(p),
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`timeout after ${ms}ms: ${label}`)), ms),
-    ),
-  ]);
-}
 
 const defaultDraftQuestion = (): DraftQuestion => ({
   id: genId(),

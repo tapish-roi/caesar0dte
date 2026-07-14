@@ -22,6 +22,7 @@ import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
 import { useToast } from '@/hooks/use-toast';
 import { formatBytes, uploadErrorText } from '@/lib/upload';
+import { withTimeout, uploadTimeoutMs } from '@/lib/withTimeout';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
 import ZoomHub from '@/components/ZoomHub';
@@ -468,9 +469,13 @@ export default function MentorDashboard() {
     }
     setBusy(true);
     try {
-      const { data, error } = await supabase.storage
-        .from('lesson-assets')
-        .upload(path, file, { upsert: false });
+      // `finally` only runs once the promise settles — a stalled connection never
+      // settles at all, so the watchdog is what guarantees it eventually does.
+      const { data, error } = await withTimeout(
+        supabase.storage.from('lesson-assets').upload(path, file, { upsert: false }),
+        uploadTimeoutMs(file.size),
+        'ההעלאה',
+      );
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
       return publicUrl;
@@ -589,30 +594,65 @@ export default function MentorDashboard() {
       const trimmed = contact.trim();
       const isEmail = trimmed.includes('@');
 
+      // Each step below is bounded. None of them used to be: a request that stalled
+      // rather than failed left the mutation pending forever, which the UI shows as
+      // a permanently greyed-out "send" button and — because nothing ever rejects —
+      // no error toast at all. Silence was the whole bug; now every path reports.
+
       // 1. Create the invite record
-      const { data: inviteData, error: insertError } = await supabase
-        .from('community_invites')
-        .insert({ mentor_id: user!.id, invited_by: user!.id, contact: trimmed })
-        .select('id')
-        .single();
+      const { data: inviteData, error: insertError } = await withTimeout(
+        supabase
+          .from('community_invites')
+          .insert({ mentor_id: user!.id, invited_by: user!.id, contact: trimmed })
+          .select('id')
+          .single(),
+        20_000,
+        'יצירת ההזמנה',
+      );
       if (insertError) throw insertError;
 
       // 2. If email invite → create student account + send invite email via edge function
       if (isEmail) {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(
-          `${SUPABASE_URL}/functions/v1/invite-student`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${session?.access_token}`,
-            },
-            body: JSON.stringify({ inviteId: inviteData.id, email: trimmed, mentorId: user!.id }),
-          }
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          10_000,
+          'אימות ההתחברות',
         );
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || 'שגיאה בשליחת ההזמנה');
+        if (!session?.access_token) {
+          throw new Error('פג תוקף ההתחברות. התחבר מחדש ונסה שוב.');
+        }
+
+        // The edge function sends the mail; on a cold start plus SMTP it can take a
+        // while, so give it 60s — but never let it hang the button indefinitely.
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 60_000);
+        let res: Response;
+        try {
+          res = await fetch(
+            `${SUPABASE_URL}/functions/v1/invite-student`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ inviteId: inviteData.id, email: trimmed, mentorId: user!.id }),
+              signal: controller.signal,
+            }
+          );
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') {
+            throw new Error('שליחת המייל לא הסתיימה תוך 60 שניות. ההזמנה נוצרה — נסה לשלוח שוב.');
+          }
+          throw new Error(`לא ניתן להגיע לשרת המיילים: ${err instanceof Error ? err.message : String(err)}`);
+        } finally {
+          clearTimeout(timer);
+        }
+
+        // A non-JSON body (a gateway 502/504, or the function crashing) would make
+        // res.json() throw something unreadable; report the status instead.
+        const json = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(json?.error || `שגיאה בשליחת ההזמנה (${res.status})`);
       }
     },
     onSuccess: () => {
