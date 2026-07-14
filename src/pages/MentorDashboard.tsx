@@ -9,6 +9,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 const SUPABASE_URL = "https://dnsguhzzgxvymtjrraok.supabase.co";
+// Public anon key (same value as integrations/supabase/client.ts, which is
+// generated and not meant to be edited). Needed to talk to the storage REST
+// endpoint directly — storage-js exposes no upload progress events.
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuc2d1aHp6Z3h2eW10anJyYW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MTA2MjAsImV4cCI6MjA5MzI4NjYyMH0.5llm0eyAmfbHi19YHYnUc2nHDi1yITpXrw-ccKcEyms";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp, LayoutGrid, BookOpen, Users, Plus, Video, FileText,
@@ -21,8 +25,8 @@ import {
 import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
 import { useToast } from '@/hooks/use-toast';
-import { formatBytes, uploadErrorText } from '@/lib/upload';
-import { withTimeout, uploadTimeoutMs } from '@/lib/withTimeout';
+import { formatBytes, uploadErrorText, uploadWithProgress } from '@/lib/upload';
+import { withTimeout } from '@/lib/withTimeout';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
 import ZoomHub from '@/components/ZoomHub';
@@ -243,6 +247,10 @@ export default function MentorDashboard() {
   const [newCatTitle, setNewCatTitle] = useState('');
   const [inviteContact, setInviteContact] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  // Percent of the in-flight upload (null when idle / size not yet known). A bare
+  // spinner cannot distinguish "slowly uploading a 34 MB video" from "frozen" —
+  // which is exactly how the stuck upload looked. Show the number.
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [isAttachmentUploading, setIsAttachmentUploading] = useState(false);
   const [isPostUploading, setIsPostUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -468,19 +476,28 @@ export default function MentorDashboard() {
       );
     }
     setBusy(true);
+    setUploadPct(0);
     try {
-      // `finally` only runs once the promise settles — a stalled connection never
-      // settles at all, so the watchdog is what guarantees it eventually does.
-      const { data, error } = await withTimeout(
-        supabase.storage.from('lesson-assets').upload(path, file, { upsert: false }),
-        uploadTimeoutMs(file.size),
-        'ההעלאה',
+      const { data: { session } } = await withTimeout(
+        supabase.auth.getSession(),
+        10_000,
+        'אימות ההתחברות',
       );
-      if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(data.path);
+      if (!session?.access_token) {
+        throw new Error('פג תוקף ההתחברות. התחבר מחדש ונסה שוב.');
+      }
+      await uploadWithProgress({
+        url: `${SUPABASE_URL}/storage/v1/object/lesson-assets/${encodeURI(path)}`,
+        token: session.access_token,
+        apikey: SUPABASE_ANON_KEY,
+        file,
+        onProgress: (p) => setUploadPct(p.percent),
+      });
+      const { data: { publicUrl } } = supabase.storage.from('lesson-assets').getPublicUrl(path);
       return publicUrl;
     } finally {
       setBusy(false);
+      setUploadPct(null);
     }
   };
 
@@ -1905,7 +1922,15 @@ export default function MentorDashboard() {
                         className="w-full h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-accent hover:text-accent transition-all disabled:opacity-50"
                       >
                         {isUploading
-                          ? <><div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" /><span className="text-xs">מעלה...</span></>
+                          ? <>
+                            <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                            <span className="text-xs">{uploadPct === null ? 'מעלה...' : `מעלה... ${uploadPct}%`}</span>
+                            {uploadPct !== null && (
+                              <div className="w-2/3 h-1 bg-border rounded-full overflow-hidden">
+                                <div className="h-full bg-accent transition-all" style={{ width: `${uploadPct}%` }} />
+                              </div>
+                            )}
+                          </>
                           : <>
                             <Upload className="w-5 h-5" />
                             <span className="text-xs font-medium">{isPresentation ? 'לחץ להעלאת מצגת או וידאו' : 'לחץ להעלאת וידאו'}</span>
