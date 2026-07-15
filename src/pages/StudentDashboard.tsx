@@ -920,7 +920,7 @@ export default function StudentDashboard() {
           DPR-clamped — smooth on low-end machines. */}
       <PlanetBackground activePlanet={
         activeTab === 'lessons'    ? 'earth' :   // tab 1
-        activeTab === 'community'  ? 'moon' :    // tab 2
+        activeTab === 'community'  ? 'hd' :      // tab 2
         activeTab === 'zoom'       ? 'mars' :    // tab 3
         activeTab === 'questions'  ? 'jupiter' : // tab 4
         activeTab === 'calculator' ? 'saturn' :  // tab 5
@@ -1351,7 +1351,7 @@ export default function StudentDashboard() {
                 <>
               <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">הקורסים שלי</h1>
+                  <h1 className="text-2xl font-bold text-foreground">השיעורים שלי</h1>
                   <p className="text-sm text-muted-foreground mt-1">
                     {filteredLessons.length} שיעורים זמינים · {progress.filter(p => p.completed).length} הושלמו
                   </p>

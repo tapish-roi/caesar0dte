@@ -340,6 +340,7 @@ export default function MentorDashboard() {
   const [feedMediaReloadKey, setFeedMediaReloadKey] = useState(0);
   const [refreshingFeed, setRefreshingFeed] = useState(false);
   const [removeConfirm, setRemoveConfirm] = useState<{ studentId: string; name: string } | null>(null);
+  const [deleteCatConfirm, setDeleteCatConfirm] = useState<{ id: string; title: string; lessonCount: number } | null>(null);
   // Edit post state
   const [editPost, setEditPost] = useState<CommunityPost | null>(null);
   const [editPostContent, setEditPostContent] = useState('');
@@ -358,7 +359,7 @@ export default function MentorDashboard() {
 
   // Edit lesson
   const [editLesson, setEditLesson] = useState<Lesson | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', description: '', video_url: '', duration_minutes: '', attachment_url: '', attachment_name: '' });
+  const [editForm, setEditForm] = useState({ title: '', description: '', video_url: '', duration_minutes: '', attachment_url: '', attachment_name: '', category_id: '' });
   const [isEditVideoUploading, setIsEditVideoUploading] = useState(false);
   const [isEditAttachmentUploading, setIsEditAttachmentUploading] = useState(false);
   const editVideoInputRef = useRef<HTMLInputElement>(null);
@@ -626,6 +627,16 @@ export default function MentorDashboard() {
   const updateLesson = useMutation({
     mutationFn: async () => {
       if (!editLesson) return;
+      const newCategoryId = editForm.category_id || null;
+      const categoryChanged = newCategoryId !== editLesson.category_id;
+      // When the lesson moves to a different category, drop it at the end of the
+      // target category so its position doesn't collide with a lesson already there.
+      const move = categoryChanged
+        ? {
+            category_id: newCategoryId,
+            position: lessons.filter(l => l.category_id === newCategoryId && l.id !== editLesson.id).length,
+          }
+        : {};
       const { error } = await supabase.from('lessons').update({
         title: editForm.title,
         description: editForm.description || null,
@@ -633,6 +644,7 @@ export default function MentorDashboard() {
         duration_minutes: editForm.duration_minutes ? parseInt(editForm.duration_minutes) : null,
         attachment_url: editForm.attachment_url || null,
         attachment_name: editForm.attachment_name || null,
+        ...move,
       }).eq('id', editLesson.id);
       if (error) throw error;
     },
@@ -662,10 +674,21 @@ export default function MentorDashboard() {
 
   const deleteLesson = useMutation({
     mutationFn: async (id: string) => {
+      // private_questions.lesson_id is ON DELETE SET NULL, so deleting the lesson
+      // would leave the student's private questions orphaned but still visible in
+      // the mentor/student questions tab. Delete them explicitly first so a removed
+      // lesson takes its private questions with it. (lesson_questions already
+      // cascade-delete via their FK.)
+      const { error: pqError } = await supabase.from('private_questions').delete().eq('lesson_id', id);
+      if (pqError) throw pqError;
       const { error } = await supabase.from('lessons').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['lessons'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['lessons'] });
+      qc.invalidateQueries({ queryKey: ['mentor-private-questions'] });
+      qc.invalidateQueries({ queryKey: ['student-my-questions'] });
+    },
   });
 
   const deleteCategory = useMutation({
@@ -673,7 +696,14 @@ export default function MentorDashboard() {
       const { error } = await supabase.from('categories').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
+    onSuccess: () => {
+      // Lessons in the category aren't deleted — their category_id is set to NULL
+      // (ON DELETE SET NULL), so they move to "uncategorized". Refresh both.
+      qc.invalidateQueries({ queryKey: ['categories'] });
+      qc.invalidateQueries({ queryKey: ['lessons'] });
+      setDeleteCatConfirm(null);
+    },
+    onError: () => toast({ title: 'שגיאה במחיקת הקטגוריה', variant: 'destructive' }),
   });
 
   const reorderLessons = useMutation({
@@ -1287,7 +1317,7 @@ export default function MentorDashboard() {
                               <h2 className="text-xl font-bold text-foreground break-words min-w-0 flex-1">{lesson.title}</h2>
                               <div className="flex items-center gap-2 shrink-0">
                                 <button
-                                  onClick={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
+                                  onClick={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '', category_id: lesson.category_id ?? '' }); }}
                                   className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-foreground hover:bg-muted transition-all"
                                 >
                                   <Pencil className="w-3.5 h-3.5" />ערוך
@@ -1366,7 +1396,7 @@ export default function MentorDashboard() {
                 <>
               <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
                 <div>
-                  <h1 className="text-xl md:text-2xl font-bold text-foreground">שיעורים וקורסים</h1>
+                  <h1 className="text-xl md:text-2xl font-bold text-foreground">שיעורים</h1>
                   <p className="text-xs md:text-sm text-muted-foreground mt-1">{lessons.length} שיעורים · {categories.length} קטגוריות</p>
                 </div>
                 <div className="flex gap-2">
@@ -1425,7 +1455,7 @@ export default function MentorDashboard() {
                         <button onClick={e => { e.stopPropagation(); setSelectedCategoryId(cat.id); setShowLessonPanel(true); }} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-accent/10 text-accent transition-colors">
                           <Plus className="w-4 h-4" />
                         </button>
-                        <button onClick={e => { e.stopPropagation(); deleteCategory.mutate(cat.id); }} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                        <button onClick={e => { e.stopPropagation(); setDeleteCatConfirm({ id: cat.id, title: cat.title, lessonCount: catLessons.length }); }} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -1445,7 +1475,7 @@ export default function MentorDashboard() {
                                   onDragEnd={() => { setDragLesson(null); setDragOverLesson(null); }}
                                   onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                                   onDelete={() => deleteLesson.mutate(lesson.id)}
-                                  onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
+                                  onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '', category_id: lesson.category_id ?? '' }); }}
                                   onView={() => { setLessonViewMode({ categoryId: cat.id, categoryTitle: cat.title }); selectLessonWithDraftCheck(lesson.id); }}
                                   typeIcon={typeIcon} typeLabel={typeLabel}
                                 />
@@ -1474,7 +1504,7 @@ export default function MentorDashboard() {
                           onDragEnd={() => { setDragLesson(null); setDragOverLesson(null); }}
                           onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                           onDelete={() => deleteLesson.mutate(lesson.id)}
-                          onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '' }); }}
+                          onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '', category_id: lesson.category_id ?? '' }); }}
                           onView={() => { setLessonViewMode({ categoryId: '', categoryTitle: 'ללא קטגוריה' }); selectLessonWithDraftCheck(lesson.id); }}
                           typeIcon={typeIcon} typeLabel={typeLabel}
                         />
@@ -1959,6 +1989,53 @@ export default function MentorDashboard() {
         )}
       </AnimatePresence>
 
+      {/* Delete category confirmation */}
+      <AnimatePresence>
+        {deleteCatConfirm && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black z-50" onClick={() => setDeleteCatConfirm(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-sm" dir="rtl">
+                <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-5 h-5 text-destructive" />
+                </div>
+                <h3 className="text-base font-bold text-foreground text-center mb-1">מחיקת קטגוריה</h3>
+                <p className="text-sm text-muted-foreground text-center mb-6">
+                  האם למחוק את הקטגוריה <span className="font-semibold text-foreground">{deleteCatConfirm.title}</span>?
+                  {deleteCatConfirm.lessonCount > 0 && (
+                    <>
+                      <br />
+                      <span className="font-semibold text-foreground">{deleteCatConfirm.lessonCount} שיעורים</span> יעברו למצב "ללא קטגוריה" ולא יימחקו.
+                    </>
+                  )}
+                  <br />פעולה זו לא ניתנת לביטול.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeleteCatConfirm(null)}
+                    className="flex-1 h-10 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all"
+                  >
+                    ביטול
+                  </button>
+                  <button
+                    onClick={() => deleteCategory.mutate(deleteCatConfirm.id)}
+                    disabled={deleteCategory.isPending}
+                    className="flex-1 h-10 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50"
+                  >
+                    {deleteCategory.isPending ? 'מוחק...' : 'מחק'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Lesson slide panel */}
       <AnimatePresence>
         {showLessonPanel && (
@@ -2281,6 +2358,20 @@ export default function MentorDashboard() {
                       rows={3}
                       className="w-full px-4 py-3 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent text-right resize-none"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">קטגוריה</label>
+                    <select
+                      value={editForm.category_id}
+                      onChange={e => setEditForm(f => ({ ...f, category_id: e.target.value }))}
+                      className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                    >
+                      <option value="">ללא קטגוריה</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.title}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Video replacement */}
