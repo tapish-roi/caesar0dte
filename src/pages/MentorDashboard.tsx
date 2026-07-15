@@ -41,6 +41,75 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useLiquidGlass } from '@/hooks/use-liquid-glass';
 import { ChevronLeft } from 'lucide-react';
 
+// ── Raw PostgREST helpers that BYPASS the supabase-js auth lock ──────────────
+// Every supabase.from(...) call serialises behind the client's Web-Lock-backed
+// auth lock; a stale persisted session or the app open in a second tab can wedge
+// that lock so the call hangs forever instead of erroring — the stuck "שומר..."
+// button and the pending-invite list that never refreshes. Reading the token
+// straight from storage (see authToken.ts) and talking to PostgREST directly
+// sidesteps the lock, and the abort timeout guarantees a stall surfaces as an
+// error instead of a spinner that turns forever. Same escape hatch uploadAsset /
+// sendInvite already use.
+async function pgFetch(
+  pathAndQuery: string,
+  init: RequestInit & { timeoutMs?: number } = {},
+): Promise<Response> {
+  const stored = getStoredAccessToken();
+  if (!stored || stored.expired) {
+    throw new Error('פג תוקף ההתחברות. התחבר מחדש ונסה שוב.');
+  }
+  const { timeoutMs = 20_000, headers, ...rest } = init;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(`${SUPABASE_URL}/rest/v1/${pathAndQuery}`, {
+      ...rest,
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${stored.token}`,
+        ...headers,
+      },
+      signal: ctrl.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('הפעולה נתקעה (אין תגובה מהשרת). נסה שוב.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// INSERT a row over raw PostgREST. Returns the inserted row when `returning` is
+// set, else null. Throws a readable Hebrew error on any non-2xx (RLS denial,
+// constraint, expired auth) so the mutation settles into an error toast.
+async function pgInsert<T = unknown>(
+  table: string,
+  row: Record<string, unknown>,
+  opts: { returning?: boolean } = {},
+): Promise<T | null> {
+  const res = await pgFetch(table, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Prefer: opts.returning ? 'return=representation' : 'return=minimal',
+    },
+    body: JSON.stringify(row),
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg = (body as { message?: string })?.message || `שגיאה (${res.status})`;
+    throw new Error(
+      res.status === 401 || res.status === 403
+        ? 'אין הרשאה — ייתכן שההתחברות פגה. התחבר מחדש ונסה שוב.'
+        : msg,
+    );
+  }
+  if (!opts.returning) return null;
+  return (Array.isArray(body) ? body[0] : body) ?? null;
+}
+
 // ── LessonQuizPanel: shows the published quiz for a lesson ──────────────────
 function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: string; mentorId: string; onCreateQuiz: () => void }) {
   const { data: quiz, isLoading } = useQuery({
@@ -379,10 +448,20 @@ export default function MentorDashboard() {
 
   const { data: invites = [] } = useQuery<{ id: string; contact: string; created_at: string }[]>({
     queryKey: ['invites', user?.id],
+    // Raw PostgREST read (see pgFetch). Through supabase.from() this select can
+    // hang on a wedged auth lock, so the pending row a fresh invite just created
+    // never showed up in "הזמנות ממתינות" — the mail went out (sendInvite already
+    // uses raw fetch) but the list stayed empty. Reading over raw fetch means the
+    // refetch after an invite always resolves.
     queryFn: async () => {
-      const { data, error } = await supabase.from('community_invites').select('id, contact, created_at').eq('mentor_id', user!.id).eq('status', 'pending').order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
+      const res = await pgFetch(
+        `community_invites?select=id,contact,created_at&mentor_id=eq.${user!.id}&status=eq.pending&order=created_at.desc`,
+      );
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error((body as { message?: string })?.message || `שגיאה בטעינת ההזמנות (${res.status})`);
+      }
+      return (body as { id: string; contact: string; created_at: string }[]) ?? [];
     },
     enabled: !!user && activeTab === 'students',
   });
@@ -448,15 +527,17 @@ export default function MentorDashboard() {
   // ─── Mutations ──────────────────────────────────────────────────────────────
 
   const createCategory = useMutation({
+    // Raw PostgREST insert (see pgInsert) — supabase.from().insert() hangs on a
+    // wedged auth lock, which was the create button stuck pressed forever.
     mutationFn: async (title: string) => {
-      const { error } = await supabase.from('categories').insert({ mentor_id: user!.id, title, position: categories.length });
-      if (error) throw error;
+      await pgInsert('categories', { mentor_id: user!.id, title, position: categories.length });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['categories'] });
       setNewCatTitle(''); setShowCategoryForm(false);
       toast({ title: 'קטגוריה נוצרה' });
     },
+    onError: (err) => toast({ title: 'שגיאה ביצירת הקטגוריה', description: err instanceof Error ? err.message : undefined, variant: 'destructive' }),
   });
 
   // Every upload here goes through this one helper. The `finally` is the load-
@@ -516,8 +597,10 @@ export default function MentorDashboard() {
   };
 
   const createLesson = useMutation({
+    // Raw PostgREST insert (see pgInsert) — supabase.from().insert() hangs on a
+    // wedged auth lock, which was the "שומר..." button that never finished.
     mutationFn: async () => {
-      const { error } = await supabase.from('lessons').insert({
+      await pgInsert('lessons', {
         mentor_id: user!.id,
         category_id: selectedCategoryId,
         title: lessonForm.title,
@@ -530,7 +613,6 @@ export default function MentorDashboard() {
         attachment_url: lessonForm.attachment_url || null,
         attachment_name: lessonForm.attachment_name || null,
       });
-      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lessons'] });
@@ -538,6 +620,7 @@ export default function MentorDashboard() {
       setLessonForm({ title: '', description: '', lesson_type: 'recorded_lesson', video_url: '', duration_minutes: '', attachment_url: '', attachment_name: '' });
       toast({ title: 'שיעור נוצר' });
     },
+    onError: (err) => toast({ title: 'שגיאה ביצירת השיעור', description: err instanceof Error ? err.message : undefined, variant: 'destructive' }),
   });
 
   const updateLesson = useMutation({

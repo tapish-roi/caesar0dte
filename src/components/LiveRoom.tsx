@@ -2204,17 +2204,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           {!isScreenVisible && participants.length > 1 && (
             <button onClick={() => setViewMode(v => v === 'gallery' ? 'speaker' : 'gallery')}
               title={viewMode === 'gallery' ? 'Speaker View' : 'Gallery View'}
-              className="h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-violet-400/70 hover:bg-violet-500/10 hover:text-violet-400">
+              className="h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-[#e2b54e]/70 hover:bg-[rgba(226,181,78,0.10)] hover:text-[#e2b54e]">
               {viewMode === 'gallery' ? <Maximize2 className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{viewMode === 'gallery' ? 'Speaker' : 'Gallery'}</span>
             </button>
           )}
           <button onClick={() => setShowMembers(v => !v)}
-            className={`h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-sky-500/20 text-sky-400' : 'text-sky-400/70 hover:bg-sky-500/10 hover:text-sky-400'}`}>
+            className={`h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-[rgba(226,181,78,0.20)] text-[#e2b54e]' : 'text-[#e2b54e]/70 hover:bg-[rgba(226,181,78,0.10)] hover:text-[#e2b54e]'}`}>
             <Users className="w-3.5 h-3.5" />{participants.length}
           </button>
           <button onClick={() => setShowChat(v => !v)}
-            className={`relative h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showChat ? 'bg-cyan-500/20 text-cyan-400' : 'text-cyan-400/70 hover:bg-cyan-500/10 hover:text-cyan-400'}`}>
+            className={`relative h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showChat ? 'bg-[rgba(226,181,78,0.20)] text-[#e2b54e]' : 'text-[#e2b54e]/70 hover:bg-[rgba(226,181,78,0.10)] hover:text-[#e2b54e]'}`}>
             <MessageSquare className="w-3.5 h-3.5" />
             {chatMessages.length > 0 && !showChat && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold">
@@ -2355,7 +2355,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                     title="כלי ציור"
                     className={`absolute bottom-4 left-4 z-20 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-all border ${
                       showDrawToolbar
-                        ? 'bg-indigo-500 border-indigo-400 text-white shadow-indigo-500/40'
+                        ? 'bg-[#e2b54e] border-[#e2b54e] text-white shadow-indigo-500/40'
                         : 'bg-card/80 border-border text-foreground/60 hover:text-foreground hover:bg-black/80'
                     }`}
                   >
@@ -2384,7 +2384,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                               onClick={() => setActiveTool(t.id)}
                               title={t.label}
                               className={`flex-1 h-8 flex items-center justify-center rounded-lg transition-all text-xs ${
-                                activeTool === t.id ? 'bg-indigo-500 text-white' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                                activeTool === t.id ? 'bg-[#e2b54e] text-white' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                               }`}
                             >
                               {t.icon}
@@ -2697,7 +2697,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                             </span>
                           )}
                           {(isMe ? cameraEnabled : p.hasCamera) ? <Video className="w-3 h-3 text-muted-foreground/50" /> : <VideoOff className="w-3 h-3 text-red-400/70" />}
-                          {(isMe ? screenSharing : p.hasScreen) && <Monitor className="w-3 h-3 text-blue-400" />}
+                          {(isMe ? screenSharing : p.hasScreen) && <Monitor className="w-3 h-3 text-[#e2b54e]" />}
                           {p.isDeafened && <VolumeX className="w-3 h-3 text-red-400/70" />}
                           <span className="text-[10px] text-muted-foreground/50 ms-0.5">
                             {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : isMuted ? 'מיקרופון כבוי' : isSpeaking ? 'מדבר...' : 'מחובר'}
@@ -2784,7 +2784,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                             </span>
                           )}
                           {(isMe ? cameraEnabled : p.hasCamera) ? <Video className="w-3 h-3 text-muted-foreground/50" /> : <VideoOff className="w-3 h-3 text-red-400/70" />}
-                          {(isMe ? screenSharing : p.hasScreen) && <Monitor className="w-3 h-3 text-blue-400" />}
+                          {(isMe ? screenSharing : p.hasScreen) && <Monitor className="w-3 h-3 text-[#e2b54e]" />}
                           {p.isDeafened && <VolumeX className="w-3 h-3 text-red-400/70" />}
                           <span className="text-[10px] text-muted-foreground/50 ms-0.5">
                             {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : isMuted ? 'מיקרופון כבוי' : isSpeaking ? 'מדבר...' : 'מחובר'}

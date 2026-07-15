@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client';
 import PlanetBackground, { type Planet } from '@/components/PlanetBackground';
 import './index.css';
 
-const PLANETS: Planet[] = ['earth', 'moon', 'mars', 'jupiter', 'saturn', 'neptune'];
+const PLANETS: Planet[] = ['earth', 'moon', 'mars', 'jupiter', 'saturn', 'neptune', 'hd'];
 
 function Preview() {
   const [planet, setPlanet] = useState<Planet>('earth');

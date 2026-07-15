@@ -9,7 +9,10 @@ const Switch = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SwitchPrimitives.Root
     className={cn(
-      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors data-[state=checked]:bg-primary data-[state=unchecked]:bg-input focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
+      "peer inline-flex h-[26px] w-[46px] shrink-0 cursor-pointer items-center rounded-full p-[2px] transition-all",
+      // on: gold gradient track with glow · off: recessed glass track
+      "data-[state=checked]:aurora-gold data-[state=unchecked]:aurora-field",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
       className,
     )}
     {...props}
@@ -17,7 +20,11 @@ const Switch = React.forwardRef<
   >
     <SwitchPrimitives.Thumb
       className={cn(
-        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:ltr:translate-x-5 data-[state=checked]:rtl:-translate-x-5 data-[state=unchecked]:translate-x-0",
+        "pointer-events-none block h-[20px] w-[20px] rounded-full ring-0 transition-transform",
+        "shadow-[0_1px_4px_rgba(0,0,0,0.3)]",
+        "data-[state=checked]:h-[22px] data-[state=checked]:w-[22px] data-[state=checked]:bg-[#fff8ea]",
+        "data-[state=unchecked]:bg-[#5f7680]",
+        "data-[state=checked]:ltr:translate-x-5 data-[state=checked]:rtl:-translate-x-5 data-[state=unchecked]:translate-x-0",
       )}
     />
   </SwitchPrimitives.Root>

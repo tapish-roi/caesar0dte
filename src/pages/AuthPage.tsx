@@ -180,7 +180,7 @@ export default function AuthPage() {
         {/* Card — shared layoutId with dashboard */}
         <motion.div
           layoutId="main-container"
-          className="bg-card card-shadow overflow-hidden"
+          className="liquid-glass aurora-edge rounded-3xl overflow-hidden"
           style={{ borderRadius: 16 }}
           transition={{ layout: { duration: 0.7, ease: premiumEase } }}
         >
@@ -247,13 +247,13 @@ export default function AuthPage() {
                           required
                           placeholder="you@example.com"
                           dir="ltr"
-                          className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                          className="w-full h-[46px] px-4 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                         />
                       </div>
                       <button
                         type="submit"
                         disabled={forgotLoading}
-                        className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                        className="w-full h-[46px] aurora-gold rounded-2xl font-bold transition-all disabled:cursor-not-allowed mt-2"
                       >
                         {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'שלח קישור איפוס'}
                       </button>
@@ -277,7 +277,7 @@ export default function AuthPage() {
                   <p className="text-sm text-muted-foreground mb-5">המשך את מסע הלמידה שלך</p>
 
                   {/* Info banner */}
-                  <div className="flex items-start gap-3 bg-accent/8 border border-accent/20 rounded-xl px-4 py-3 mb-6">
+                  <div className="flex items-start gap-3 aurora-alert aurora-alert-gold rounded-2xl px-4 py-3 mb-6">
                     <Info className="w-4 h-4 text-accent mt-0.5 shrink-0" />
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       <span className="font-semibold text-foreground">תלמידים מצטרפים רק דרך הזמנה מהמנטור.</span>
@@ -294,7 +294,7 @@ export default function AuthPage() {
                         onChange={e => setEmail(e.target.value)}
                         required
                         placeholder="you@example.com"
-                        className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        className="w-full h-[46px] px-4 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                         dir="ltr"
                       />
                     </div>
@@ -308,7 +308,7 @@ export default function AuthPage() {
                           required
                           minLength={6}
                           placeholder="••••••••"
-                          className="w-full h-11 px-4 pl-11 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                          className="w-full h-[46px] px-4 pl-11 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                         />
                         <button
                           type="button"
@@ -322,7 +322,7 @@ export default function AuthPage() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                      className="w-full h-[46px] aurora-gold rounded-2xl font-bold transition-all disabled:cursor-not-allowed mt-2"
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'כניסה'}
                     </button>
@@ -404,7 +404,7 @@ export default function AuthPage() {
                               onChange={e => setFullName(e.target.value)}
                               required
                               placeholder="ישראל ישראלי"
-                              className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                              className="w-full h-[46px] px-4 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                             />
                           </div>
                           <div>
@@ -414,7 +414,7 @@ export default function AuthPage() {
                               value={phone}
                               onChange={e => setPhone(e.target.value)}
                               placeholder="050-0000000"
-                              className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                              className="w-full h-[46px] px-4 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                             />
                           </div>
                         </motion.div>
@@ -429,7 +429,7 @@ export default function AuthPage() {
                         onChange={e => setEmail(e.target.value)}
                         required
                         placeholder="you@example.com"
-                        className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        className="w-full h-[46px] px-4 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                         dir="ltr"
                       />
                     </div>
@@ -443,7 +443,7 @@ export default function AuthPage() {
                           required
                           minLength={6}
                           placeholder="••••••••"
-                          className="w-full h-11 px-4 pl-11 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                          className="w-full h-[46px] px-4 pl-11 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                         />
                         <button
                           type="button"
@@ -458,7 +458,7 @@ export default function AuthPage() {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                      className="w-full h-[46px] aurora-gold rounded-2xl font-bold transition-all disabled:cursor-not-allowed mt-2"
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : mentorMode === 'login' ? 'כניסה' : 'צור חשבון'}
                     </button>

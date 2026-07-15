@@ -20,7 +20,7 @@ import * as THREE from 'three';
 // Textures live in public/textures/ (see README there). They ship with the
 // project, so the scene is photoreal by default.
 
-export type Planet = 'earth' | 'moon' | 'mars' | 'jupiter' | 'saturn' | 'neptune';
+export type Planet = 'earth' | 'moon' | 'mars' | 'jupiter' | 'saturn' | 'neptune' | 'hd';
 
 const ROTATION_PERIOD_S = 120; // one slow west→east turn — subtle, seamless
 const MAX_FPS = 30;
@@ -89,7 +89,17 @@ const EARTH_FRAG = `
     float lmask = smoothstep(0.07, 0.58, lum);
     vec3 lights = vec3(1.0, 0.68, 0.38) * lmask * 2.3;
     lights *= (1.0 - dayAmt * 0.96);
-    vec3 dayCol = day * (2.6 * max(ndl, 0.0)); // brighter daylit face
+    // Daylit face. The design multiplies the raw texture by 1.7 and writes straight
+    // to the framebuffer; we sRGB-decode the texture, light in linear, then sRGB-
+    // encode on output. 3.15 is what reproduces the design's on-screen brightness
+    // through that pipeline (solved across the tone range — 2.6 undershot it, which
+    // read as a dull Earth, most visibly on bright land and cloud tops).
+    vec3 dayCol = day * (3.15 * max(ndl, 0.0));
+    // Lift the deep-ocean floor so it doesn't crush to black on the sunlit side.
+    // The design adds vec3(0.045, 0.09, 0.17) in a raw pipeline that writes
+    // straight to the framebuffer; we add in linear space and sRGB-encode on
+    // output, so the same on-screen result needs the sRGB->linear values.
+    dayCol += vec3(0.0035, 0.0085, 0.0245) * water * max(ndl, 0.0) * 1.4;
     vec3 Hv = normalize(sunDir + V);
     float spec = pow(max(dot(N, Hv), 0.0), 110.0) * water * dayAmt * 0.6;
     vec3 col = dayCol * dayAmt + lights + spec * vec3(1.0, 0.95, 0.85);
@@ -323,6 +333,88 @@ const NEPTUNE_FRAG = `
   }
 `;
 
+// HD 189733 b — the one body with no texture at all. Its surface is 3D fbm
+// evaluated on the sphere, so it stays crisp at any zoom and never seams. Needs
+// object-space position (vObj) to sample that noise, which SURFACE_VERT doesn't
+// carry, hence its own vertex stage.
+const HD_VERT = `
+  varying vec3 vNormalW;
+  varying vec3 vPosW;
+  varying vec3 vObj;
+  void main() {
+    vObj = position;
+    vNormalW = normalize(mat3(modelMatrix) * normal);
+    vec4 wp = modelMatrix * vec4(position, 1.0);
+    vPosW = wp.xyz;
+    gl_Position = projectionMatrix * viewMatrix * wp;
+  }
+`;
+
+const HD_FRAG = `
+  uniform vec3 sunDir;
+  uniform vec3 camPos;
+  uniform float uOpacity;
+  varying vec3 vNormalW;
+  varying vec3 vPosW;
+  varying vec3 vObj;
+  float hash3(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+  float vnoise(vec3 p) {
+    vec3 i = floor(p), f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    float n000 = hash3(i);
+    float n100 = hash3(i + vec3(1.0, 0.0, 0.0));
+    float n010 = hash3(i + vec3(0.0, 1.0, 0.0));
+    float n110 = hash3(i + vec3(1.0, 1.0, 0.0));
+    float n001 = hash3(i + vec3(0.0, 0.0, 1.0));
+    float n101 = hash3(i + vec3(1.0, 0.0, 1.0));
+    float n011 = hash3(i + vec3(0.0, 1.0, 1.0));
+    float n111 = hash3(i + vec3(1.0, 1.0, 1.0));
+    return mix(mix(mix(n000, n100, f.x), mix(n010, n110, f.x), f.y),
+               mix(mix(n001, n101, f.x), mix(n011, n111, f.x), f.y), f.z);
+  }
+  float fbm(vec3 p) {
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 4; i++) { v += a * vnoise(p); p = p * 2.17 + 19.1; a *= 0.5; }
+    return v;
+  }
+  void main() {
+    vec3 N = normalize(vNormalW);
+    vec3 V = normalize(camPos - vPosW);
+    vec3 P = normalize(vObj);
+    float ndl = dot(N, sunDir);
+    float dayAmt = smoothstep(-0.04, 0.2, ndl);
+    // turbulent zonal banding — latitude warped by a flow field
+    float warp = fbm(P * 3.5) * 1.1;
+    float lat = P.y + (warp - 0.55) * 0.38;
+    float band = sin(lat * 16.0) * 0.5 + 0.5;
+    float flow = fbm(P * 6.0 + vec3(0.0, lat * 4.0, 0.0));
+    band = mix(band, flow, 0.45);
+    float detail = fbm(P * 22.0 + warp * 2.0);
+    float fine = vnoise(P * 55.0);
+    // silicate-haze palette: deep cobalt -> azure -> pale silver-blue cloud tops
+    vec3 deep = vec3(0.025, 0.07, 0.24);
+    vec3 azure = vec3(0.09, 0.24, 0.60);
+    vec3 pale = vec3(0.42, 0.60, 0.88);
+    vec3 base = mix(deep, azure, band);
+    base = mix(base, pale, smoothstep(0.55, 0.9, detail) * 0.5);
+    base += (fine - 0.5) * 0.07;
+    // storm vortices — ridged noise bright streaks, reusing the flow field
+    float ridge = 1.0 - abs(2.0 * flow - 1.0);
+    base += vec3(0.30, 0.42, 0.62) * pow(ridge, 6.0) * 0.35;
+    vec3 col = base * (1.75 * max(ndl, 0.0)) * dayAmt;
+    // faint thermal ember on the night side (~1200K — a dull red glow)
+    col += vec3(0.05, 0.012, 0.006) * (0.4 + detail * 0.6) * (1.0 - dayAmt);
+    // blue-white Rayleigh scatter flooding the terminator
+    float term = smoothstep(-0.06, 0.10, ndl) * (1.0 - smoothstep(0.10, 0.4, ndl));
+    col += term * vec3(0.45, 0.65, 1.0) * 0.28;
+    // the intense azure haze rim this planet is famous for
+    float fres = pow(1.0 - max(dot(N, V), 0.0), 3.6);
+    float litRim = 0.15 + 0.85 * smoothstep(-0.3, 0.5, ndl);
+    col += vec3(0.35, 0.6, 1.0) * fres * litRim * 0.75;
+    gl_FragColor = vec4(col, uOpacity);
+  }
+`;
+
 const GLOW_VERT = `
   varying vec3 vNormalV;
   varying vec3 vNormalW;
@@ -524,7 +616,7 @@ interface Meteor {
   x0: number; y0: number; dx: number; dy: number; travel: number;
 }
 
-interface Spin { spin: THREE.Object3D; clouds?: THREE.Object3D }
+interface Spin { spin: THREE.Object3D; clouds?: THREE.Object3D; ring?: THREE.Object3D }
 
 export function createPlanetScene(canvas: HTMLCanvasElement): SceneApi {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -554,8 +646,42 @@ export function createPlanetScene(canvas: HTMLCanvasElement): SceneApi {
   }
 
   // ---- shared backdrop (built once) ----------------------------------------
+  // The starfield wraps an 80-unit sphere, so at 4k (4096×2048) individual stars
+  // smear once you're on a big display. The 8k plate fixes that, but it costs
+  // ~134 MB of VRAM decompressed (4× the 4k) plus a multi-MB download — too much
+  // to force on a phone. So: 8k only where there's headroom for it, 4k elsewhere.
+  // maxTextureSize is the hard gate — plenty of mobile GPUs cap out at 4096 and
+  // would silently drop an 8192-wide upload.
+  const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  const use8kSky =
+    !lowEnd &&
+    !coarsePointer &&
+    renderer.capabilities.maxTextureSize >= 8192 &&
+    window.innerWidth >= 1024;
+
+  // If the 8k plate is missing (it's a large binary, easy to omit from a deploy)
+  // three's loader errors and would leave us with a black void where the stars
+  // should be. Fall back to the 4k that always ships.
+  function loadSkyTex() {
+    const t = texLoader.load(
+      TEX(use8kSky ? 'starfield-8k.png' : 'night_sky.png'),
+      () => { needsRender = true; },
+      undefined,
+      () => {
+        if (!use8kSky) return; // the 4k is the fallback; nothing left to try
+        console.warn('PlanetBackground: starfield-8k.png missing, falling back to 4k night_sky.png');
+        skyMat.map = loadTex('night_sky.png', true);
+        skyMat.needsUpdate = true;
+        needsRender = true;
+      },
+    );
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = Math.min(8, maxAniso);
+    return t;
+  }
+
   const skyMat = new THREE.MeshBasicMaterial({
-    map: loadTex('night_sky.png', true),
+    map: loadSkyTex(),
     side: THREE.BackSide,
   });
   skyMat.color.setScalar(STAR_BRIGHTNESS);
@@ -779,7 +905,7 @@ export function createPlanetScene(canvas: HTMLCanvasElement): SceneApi {
     ring.rotation.x = -Math.PI / 2;
     tilt.add(ring);
 
-    g.userData = { spin: body } as Spin;
+    g.userData = { spin: body, ring } as Spin;
     return g;
   }
 
@@ -800,6 +926,23 @@ export function createPlanetScene(canvas: HTMLCanvasElement): SceneApi {
     return g;
   }
 
+  // HD 189733 b — hot Jupiter, deep cobalt with a silicate-haze azure rim. No
+  // texture: the surface is pure 3D noise, so this one costs nothing to load.
+  function buildHd(): THREE.Group {
+    const g = new THREE.Group();
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: HD_VERT, fragmentShader: HD_FRAG, transparent: true,
+      uniforms: {
+        sunDir: { value: SUN_DIR }, camPos: { value: camera.position }, uOpacity: { value: 1 },
+      },
+    });
+    const body = new THREE.Mesh(sphereGeo, mat);
+    g.add(body);
+    addAtmosphere(g, new THREE.Color(0.28, 0.52, 1.0), 0.75);
+    g.userData = { spin: body } as Spin;
+    return g;
+  }
+
   function buildPlanet(p: Planet): THREE.Group {
     let g: THREE.Group;
     if (p === 'earth') g = buildEarth();
@@ -807,6 +950,7 @@ export function createPlanetScene(canvas: HTMLCanvasElement): SceneApi {
     else if (p === 'mars') g = buildMars();
     else if (p === 'jupiter') g = buildGasGiant('jupiter.jpg', JUPITER_FRAG, new THREE.Color(0.95, 0.78, 0.55), 0.4);
     else if (p === 'saturn') g = buildSaturn();
+    else if (p === 'hd') g = buildHd();
     else g = buildNeptune();
     g.position.x = planetOffsetX;
     g.visible = false;
@@ -900,6 +1044,11 @@ export function createPlanetScene(canvas: HTMLCanvasElement): SceneApi {
       const s = g.userData as Spin;
       s.spin.rotation.y = rot;
       if (s.clouds) s.clouds.rotation.y = rot + 0.35;
+      // Saturn's ring sways on its own axis — tips to one side and returns, 5 whole
+      // cycles per loop so it lands seamlessly where it started. Because the ring
+      // sits flat inside the tilted group, this Y-rotation reads on screen as the
+      // ring edges rocking up and down.
+      if (s.ring) s.ring.rotation.y = 0.14 * Math.sin(frac * Math.PI * 2 * 5);
     });
     starMat.uniforms.uT.value = frac;
     for (const m of meteors) {

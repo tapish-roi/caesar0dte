@@ -635,7 +635,7 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
           active={!audioMuted}
           activeIcon={<Volume2 className="w-5 h-5" />}
           inactiveIcon={<VolumeX className="w-5 h-5" />}
-          activeColor="bg-blue-500/20 text-blue-500"
+          activeColor="bg-[rgba(226,181,78,0.20)] text-[#e2b54e]"
           inactiveColor="bg-muted text-muted-foreground"
           onClick={toggleAudio}
           label={audioMuted ? 'הפעל שמע' : 'השתק שמע'}
@@ -644,7 +644,7 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
           active={cameraEnabled}
           activeIcon={<Video className="w-5 h-5" />}
           inactiveIcon={<VideoOff className="w-5 h-5" />}
-          activeColor="bg-violet-500/20 text-violet-500"
+          activeColor="bg-[rgba(226,181,78,0.20)] text-[#e2b54e]"
           inactiveColor="bg-muted text-muted-foreground"
           onClick={toggleCamera}
           label={cameraEnabled ? 'כבה מצלמה' : 'הפעל מצלמה'}
@@ -731,7 +731,7 @@ function ParticipantRow({
       </div>
       <div className="flex items-center gap-1">
         {isMicOn ? <Mic className="w-3.5 h-3.5 text-emerald-500" /> : <MicOff className="w-3.5 h-3.5 text-muted-foreground" />}
-        {isCamOn && <Video className="w-3.5 h-3.5 text-violet-500" />}
+        {isCamOn && <Video className="w-3.5 h-3.5 text-[#e2b54e]" />}
         {showForceMute && (
           <button
             onClick={() => onForceMute(participant)}

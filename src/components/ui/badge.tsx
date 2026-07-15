@@ -4,14 +4,19 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full px-[13px] py-1 text-xs font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+        // gold gradient pill — e.g. the 0DTE tag
+        default: "aurora-gold shadow-[0_2px_8px_-2px_rgba(224,170,50,0.5)]",
+        // glass pill with a cyan⇄gold edge — e.g. PRO
+        secondary: "aurora-chip aurora-chip-cyan text-[#a5d8e6]",
+        // rose — short / error
+        destructive: "aurora-chip aurora-chip-rose text-[#fda4af]",
+        // emerald — long / success
+        success: "aurora-chip aurora-chip-emerald text-[#6ee7b7]",
+        outline: "border border-[rgba(226,181,78,0.4)] text-[#e2b54e]",
       },
     },
     defaultVariants: {

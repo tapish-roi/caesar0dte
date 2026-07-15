@@ -10,7 +10,8 @@ export default defineConfig(({ mode, command }) => ({
   base: command === "build" ? "/caesar0dte/" : "/",
   server: {
     host: "::",
-    port: 8080,
+    // Defaults to 8080; PORT lets a second instance run alongside the first.
+    port: Number(process.env.PORT) || 8080,
     hmr: {
       overlay: false,
     },

@@ -127,7 +127,7 @@ export default function ResetPasswordPage() {
                 </p>
                 <button
                   onClick={() => navigate('/auth')}
-                  className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all mt-2"
+                  className="w-full h-[46px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all mt-2"
                 >
                   חזרה לכניסה
                 </button>
@@ -171,7 +171,7 @@ export default function ResetPasswordPage() {
                         minLength={6}
                         placeholder="לפחות 6 תווים"
                         autoFocus
-                        className="w-full h-11 px-4 pl-11 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        className="w-full h-[46px] px-4 pl-11 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                       />
                       <button
                         type="button"
@@ -192,14 +192,14 @@ export default function ResetPasswordPage() {
                       required
                       minLength={6}
                       placeholder="חזור/י על הסיסמה"
-                      className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                      className="w-full h-[46px] px-4 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                    className="w-full h-[46px] aurora-gold rounded-2xl font-bold transition-all disabled:cursor-not-allowed mt-2"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'עדכן סיסמה'}
                   </button>

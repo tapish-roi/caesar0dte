@@ -831,8 +831,8 @@ export default function StudentDashboard() {
   };
 
   const postTypeLabel: Record<string, string> = { discussion: 'דיון', media: 'מדיה', live: 'לייב' };
-  const postTypeBg: Record<string, string> = { discussion: 'bg-blue-500/10', media: 'bg-gold-500/10', live: 'bg-red-500/10' };
-  const postTypeColor: Record<string, string> = { discussion: 'text-blue-500', media: 'text-gold-500', live: 'text-red-500' };
+  const postTypeBg: Record<string, string> = { discussion: 'bg-[rgba(226,181,78,0.10)]', media: 'bg-gold-500/10', live: 'bg-red-500/10' };
+  const postTypeColor: Record<string, string> = { discussion: 'text-[#e2b54e]', media: 'text-gold-500', live: 'text-red-500' };
   const postTypeIcon = (type: string) => {
     if (type === 'live') return <Wifi className="w-3.5 h-3.5" />;
     if (type === 'media') return <Image className="w-3.5 h-3.5" />;

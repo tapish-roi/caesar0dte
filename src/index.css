@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,39 +6,83 @@
 
 @layer base {
   :root {
-    /* === Core Palette — Deep Space Blue-Teal === */
-    --background: 220 30% 14%;
-    --surface: 200 35% 16%;
-    --foreground: 195 20% 90%;
+    /* === Core Palette — Aurora Glass (imported from Claude Design) ==========
+       Canvas #070d16 · glass #0d1721 · field #12202a · gold #e2b54e
+       cyan #5ac8e6 · text #dfe9ec · muted #9db4bc · rose #f43f5e */
+    --background: 216 52% 6%;
+    --surface: 210 43% 9%;
+    --foreground: 194 26% 90%;
 
-    --card: 200 40% 12%;
-    --card-foreground: 195 20% 90%;
+    --card: 210 43% 9%;
+    --card-foreground: 194 26% 90%;
 
-    --popover: 200 40% 14%;
-    --popover-foreground: 195 20% 90%;
+    --popover: 208 41% 10%;
+    --popover-foreground: 194 26% 90%;
 
-    /* Primary = Rich Gold */
-    --primary: 42 70% 50%;
-    --primary-foreground: 220 30% 10%;
+    /* Primary = Aurora Gold */
+    --primary: 42 72% 60%;
+    --primary-foreground: 44 74% 7%;
 
-    /* Accent = Warm Gold highlight */
-    --accent: 38 75% 55%;
-    --accent-foreground: 220 30% 10%;
+    /* Accent = Aurora Gold.
+       In the Aurora design gold IS the accent — cyan only ever appears inside
+       the gold⇄cyan gradient *edges* (--au-edge), never as a standalone accent
+       colour. Mapping --accent to cyan turns every text-accent/bg-accent/
+       ring-accent call site blue, which is not the design. */
+    --accent: 42 72% 60%;
+    --accent-foreground: 44 74% 7%;
 
-    --secondary: 200 30% 18%;
-    --secondary-foreground: 195 20% 88%;
+    --secondary: 205 40% 12%;
+    --secondary-foreground: 194 26% 90%;
 
-    --muted: 200 25% 20%;
-    --muted-foreground: 195 15% 55%;
+    --muted: 205 40% 12%;
+    --muted-foreground: 195 19% 68%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 350 89% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 195 25% 25%;
-    --input: 200 25% 22%;
-    --ring: 42 70% 50%;
+    /* Hairline borders stay a dark steel tint — bright enough to separate,
+       dark enough not to read as a blue outline. */
+    --border: 197 28% 26%;
+    --input: 205 40% 12%;
+    --ring: 42 72% 60%;
 
-    --radius: 0.875rem;
+    /* Aurora radii: 16px controls · 24px cards */
+    --radius: 1rem;
+
+    /* === Aurora Glass design tokens ====================================== */
+    --au-gold: #e2b54e;
+    --au-gold-lo: #cf9a2c;
+    --au-gold-hi: #f0c25c;
+    --au-gold-ink: #1c1405;
+    --au-cyan: #5ac8e6;
+    --au-rose: #f43f5e;
+    --au-rose-soft: #ff8b9a;
+    --au-emerald: #34d399;
+    --au-emerald-soft: #5eead4;
+
+    --au-canvas: #070d16;
+    --au-glass: rgba(13, 23, 33, 0.94);
+    --au-field: rgba(18, 32, 42, 0.8);
+    --au-field-ink: #dfe9ec;
+    --au-label: #7b969e;
+    --au-eyebrow: #63808a;
+
+    /* Signature gold⇄cyan gradient border (used with padding-box/border-box) */
+    --au-edge: linear-gradient(135deg, rgba(233, 183, 74, 0.4), rgba(90, 200, 230, 0.28) 50%, rgba(233, 183, 74, 0.18));
+    --au-edge-soft: linear-gradient(135deg, rgba(130, 190, 210, 0.32), rgba(130, 190, 210, 0.1));
+    --au-edge-focus: linear-gradient(135deg, rgba(233, 183, 74, 0.85), rgba(90, 200, 230, 0.55));
+    --au-edge-danger: linear-gradient(135deg, rgba(244, 63, 94, 0.8), rgba(255, 140, 120, 0.45));
+
+    /* Gold gradient fill for primary controls */
+    --au-fill-gold: linear-gradient(180deg, #f0c25c, #cf9a2c);
+    --au-glow-gold: 0 4px 18px -4px rgba(224, 170, 50, 0.5),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    --au-glow-gold-hover: 0 8px 26px -4px rgba(224, 170, 50, 0.65),
+                          inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    --au-focus-ring: 0 0 0 3px rgba(217, 165, 39, 0.14),
+                     0 0 24px -6px rgba(233, 183, 74, 0.5),
+                     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 
     /* === Glass Design Tokens === */
     --glass-bg: hsla(200, 40%, 12%, 0.95);
@@ -77,25 +121,26 @@
   }
 
   .dark {
-    --background: 220 30% 10%;
-    --foreground: 195 20% 90%;
-    --card: 200 40% 10%;
-    --card-foreground: 195 20% 90%;
-    --popover: 200 40% 12%;
-    --popover-foreground: 195 20% 90%;
-    --primary: 42 70% 50%;
-    --primary-foreground: 220 30% 10%;
-    --secondary: 200 30% 14%;
-    --secondary-foreground: 195 20% 88%;
-    --muted: 200 22% 16%;
-    --muted-foreground: 195 12% 50%;
-    --accent: 38 75% 55%;
-    --accent-foreground: 220 30% 10%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 195 20% 90%;
-    --border: 195 25% 22%;
-    --input: 200 22% 18%;
-    --ring: 42 70% 50%;
+    /* Aurora Glass is dark-native — the dark class only deepens the canvas. */
+    --background: 216 52% 5%;
+    --foreground: 194 26% 90%;
+    --card: 210 43% 8%;
+    --card-foreground: 194 26% 90%;
+    --popover: 208 41% 9%;
+    --popover-foreground: 194 26% 90%;
+    --primary: 42 72% 60%;
+    --primary-foreground: 44 74% 7%;
+    --secondary: 205 40% 11%;
+    --secondary-foreground: 194 26% 90%;
+    --muted: 205 40% 11%;
+    --muted-foreground: 195 19% 68%;
+    --accent: 42 72% 60%;
+    --accent-foreground: 44 74% 7%;
+    --destructive: 350 89% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 197 28% 24%;
+    --input: 205 40% 11%;
+    --ring: 42 72% 60%;
     --sidebar-background: 220 32% 8%;
     --sidebar-foreground: 195 20% 88%;
     --sidebar-primary: 42 70% 50%;
@@ -300,6 +345,231 @@
   .liquid-glass:active {
     transform: translateY(0) scale(0.995);
     transition-duration: 120ms;
+  }
+
+  /* === Aurora Glass — gradient-edged surfaces ============================
+     The signature look: a gold⇄cyan hairline that can't be done with a plain
+     `border-color`, so we paint two backgrounds — the fill clipped to
+     padding-box, the gradient clipped to border-box — behind a transparent
+     border. Every Aurora surface below is a variation on that one trick. */
+  .aurora-edge {
+    border: 1px solid transparent;
+    /* transparent so a co-applied .liquid-glass background-color can't tint the
+       border ring, which is where the gradient edge is painted */
+    background-color: transparent;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 22%),
+      linear-gradient(var(--au-glass), var(--au-glass)),
+      var(--au-edge);
+    background-origin: border-box;
+    background-clip: padding-box, padding-box, border-box;
+    box-shadow:
+      0 12px 44px rgba(0, 0, 0, 0.4),
+      0 0 40px -18px rgba(90, 200, 230, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  /* Form fields — softer cyan-leaning edge, inset "pressed glass" depth */
+  .aurora-field {
+    border: 1px solid transparent;
+    /* inputs/buttons carry a UA default background-color (white/buttonface);
+       the fill layer below is only 80% opaque, so it must be cleared or the
+       field renders washed-out grey instead of dark glass */
+    background-color: transparent;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 40%),
+      linear-gradient(var(--au-field), var(--au-field)),
+      var(--au-edge-soft);
+    background-origin: border-box;
+    background-clip: padding-box, padding-box, border-box;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      inset 0 2px 6px rgba(0, 0, 0, 0.18);
+    transition: box-shadow 200ms var(--lg-ease), background-image 200ms var(--lg-ease);
+  }
+  /* Focus lights the edge gold⇄cyan and adds the gold ring + glow */
+  .aurora-field:focus-visible,
+  .aurora-field:focus-within,
+  .aurora-field[data-state="open"] {
+    outline: none;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 40%),
+      linear-gradient(var(--au-field), var(--au-field)),
+      var(--au-edge-focus);
+    box-shadow: var(--au-focus-ring);
+  }
+  /* Invalid state — rose edge, matching the design's error field */
+  .aurora-field[aria-invalid="true"] {
+    background-image:
+      linear-gradient(rgba(28, 16, 20, 0.8), rgba(28, 16, 20, 0.8)),
+      var(--au-edge-danger);
+    box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Glass control with a gradient edge — secondary buttons, tab rails, toggles */
+  .aurora-control {
+    border: 1px solid transparent;
+    background-color: transparent;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 45%),
+      linear-gradient(rgba(24, 40, 52, 0.72), rgba(24, 40, 52, 0.72)),
+      linear-gradient(110deg, rgba(233, 183, 74, 0.5), rgba(90, 200, 230, 0.4));
+    background-origin: border-box;
+    background-clip: padding-box, padding-box, border-box;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 2px 10px rgba(0, 0, 0, 0.28);
+  }
+  .aurora-control:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 4px 18px rgba(0, 0, 0, 0.34),
+      0 0 18px -4px rgba(90, 200, 230, 0.35);
+  }
+
+  /* Primary gold fill — buttons, active tabs, checked controls */
+  .aurora-gold {
+    background-image: var(--au-fill-gold);
+    color: var(--au-gold-ink);
+    border: none;
+    box-shadow: var(--au-glow-gold);
+  }
+  .aurora-gold:hover:not(:disabled) {
+    box-shadow: var(--au-glow-gold-hover);
+    transform: translateY(-1px);
+  }
+  .aurora-gold:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+  }
+  .aurora-gold:disabled {
+    background-image: linear-gradient(180deg, rgba(240, 194, 92, 0.4), rgba(207, 154, 44, 0.4));
+    color: rgba(28, 20, 5, 0.5);
+    box-shadow: none;
+  }
+
+  /* Danger control — glass body, rose gradient edge */
+  .aurora-danger {
+    border: 1px solid transparent;
+    background-color: transparent;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 45%),
+      linear-gradient(rgba(30, 14, 20, 0.75), rgba(30, 14, 20, 0.75)),
+      linear-gradient(110deg, rgba(244, 63, 94, 0.75), rgba(255, 140, 120, 0.45));
+    background-origin: border-box;
+    background-clip: padding-box, padding-box, border-box;
+    color: #ffd9de;
+  }
+  .aurora-danger:hover:not(:disabled) {
+    box-shadow: 0 0 20px -5px rgba(244, 63, 94, 0.55);
+  }
+
+  /* Solid rose — the destructive confirm inside modals */
+  .aurora-danger-solid {
+    background-image: linear-gradient(180deg, #f43f5e, #c81e3d);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 16px -4px rgba(244, 63, 94, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  /* Modal — heavier glass, gold⇄cyan edge, deep cast shadow */
+  .aurora-modal {
+    border: 1px solid transparent;
+    background-color: transparent;
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%),
+      linear-gradient(rgba(15, 26, 36, 0.97), rgba(15, 26, 36, 0.97)),
+      linear-gradient(135deg, rgba(233, 183, 74, 0.55), rgba(90, 200, 230, 0.4));
+    background-origin: border-box;
+    background-clip: padding-box, padding-box, border-box;
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.55),
+      0 0 44px -14px rgba(90, 200, 230, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Info boxes — tinted wash over dark core with a coloured gradient edge */
+  .aurora-alert {
+    border: 1px solid transparent;
+    background-color: transparent;
+    background-origin: border-box;
+    background-clip: padding-box, padding-box, border-box;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  .aurora-alert-emerald {
+    background-image:
+      linear-gradient(180deg, rgba(52, 211, 153, 0.08), rgba(52, 211, 153, 0.02)),
+      linear-gradient(rgba(13, 26, 26, 0.85), rgba(13, 26, 26, 0.85)),
+      linear-gradient(135deg, rgba(52, 211, 153, 0.6), rgba(94, 234, 212, 0.25));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 20px -8px rgba(52, 211, 153, 0.3);
+  }
+  .aurora-alert-rose {
+    background-image:
+      linear-gradient(180deg, rgba(244, 63, 94, 0.09), rgba(244, 63, 94, 0.02)),
+      linear-gradient(rgba(28, 16, 22, 0.85), rgba(28, 16, 22, 0.85)),
+      linear-gradient(135deg, rgba(244, 63, 94, 0.65), rgba(255, 140, 120, 0.3));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 20px -8px rgba(244, 63, 94, 0.3);
+  }
+  .aurora-alert-gold {
+    background-image:
+      linear-gradient(180deg, rgba(226, 181, 78, 0.08), rgba(226, 181, 78, 0.02)),
+      linear-gradient(rgba(23, 19, 10, 0.85), rgba(23, 19, 10, 0.85)),
+      linear-gradient(135deg, rgba(233, 183, 74, 0.6), rgba(90, 200, 230, 0.3));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 20px -8px rgba(226, 181, 78, 0.25);
+  }
+
+  /* Status chips — dark core, coloured gradient edge (long / short / PRO) */
+  .aurora-chip {
+    border: 1px solid transparent;
+    background-color: transparent;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+  }
+  .aurora-chip-emerald {
+    background-image:
+      linear-gradient(rgba(13, 26, 26, 0.9), rgba(13, 26, 26, 0.9)),
+      linear-gradient(135deg, rgba(52, 211, 153, 0.65), rgba(94, 234, 212, 0.28));
+  }
+  .aurora-chip-rose {
+    background-image:
+      linear-gradient(rgba(28, 16, 22, 0.9), rgba(28, 16, 22, 0.9)),
+      linear-gradient(135deg, rgba(244, 63, 94, 0.65), rgba(255, 140, 120, 0.28));
+  }
+  .aurora-chip-cyan {
+    background-image:
+      linear-gradient(rgba(14, 26, 41, 0.9), rgba(14, 26, 41, 0.9)),
+      linear-gradient(135deg, rgba(90, 200, 230, 0.55), rgba(233, 183, 74, 0.28));
+  }
+
+  /* Tab rail — recessed glass trough with a gold⇄cyan edge */
+  .aurora-tabs {
+    border: 1px solid transparent;
+    background-color: transparent;
+    background-image:
+      linear-gradient(rgba(12, 22, 30, 0.85), rgba(12, 22, 30, 0.85)),
+      linear-gradient(135deg, rgba(130, 190, 210, 0.28), rgba(233, 183, 74, 0.22));
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Radio — selected gets the gold⇄cyan ring on a dark core */
+  .aurora-radio[data-state="checked"] {
+    border: 1.5px solid transparent;
+    background-color: transparent;
+    background-image:
+      linear-gradient(rgba(13, 23, 33, 1), rgba(13, 23, 33, 1)),
+      linear-gradient(135deg, #e9b74a, #5ac8e6);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: 0 0 12px -3px rgba(233, 183, 74, 0.5);
+  }
+  .aurora-radio[data-state="unchecked"] {
+    border: 1.5px solid rgba(130, 190, 210, 0.35);
+    background-color: rgba(18, 32, 42, 0.5);
+  }
+
+  /* Monospace numerals — prices, tickers, spec chips */
+  .aurora-mono {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Sidebar variant — full-height panel, slightly more opaque, stronger blur,
@@ -822,3 +1092,95 @@
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AURORA COMPATIBILITY LAYER
+
+   29 components (~350 buttons) are hand-rolled — raw <button>/<div> styled with
+   token utilities rather than the shadcn primitives in components/ui. Instead of
+   rewriting every call site, we upgrade the utilities themselves.
+
+   The trick: Tailwind's utilities set `background-color`. We layer
+   `background-image` / `box-shadow` / a masked ring on top — different CSS
+   properties, so nothing fights over specificity and no !important is needed.
+
+   Net effect: every hand-rolled card, button and field inherits the Aurora
+   Glass treatment (gold gradient fills, gold⇄cyan edges) automatically.
+   ═════════════════════════════════════════════════════════════════════════ */
+@layer utilities {
+  /* --- Primary → gold gradient fill (bg-primary, 174 call sites) ---------- */
+  .bg-primary {
+    background-image: var(--au-fill-gold);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.38),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+  }
+  /* lift + glow only on genuinely interactive elements, never static tiles */
+  button.bg-primary:not(:disabled):hover,
+  a.bg-primary:hover {
+    box-shadow: var(--au-glow-gold-hover);
+    transform: translateY(-1px);
+  }
+  button.bg-primary:not(:disabled):active,
+  a.bg-primary:active {
+    transform: translateY(0) scale(0.98);
+  }
+  button.bg-primary:disabled {
+    background-image: linear-gradient(180deg, rgba(240, 194, 92, 0.4), rgba(207, 154, 44, 0.4));
+    box-shadow: none;
+  }
+
+  /* --- Destructive → rose gradient (bg-destructive, 62 call sites) -------- */
+  .bg-destructive {
+    background-image: linear-gradient(180deg, #f43f5e, #c81e3d);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+  button.bg-destructive:not(:disabled):hover {
+    box-shadow: 0 4px 16px -4px rgba(244, 63, 94, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  /* --- Fields → recessed glass + gold focus (bg-surface, 62 call sites) --- */
+  .bg-surface {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 40%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      inset 0 2px 6px rgba(0, 0, 0, 0.18);
+  }
+  input.bg-surface:focus,
+  textarea.bg-surface:focus,
+  select.bg-surface:focus {
+    outline: none;
+    box-shadow: var(--au-focus-ring);
+  }
+
+  /* --- Cards → gold⇄cyan gradient ring -----------------------------------
+     Painted as a masked 1px ring on ::before rather than a border, because a
+     `border-color` cannot hold a gradient and `border-image` squares off the
+     rounded corners. The ring's interior is masked out, so it never covers
+     card content. */
+  .bg-card,
+  .card-shadow {
+    position: relative;
+  }
+  .bg-card::before,
+  .card-shadow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--au-edge);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .card-shadow {
+    box-shadow:
+      0 12px 44px rgba(0, 0, 0, 0.4),
+      0 0 40px -18px rgba(90, 200, 230, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+}
