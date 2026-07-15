@@ -26,7 +26,7 @@ import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
 import { useToast } from '@/hooks/use-toast';
 import { formatBytes, uploadErrorText, uploadWithProgress } from '@/lib/upload';
-import { withTimeout } from '@/lib/withTimeout';
+import { getStoredAccessToken } from '@/lib/authToken';
 import AttachmentViewer from '@/components/AttachmentViewer';
 import LiveHubMentor from '@/components/LiveHubMentor';
 import ZoomHub from '@/components/ZoomHub';
@@ -478,17 +478,15 @@ export default function MentorDashboard() {
     setBusy(true);
     setUploadPct(0);
     try {
-      const { data: { session } } = await withTimeout(
-        supabase.auth.getSession(),
-        10_000,
-        'אימות ההתחברות',
-      );
-      if (!session?.access_token) {
+      // Lock-free token read — supabase.auth.getSession() would acquire the auth
+      // lock, which a wedged session can hang. See getStoredAccessToken.
+      const stored = getStoredAccessToken();
+      if (!stored || stored.expired) {
         throw new Error('פג תוקף ההתחברות. התחבר מחדש ונסה שוב.');
       }
       await uploadWithProgress({
         url: `${SUPABASE_URL}/storage/v1/object/lesson-assets/${encodeURI(path)}`,
-        token: session.access_token,
+        token: stored.token,
         apikey: SUPABASE_ANON_KEY,
         file,
         onProgress: (p) => setUploadPct(p.percent),
@@ -611,34 +609,55 @@ export default function MentorDashboard() {
       const trimmed = contact.trim();
       const isEmail = trimmed.includes('@');
 
-      // Each step below is bounded. None of them used to be: a request that stalled
-      // rather than failed left the mutation pending forever, which the UI shows as
-      // a permanently greyed-out "send" button and — because nothing ever rejects —
-      // no error toast at all. Silence was the whole bug; now every path reports.
+      // The insert and the edge call both go over RAW fetch, not supabase.from()
+      // / supabase.auth. Every SDK call acquires the client's Web-Lock-backed auth
+      // lock, and a stale persisted session (or the app open in a second tab that
+      // holds the lock) wedges it — so the insert hangs 20s waiting for the lock
+      // and never reaches the network, which is exactly the greyed-out button.
+      // Reading the token straight from storage sidesteps the lock entirely; the
+      // same escape hatch AuthContext uses to validate the session.
+      const stored = getStoredAccessToken();
+      if (!stored || stored.expired) {
+        throw new Error('פג תוקף ההתחברות. התנתק והתחבר מחדש ונסה שוב.');
+      }
+      const authHeaders = {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${stored.token}`,
+      };
 
-      // 1. Create the invite record
-      const { data: inviteData, error: insertError } = await withTimeout(
-        supabase
-          .from('community_invites')
-          .insert({ mentor_id: user!.id, invited_by: user!.id, contact: trimmed })
-          .select('id')
-          .single(),
-        20_000,
-        'יצירת ההזמנה',
-      );
-      if (insertError) throw insertError;
+      // 1. Create the invite record (raw PostgREST insert, bounded so a stall
+      //    surfaces as an error instead of a forever-pending mutation).
+      const insertCtrl = new AbortController();
+      const insertTimer = setTimeout(() => insertCtrl.abort(), 20_000);
+      let inviteId: string;
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/community_invites`, {
+          method: 'POST',
+          headers: { ...authHeaders, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+          body: JSON.stringify({ mentor_id: user!.id, invited_by: user!.id, contact: trimmed }),
+          signal: insertCtrl.signal,
+        });
+        const body = await res.json().catch(() => null);
+        if (!res.ok) {
+          // PostgREST names the reason (RLS denial, constraint, etc.) in .message.
+          const msg = body?.message || `שגיאה ביצירת ההזמנה (${res.status})`;
+          throw new Error(res.status === 401 || res.status === 403
+            ? 'אין הרשאה ליצור הזמנה — ייתכן שההתחברות פגה. התחבר מחדש.'
+            : msg);
+        }
+        inviteId = Array.isArray(body) ? body[0]?.id : body?.id;
+        if (!inviteId) throw new Error('ההזמנה נוצרה אך לא הוחזר מזהה. רענן ונסה שוב.');
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          throw new Error('יצירת ההזמנה נתקעה (20 שניות ללא תגובה). נסה שוב.');
+        }
+        throw err;
+      } finally {
+        clearTimeout(insertTimer);
+      }
 
       // 2. If email invite → create student account + send invite email via edge function
       if (isEmail) {
-        const { data: { session } } = await withTimeout(
-          supabase.auth.getSession(),
-          10_000,
-          'אימות ההתחברות',
-        );
-        if (!session?.access_token) {
-          throw new Error('פג תוקף ההתחברות. התחבר מחדש ונסה שוב.');
-        }
-
         // The edge function sends the mail; on a cold start plus SMTP it can take a
         // while, so give it 60s — but never let it hang the button indefinitely.
         const controller = new AbortController();
@@ -649,11 +668,8 @@ export default function MentorDashboard() {
             `${SUPABASE_URL}/functions/v1/invite-student`,
             {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({ inviteId: inviteData.id, email: trimmed, mentorId: user!.id }),
+              headers: { ...authHeaders, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ inviteId, email: trimmed, mentorId: user!.id }),
               signal: controller.signal,
             }
           );
