@@ -87,8 +87,13 @@ function AppRoutes() {
     prevUserIdRef.current = userId;
   }, [session?.user?.id, queryClient]);
 
-  // Determine the current "phase" for shared layout animation
-  const isAcceptInvite = typeof window !== 'undefined' && window.location.pathname === '/accept-invite';
+  // Determine the current "phase" for shared layout animation.
+  // endsWith (not ===) so it matches under the GitHub Pages "/caesar0dte/"
+  // sub-path too: the live path is "/caesar0dte/accept-invite". The exact-match
+  // bug meant the invite landing never rendered on the deployed site, so a
+  // clicked invite link fell through to the dashboard instead of the password
+  // setup screen. Mirrors the isResetPassword check below.
+  const isAcceptInvite = typeof window !== 'undefined' && window.location.pathname.endsWith('/accept-invite');
   // Password-recovery landing. endsWith so it matches under the GitHub Pages
   // "/caesar0dte/" sub-path too. Handled before auth-phase gating because the
   // recovery token creates a session that would otherwise route to a dashboard.

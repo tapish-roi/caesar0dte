@@ -40,11 +40,17 @@ Deno.serve(async (req) => {
       .eq('user_id', caller.id).eq('role', 'mentor').maybeSingle();
     if (!roleRow) throw new Error('Only mentors can invite students');
 
-    const { inviteId, email, mentorId } = await req.json();
+    const { inviteId, email, mentorId, redirectBase } = await req.json();
     if (!inviteId || !email || !mentorId) throw new Error('Missing required fields');
     if (mentorId !== caller.id) throw new Error('Forbidden');
 
-    const appUrl = req.headers.get('origin') || 'https://caesar0dte.lovable.app';
+    // Where the app is actually served. The client sends its full base (origin +
+    // Vite BASE_URL, e.g. https://tapish-roi.github.io/caesar0dte/) because the
+    // request Origin header drops the "/caesar0dte/" sub-path — which is exactly
+    // what made invite links land on a 404. Normalize the trailing slash, then
+    // fall back to origin / the lovable URL if the client didn't send it.
+    const rawBase = (redirectBase || req.headers.get('origin') || 'https://caesar0dte.lovable.app');
+    const appUrl = String(rawBase).replace(/\/+$/, '');
 
     // Get mentor name for the email
     const { data: mentorProfile } = await adminClient
@@ -52,16 +58,33 @@ Deno.serve(async (req) => {
     const mentorName = mentorProfile?.full_name ?? 'המנטור שלך';
 
     // Redirect URL after accepting the invite — includes mentor info for the page
-    const acceptInviteUrl = `${appUrl}/accept-invite?mentor=${encodeURIComponent(mentorName)}&mentor_id=${encodeURIComponent(mentorId)}`;
+    const acceptInviteUrl = `${appUrl}/accept-invite?mentor=${encodeURIComponent(mentorName)}&mentor_id=${encodeURIComponent(mentorId)}&email=${encodeURIComponent(email)}`;
 
     // Check if user already exists
     const { data: allUsers } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-    const existingUser = allUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    let existingUser = allUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+    // A leftover account that was created by a previous invite attempt but never
+    // activated (never signed in, email never confirmed) is why re-inviting sent a
+    // confusing "reset your password" email instead of a fresh invite. Delete that
+    // stale shell so the invite path below runs and the student gets a proper
+    // signup invite. Guarded tightly: only ever removes a never-used account, and
+    // if the delete fails we keep the existing user and fall back to recovery.
+    if (existingUser && !existingUser.last_sign_in_at && !existingUser.email_confirmed_at) {
+      const { error: delErr } = await adminClient.auth.admin.deleteUser(existingUser.id);
+      if (delErr) {
+        console.warn('Could not delete stale invite account, will send recovery instead:', delErr.message);
+      } else {
+        console.log('Removed never-activated account to re-send a clean invite:', email);
+        existingUser = undefined;
+      }
+    }
 
     let studentId: string;
 
     if (existingUser) {
-      // Existing user — ensure they have student role and send password reset email
+      // Real existing user (has signed in before) — ensure student role and send a
+      // password-recovery email so they can set a new password and access the app.
       studentId = existingUser.id;
 
       await adminClient.from('user_roles').upsert(
@@ -69,19 +92,19 @@ Deno.serve(async (req) => {
         { onConflict: 'user_id,role' }
       );
 
-      // Send password reset so they can set a new password and access the app
       const anonClient = createClient(supabaseUrl, anonKey);
       const { error: resetError } = await anonClient.auth.resetPasswordForEmail(email, {
-        redirectTo: `${acceptInviteUrl}&email=${encodeURIComponent(email)}`,
+        redirectTo: acceptInviteUrl,
       });
       if (resetError) throw new Error(`Failed to send reset email: ${resetError.message}`);
-      console.log('Sent password reset email to existing user:', email);
+      console.log('Sent password recovery email to existing user:', email);
     } else {
-      // New user — inviteUserByEmail creates account AND sends invite email automatically
+      // New (or freshly-cleared) user — inviteUserByEmail creates the account AND
+      // sends the "you've been invited" signup email automatically.
       const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
         email,
         {
-          redirectTo: `${acceptInviteUrl}&email=${encodeURIComponent(email)}`,
+          redirectTo: acceptInviteUrl,
           data: { role: 'student', mentor_name: mentorName },
         }
       );

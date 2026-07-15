@@ -669,7 +669,16 @@ export default function MentorDashboard() {
             {
               method: 'POST',
               headers: { ...authHeaders, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ inviteId, email: trimmed, mentorId: user!.id }),
+              // redirectBase tells the edge function exactly where this app is
+              // served, INCLUDING the /caesar0dte/ sub-path — origin alone drops
+              // it, which is why invite links landed on a 404. Trailing slash and
+              // all; the function normalizes it.
+              body: JSON.stringify({
+                inviteId,
+                email: trimmed,
+                mentorId: user!.id,
+                redirectBase: window.location.origin + import.meta.env.BASE_URL,
+              }),
               signal: controller.signal,
             }
           );
