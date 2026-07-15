@@ -1,13 +1,39 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getStoredAccessToken } from '@/lib/authToken';
 import { TrendingUp, GraduationCap, Eye, EyeOff, CheckCircle } from 'lucide-react';
+
+// Public project identifiers (same values as integrations/supabase/client.ts).
+const SUPABASE_URL = 'https://dnsguhzzgxvymtjrraok.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuc2d1aHp6Z3h2eW10anJyYW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MTA2MjAsImV4cCI6MjA5MzI4NjYyMH0.5llm0eyAmfbHi19YHYnUc2nHDi1yITpXrw-ccKcEyms';
+const AUTH_STORAGE_KEY = 'sb-dnsguhzzgxvymtjrraok-auth-token';
+
+// The recovery/invite link puts the access token in the URL hash (implicit flow).
+// supabase-js clears the hash once it processes it, so fall back to the persisted
+// session. Both reads are lock-free — critical here, because loading a page with a
+// recovery token wedges supabase-js's auth lock, so supabase.auth.getSession()
+// hangs forever (that is exactly what froze this "join" button).
+function recoveryToken(): string | null {
+  const m = (window.location.hash || '').match(/access_token=([^&]+)/);
+  if (m) return decodeURIComponent(m[1]);
+  return getStoredAccessToken()?.token ?? null;
+}
+
+// Read the `sub` (user id) claim from a JWT without verifying it — RLS re-checks
+// it server-side, so this is only to fill student_id on the membership row.
+function jwtSub(token: string): string | null {
+  try {
+    const p = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(decodeURIComponent(escape(atob(p)))).sub ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export default function AcceptInvitePage() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   const mentorName = searchParams.get('mentor') ?? 'המנטור שלך';
@@ -39,59 +65,59 @@ export default function AcceptInvitePage() {
 
     setLoading(true);
     try {
-      // Check if there's already an active session (from invite token in hash)
-      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      // Everything here is raw fetch, never supabase.auth.* — the recovery token
+      // in the URL wedges the client's auth lock, so any SDK auth call hangs.
+      const token = recoveryToken();
+      if (!token) {
+        throw new Error('קישור ההזמנה פג תוקף או שכבר נעשה בו שימוש. בקש/י הזמנה חדשה מהמנטור.');
+      }
+      const authHeaders = {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
 
-      if (existingSession?.user) {
-        // User is already signed in via the invite token — just update the password
-        const { error: updateError } = await supabase.auth.updateUser({ password });
-        if (updateError) throw updateError;
-      } else {
-        // Try signing in first (existing user who got a recovery link)
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) {
-          // If sign-in fails, the token hasn't been processed yet — try OTP exchange from hash
-          // and then update password, OR sign up as new user
-          const hash = window.location.hash;
-          if (hash && hash.includes('access_token')) {
-            // Let Supabase process the hash token
-            // onAuthStateChange will fire — wait for session
-            await new Promise<void>((resolve, reject) => {
-              const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-                if (session?.user) {
-                  clearTimeout(timeout);
-                  subscription.unsubscribe();
-                  const { error: updErr } = await supabase.auth.updateUser({ password });
-                  if (updErr) reject(updErr);
-                  else resolve();
-                }
-              });
-              // Always tear down the listener on timeout too, or it leaks for the page's life.
-              const timeout = setTimeout(() => {
-                subscription.unsubscribe();
-                reject(new Error('תם הזמן לאימות הטוקן'));
-              }, 8000);
-            });
-          } else {
-            throw new Error('לא ניתן להתחבר עם פרטים אלה. אנא בדוק/י את כתובת המייל.');
-          }
-        }
+      // 1. Set the chosen password on the invited account (bounded so a stall errors).
+      const pwCtrl = new AbortController();
+      const pwTimer = setTimeout(() => pwCtrl.abort(), 20_000);
+      let pwRes: Response;
+      try {
+        pwRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+          method: 'PUT', headers: authHeaders, body: JSON.stringify({ password }), signal: pwCtrl.signal,
+        });
+      } catch (err) {
+        throw new Error(err instanceof Error && err.name === 'AbortError'
+          ? 'קביעת הסיסמה נתקעה. בדוק/י את החיבור ונסה/י שוב.'
+          : 'לא ניתן להגיע לשרת. בדוק/י את החיבור ונסה/י שוב.');
+      } finally {
+        clearTimeout(pwTimer);
+      }
+      if (!pwRes.ok) {
+        const body = await pwRes.json().catch(() => null);
+        throw new Error(pwRes.status === 401 || pwRes.status === 403
+          ? 'קישור ההזמנה פג תוקף. בקש/י הזמנה חדשה מהמנטור.'
+          : (body?.msg || body?.error_description || 'קביעת הסיסמה נכשלה. נסה/י שוב.'));
       }
 
-      // Join mentor's community if mentorId is provided
+      // 2. Join the mentor's community (best-effort: if it fails, the student can
+      //    still accept the pending invite from their dashboard after logging in).
       if (mentorId) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { error: joinErr } = await supabase.from('community_members').upsert(
-            { student_id: session.user.id, mentor_id: mentorId },
-            { onConflict: 'student_id,mentor_id' } as never
-          );
-          if (joinErr) throw new Error('החשבון נוצר אך ההצטרפות לקהילת המנטור נכשלה. נסה/י שוב.');
+        const studentId = jwtSub(token);
+        if (studentId) {
+          await fetch(`${SUPABASE_URL}/rest/v1/community_members`, {
+            method: 'POST',
+            headers: { ...authHeaders, Prefer: 'resolution=merge-duplicates' },
+            body: JSON.stringify({ student_id: studentId, mentor_id: mentorId }),
+          }).catch(() => { /* non-fatal */ });
         }
       }
 
+      // 3. Drop the temporary recovery session (lock-free) and send them to a clean
+      //    login, where they sign in fresh with the password they just set. A full
+      //    reload is deliberate: it starts a new JS context with no wedged lock.
+      try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch { /* storage disabled */ }
       setDone(true);
-      setTimeout(() => navigate('/'), 2000);
+      setTimeout(() => { window.location.assign(import.meta.env.BASE_URL); }, 2000);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
       toast({ title: 'שגיאה', description: message, variant: 'destructive' });
@@ -140,7 +166,7 @@ export default function AcceptInvitePage() {
                   <CheckCircle className="w-7 h-7 text-accent" />
                 </div>
                 <h2 className="text-xl font-bold text-foreground">ברוך הבא!</h2>
-                <p className="text-sm text-muted-foreground">החשבון שלך מוכן. מעביר אותך לפלטפורמה...</p>
+                <p className="text-sm text-muted-foreground">החשבון שלך מוכן. מעביר אותך למסך הכניסה — התחבר/י עם המייל והסיסמה שבחרת.</p>
               </motion.div>
             ) : (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -168,7 +194,7 @@ export default function AcceptInvitePage() {
                       required
                       placeholder="your@email.com"
                       dir="ltr"
-                      className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-left"
+                      className="w-full h-[46px] px-4 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-left"
                       autoFocus={!prefillEmail}
                     />
                   </div>
@@ -184,7 +210,7 @@ export default function AcceptInvitePage() {
                         required
                         minLength={6}
                         placeholder="לפחות 6 תווים"
-                        className="w-full h-11 px-4 pl-11 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                        className="w-full h-[46px] px-4 pl-11 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                         autoFocus={!!prefillEmail}
                       />
                       <button
@@ -207,14 +233,14 @@ export default function AcceptInvitePage() {
                       required
                       minLength={6}
                       placeholder="חזור/י על הסיסמה"
-                      className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                      className="w-full h-[46px] px-4 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-11 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                    className="w-full h-[46px] aurora-gold rounded-2xl font-bold transition-all disabled:cursor-not-allowed mt-2"
                   >
                     {loading ? '...' : 'הצטרף/י לקהילה'}
                   </button>

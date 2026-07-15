@@ -122,7 +122,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (session?.user) {
             const metadataRole = session.user.user_metadata?.role as string | undefined;
-            await fetchRole(session.user.id, metadataRole, () => active);
+            // fetchRole calls supabase.rpc(), which needs the auth lock. This
+            // callback RUNS while the lock is held (during detectSessionInUrl /
+            // recovery / refresh), so awaiting it here deadlocks: the rpc waits
+            // for the lock the callback holds, forever. That is what froze the
+            // accept-invite "join" button — getSession() there never returned.
+            // Fire it WITHOUT await so the callback returns and releases the lock;
+            // the rpc then proceeds. The decoupled effect below is the backstop.
+            void fetchRole(session.user.id, metadataRole, () => active);
           } else if (active) {
             setRole(null);
           }
