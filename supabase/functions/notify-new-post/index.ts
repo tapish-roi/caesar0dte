@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
               <h2 style="color: #111; margin-bottom: 8px;">פוסט חדש מ${mentorName}</h2>
               <p style="color: #555; line-height: 1.6; white-space: pre-wrap;">${postPreview}</p>
               <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-              <p style="font-size: 12px; color: #aaa;">קיבלת אימייל זה כי הפעלת התראות אימייל בפרופיל שלך ב-<p style="font-size: 12px; color: #aaa;">קיבלת אימייל זה כי הפעלת התראות אימייל בפרופיל שלך ב-Caesar 0 DTE.</p>.</p>
+              <p style="font-size: 12px; color: #aaa;">קיבלת אימייל זה כי הפעלת התראות אימייל בפרופיל שלך ב-Caesar 0 DTE.</p>
             </div>
           `;
 
