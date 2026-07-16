@@ -1410,7 +1410,7 @@ export default function StudentDashboard() {
                         {isExpanded && (
                           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
                             <div className="border-t border-border">
-                              {catLessons.map((lesson) => {
+                              {catLessons.map((lesson, idx) => {
                                 const lessonCompleted = !!getProgress(lesson.id)?.completed;
                                 return (
                                    <div
@@ -1425,6 +1425,7 @@ export default function StudentDashboard() {
                                         : 'hover:bg-muted/30'
                                     }`}
                                   >
+                                    <span className={`w-5 text-center text-sm font-bold shrink-0 tabular-nums ${lessonCompleted ? 'text-emerald-400/80' : 'text-muted-foreground/60'}`}>{idx + 1}</span>
                                     <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
                                       {lessonCompleted ? (
                                         <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -1476,7 +1477,7 @@ export default function StudentDashboard() {
                   );
                 })}
 
-                {filteredLessons.filter(l => !l.category_id).map((lesson) => {
+                {filteredLessons.filter(l => !l.category_id).map((lesson, idx) => {
                   const prog = getProgress(lesson.id);
                   const lessonCompleted = !!prog?.completed;
                   return (
@@ -1490,6 +1491,7 @@ export default function StudentDashboard() {
                           : 'bg-card'
                       }`}
                     >
+                      <span className={`w-5 text-center text-sm font-bold shrink-0 tabular-nums ${lessonCompleted ? 'text-emerald-400/80' : 'text-muted-foreground/60'}`}>{idx + 1}</span>
                       {lessonCompleted ? (
                         <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
                       ) : (

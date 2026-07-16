@@ -295,6 +295,7 @@ export type Database = {
           is_published: boolean
           lesson_type: string
           mentor_id: string
+          notify_on_publish: boolean
           position: number
           thumbnail_url: string | null
           title: string
@@ -312,6 +313,7 @@ export type Database = {
           is_published?: boolean
           lesson_type?: string
           mentor_id: string
+          notify_on_publish?: boolean
           position?: number
           thumbnail_url?: string | null
           title: string
@@ -329,6 +331,7 @@ export type Database = {
           is_published?: boolean
           lesson_type?: string
           mentor_id?: string
+          notify_on_publish?: boolean
           position?: number
           thumbnail_url?: string | null
           title?: string

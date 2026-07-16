@@ -4,6 +4,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import MediaLightbox, { useMediaLightbox } from '@/components/MediaLightbox';
+import { Switch } from '@/components/ui/switch';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -275,6 +276,7 @@ interface Lesson {
   duration_minutes: number | null;
   attachment_url: string | null;
   attachment_name: string | null;
+  notify_on_publish: boolean;
 }
 
 interface CommunityPost {
@@ -327,7 +329,7 @@ export default function MentorDashboard() {
   const postFileInputRef = useRef<HTMLInputElement>(null);
   const [lessonForm, setLessonForm] = useState({
     title: '', description: '', lesson_type: 'recorded_lesson', video_url: '', duration_minutes: '',
-    attachment_url: '', attachment_name: '',
+    attachment_url: '', attachment_name: '', notify: false,
   });
 
   // Post compose state
@@ -616,12 +618,14 @@ export default function MentorDashboard() {
         is_published: false,
         attachment_url: lessonForm.attachment_url || null,
         attachment_name: lessonForm.attachment_name || null,
+        // Consumed on first publish to email students with access (see togglePublish).
+        notify_on_publish: lessonForm.notify,
       });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['lessons'] });
       setShowLessonPanel(false);
-      setLessonForm({ title: '', description: '', lesson_type: 'recorded_lesson', video_url: '', duration_minutes: '', attachment_url: '', attachment_name: '' });
+      setLessonForm({ title: '', description: '', lesson_type: 'recorded_lesson', video_url: '', duration_minutes: '', attachment_url: '', attachment_name: '', notify: false });
       toast({ title: 'שיעור נוצר' });
     },
     onError: (err) => toast({ title: 'שגיאה ביצירת השיעור', description: err instanceof Error ? err.message : undefined, variant: 'destructive' }),
@@ -668,11 +672,28 @@ export default function MentorDashboard() {
   };
 
   const togglePublish = useMutation({
-    mutationFn: async ({ id, is_published }: { id: string; is_published: boolean }) => {
+    mutationFn: async ({ id, is_published, notify_on_publish }: { id: string; is_published: boolean; notify_on_publish?: boolean }) => {
       const { error } = await supabase.from('lessons').update({ is_published: !is_published }).eq('id', id);
       if (error) throw error;
+
+      // First publish (draft -> published) of a lesson the mentor opted to
+      // announce: email students with access, then consume the flag so a later
+      // unpublish/republish doesn't re-notify. Fire-and-forget — a mail hiccup
+      // must not fail the publish toggle.
+      const publishing = !is_published;
+      if (publishing && notify_on_publish) {
+        supabase.functions.invoke('notify-new-lesson', {
+          body: { lesson_id: id, mentor_id: user!.id, siteUrl: window.location.origin + import.meta.env.BASE_URL },
+        }).catch(() => { /* email is best-effort */ });
+        await supabase.from('lessons').update({ notify_on_publish: false }).eq('id', id);
+        return { notified: true };
+      }
+      return { notified: false };
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['lessons'] }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['lessons'] });
+      if (res?.notified) toast({ title: 'השיעור פורסם', description: 'נשלחה התראה במייל לתלמידים עם גישה לקטגוריה' });
+    },
   });
 
   const deleteLesson = useMutation({
@@ -1140,7 +1161,7 @@ export default function MentorDashboard() {
                   // Pass the lesson's real current state so togglePublish's flip resolves
                   // to "published" instead of relying on a hardcoded value.
                   const lesson = lessons.find(l => l.id === draftAlertLessonId);
-                  togglePublish.mutate({ id: draftAlertLessonId, is_published: lesson?.is_published ?? false });
+                  togglePublish.mutate({ id: draftAlertLessonId, is_published: lesson?.is_published ?? false, notify_on_publish: lesson?.notify_on_publish });
                 }
                 setDraftAlertLessonId(null);
               }}
@@ -1525,7 +1546,7 @@ export default function MentorDashboard() {
                                   onDragOver={(e) => handleDragOver(e, lesson.id)}
                                   onDrop={() => handleDrop(cat.id, catLessons)}
                                   onDragEnd={clearDrag}
-                                  onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
+                                  onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published, notify_on_publish: lesson.notify_on_publish })}
                                   onDelete={() => deleteLesson.mutate(lesson.id)}
                                   onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '', category_id: lesson.category_id ?? '' }); }}
                                   onView={() => { setLessonViewMode({ categoryId: cat.id, categoryTitle: cat.title }); selectLessonWithDraftCheck(lesson.id); }}
@@ -1566,7 +1587,7 @@ export default function MentorDashboard() {
                           onDragOver={(e) => handleDragOver(e, lesson.id)}
                           onDrop={() => handleDrop(null, uncategorized)}
                           onDragEnd={clearDrag}
-                          onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
+                          onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published, notify_on_publish: lesson.notify_on_publish })}
                           onDelete={() => deleteLesson.mutate(lesson.id)}
                           onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '', category_id: lesson.category_id ?? '' }); }}
                           onView={() => { setLessonViewMode({ categoryId: '', categoryTitle: 'ללא קטגוריה' }); selectLessonWithDraftCheck(lesson.id); }}
@@ -2260,6 +2281,18 @@ export default function MentorDashboard() {
                     <textarea value={lessonForm.description} onChange={e => setLessonForm(f => ({ ...f, description: e.target.value }))} rows={3}
                       placeholder="תיאור קצר של השיעור..."
                       className="w-full px-4 py-3 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent text-right resize-none"
+                    />
+                  </div>
+
+                  <div className="flex items-start justify-between gap-3 p-3 rounded-lg bg-surface ring-1 ring-border">
+                    <div className="flex-1">
+                      <label htmlFor="notify-switch" className="block text-sm font-medium text-foreground">התראה במייל לתלמידים</label>
+                      <p className="text-xs text-muted-foreground mt-0.5">כשתפרסם/י את השיעור, תישלח התראה במייל לתלמידים עם גישה לקטגוריה.</p>
+                    </div>
+                    <Switch
+                      id="notify-switch"
+                      checked={lessonForm.notify}
+                      onCheckedChange={(val) => setLessonForm(f => ({ ...f, notify: val }))}
                     />
                   </div>
 
