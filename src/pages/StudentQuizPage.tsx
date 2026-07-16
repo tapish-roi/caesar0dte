@@ -254,7 +254,7 @@ export default function StudentQuizPage() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}
-                className="bg-secondary/50 border border-sidebar-border rounded-xl overflow-hidden"
+                className="bg-card rounded-xl overflow-hidden"
               >
                 {/* Question header */}
                 <div className={`flex items-center gap-3 px-5 py-3 border-b border-sidebar-border ${
@@ -355,7 +355,7 @@ export default function StudentQuizPage() {
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-secondary-foreground/60 hover:text-secondary-foreground transition-colors mb-6">
             <ChevronRight className="w-4 h-4" />חזרה לשיעור
           </button>
-          <div className="bg-secondary/50 border border-sidebar-border rounded-2xl p-8 text-center">
+          <div className="bg-card rounded-2xl p-8 text-center">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
               pct == null ? 'bg-primary/10' : pct >= 70 ? 'bg-green-500/10' : 'bg-red-500/10'
             }`}>
@@ -402,7 +402,7 @@ export default function StudentQuizPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-secondary/50 border border-sidebar-border rounded-2xl p-8 max-w-md w-full text-center shadow-lg"
+          className="bg-card rounded-2xl p-8 max-w-md w-full text-center"
         >
           <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 ${
             pct == null ? 'bg-primary/10' : pct >= 70 ? 'bg-green-500/10' : 'bg-red-500/10'
@@ -596,7 +596,7 @@ export default function StudentQuizPage() {
                   onChange={e => setAnswers(prev => ({ ...prev, [currentQuestion.id]: { type: 'free_text', text: e.target.value } }))}
                   placeholder="כתוב את תשובתך כאן..."
                   rows={5}
-                  className="w-full px-5 py-4 bg-secondary/50 ring-1 ring-sidebar-border rounded-xl text-sm text-secondary-foreground placeholder-secondary-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                  className="w-full px-5 py-4 aurora-field rounded-xl text-sm text-secondary-foreground placeholder-secondary-foreground/40 focus:outline-none transition-all resize-none text-right"
                 />
               )}
 

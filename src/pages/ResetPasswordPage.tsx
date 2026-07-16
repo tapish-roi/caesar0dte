@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -17,8 +16,16 @@ import { TrendingUp, KeyRound, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } 
  * root (dev / custom domain) and under the GitHub Pages "/caesar0dte/" sub-path.
  */
 export default function ResetPasswordPage() {
-  const navigate = useNavigate();
   const { toast } = useToast();
+
+  // The recovery link lands here with a URL hash (recovery token, or an
+  // error like otp_expired). That hash desyncs react-router's history, so a
+  // client-side navigate('/auth') is a silent no-op — which is why the "return
+  // to login" button appeared dead. A hard load to the app base leaves the
+  // broken state entirely: it clears the dangling hash and any wedged
+  // supabase auth lock, then lands on the login screen. BASE_URL is "/" in dev
+  // and "/caesar0dte/" under the GitHub Pages sub-path.
+  const goToLogin = () => { window.location.href = import.meta.env.BASE_URL; };
 
   const [status, setStatus] = useState<'checking' | 'ready' | 'invalid'>('checking');
   const [password, setPassword] = useState('');
@@ -70,7 +77,7 @@ export default function ResetPasswordPage() {
       setDone(true);
       // Sign out so the user logs in fresh with the new password.
       await supabase.auth.signOut();
-      setTimeout(() => navigate('/auth'), 2000);
+      setTimeout(goToLogin, 2000);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'שגיאה לא צפויה';
       toast({ title: 'שגיאה', description: message, variant: 'destructive' });
@@ -126,7 +133,7 @@ export default function ResetPasswordPage() {
                   קישור איפוס הסיסמה פג תוקף או שכבר נעשה בו שימוש. בקש/י קישור חדש ממסך הכניסה.
                 </p>
                 <button
-                  onClick={() => navigate('/auth')}
+                  onClick={goToLogin}
                   className="w-full h-[46px] bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 active:opacity-80 transition-all mt-2"
                 >
                   חזרה לכניסה

@@ -367,6 +367,9 @@ export default function MentorDashboard() {
 
   // Drag & drop
   const [dragLesson, setDragLesson] = useState<string | null>(null);
+  // Category currently hovered as a cross-category move target while dragging a
+  // lesson. Uncategorized ("ללא קטגוריה") is keyed as '__uncat__'.
+  const [dragOverCategory, setDragOverCategory] = useState<string | null>(null);
 
   // Helper: select lesson and show draft alert if unpublished
   const selectLessonWithDraftCheck = useCallback((lessonId: string) => {
@@ -717,6 +720,22 @@ export default function MentorDashboard() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lessons'] }),
   });
 
+  // Drag-to-move: reassign a lesson to a different category (or to
+  // uncategorized when categoryId is null), dropping it at the end of the
+  // target list so its position can't collide. Mirrors the reassign the edit
+  // form does when its category dropdown changes.
+  const moveLessonToCategory = useMutation({
+    mutationFn: async ({ lessonId, categoryId }: { lessonId: string; categoryId: string | null }) => {
+      const position = lessons.filter(l => l.category_id === categoryId && l.id !== lessonId).length;
+      const { error } = await supabase.from('lessons')
+        .update({ category_id: categoryId, position })
+        .eq('id', lessonId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['lessons'] }),
+    onError: () => toast({ title: 'שגיאה בהעברת השיעור', variant: 'destructive' }),
+  });
+
   const sendInvite = useMutation({
     mutationFn: async (contact: string) => {
       const trimmed = contact.trim();
@@ -1033,20 +1052,46 @@ export default function MentorDashboard() {
     setDragOverLesson(lessonId);
   }, []);
 
-  const handleDrop = useCallback((categoryId: string | null, lessons: Lesson[]) => {
-    if (!dragLesson || !dragOverLesson || dragLesson === dragOverLesson) {
-      setDragLesson(null); setDragOverLesson(null); return;
+  // Hovering a category card (header or body) while dragging a lesson marks it
+  // as a move target. Only lessons drag, so guard on dragLesson.
+  const handleCategoryDragOver = useCallback((e: React.DragEvent, categoryId: string | null) => {
+    if (!dragLesson) return;
+    e.preventDefault();
+    setDragOverCategory(categoryId ?? '__uncat__');
+  }, [dragLesson]);
+
+  const clearDrag = useCallback(() => {
+    setDragLesson(null); setDragOverLesson(null); setDragOverCategory(null);
+  }, []);
+
+  // Unified drop: if the lesson came from a different category → move it here;
+  // otherwise reorder within this category to the hovered slot.
+  const handleDrop = useCallback((categoryId: string | null, catLessons: Lesson[]) => {
+    const draggedId = dragLesson;
+    const overId = dragOverLesson;
+    clearDrag();
+    if (!draggedId) return;
+    const dragged = lessons.find(l => l.id === draggedId);
+    if (!dragged) return;
+
+    // Cross-category move.
+    if (dragged.category_id !== categoryId) {
+      if (categoryId) setExpandedCats(prev => new Set(prev).add(categoryId));
+      moveLessonToCategory.mutate({ lessonId: draggedId, categoryId });
+      return;
     }
-    const ids = lessons.map(l => l.id);
-    const fromIdx = ids.indexOf(dragLesson);
-    const toIdx = ids.indexOf(dragOverLesson);
-    if (fromIdx === -1 || toIdx === -1) { setDragLesson(null); setDragOverLesson(null); return; }
+
+    // Same-category reorder.
+    if (!overId || draggedId === overId) return;
+    const ids = catLessons.map(l => l.id);
+    const fromIdx = ids.indexOf(draggedId);
+    const toIdx = ids.indexOf(overId);
+    if (fromIdx === -1 || toIdx === -1) return;
     const reordered = [...ids];
     reordered.splice(fromIdx, 1);
-    reordered.splice(toIdx, 0, dragLesson);
+    reordered.splice(toIdx, 0, draggedId);
     reorderLessons.mutate(reordered);
-    setDragLesson(null); setDragOverLesson(null);
-  }, [dragLesson, dragOverLesson, reorderLessons]);
+  }, [dragLesson, dragOverLesson, lessons, clearDrag, reorderLessons, moveLessonToCategory]);
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
@@ -1440,13 +1485,20 @@ export default function MentorDashboard() {
                 {categories.map((cat, catIdx) => {
                   const catLessons = lessons.filter(l => l.category_id === cat.id);
                   const isExpanded = expandedCats.has(cat.id);
+                  // Highlight this card only when a lesson from a *different*
+                  // category is dragged over it — i.e. an actual move target.
+                  const draggedLesson = dragLesson ? lessons.find(l => l.id === dragLesson) : null;
+                  const isMoveTarget = dragOverCategory === cat.id && draggedLesson != null && draggedLesson.category_id !== cat.id;
                   return (
                     <motion.div
                       key={cat.id}
                       initial={{ opacity: 0, y: 10, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       transition={{ duration: 0.35, delay: catIdx * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                      className="bg-card rounded-xl card-shadow overflow-hidden"
+                      onDragOver={(e) => handleCategoryDragOver(e, cat.id)}
+                      onDrop={() => handleDrop(cat.id, catLessons)}
+                      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverCategory(null); }}
+                      className={`bg-card rounded-xl card-shadow overflow-hidden transition-shadow ${isMoveTarget ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
                     >
                       <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => toggleCat(cat.id)}>
                         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
@@ -1472,7 +1524,7 @@ export default function MentorDashboard() {
                                   onDragStart={() => handleDragStart(lesson.id)}
                                   onDragOver={(e) => handleDragOver(e, lesson.id)}
                                   onDrop={() => handleDrop(cat.id, catLessons)}
-                                  onDragEnd={() => { setDragLesson(null); setDragOverLesson(null); }}
+                                  onDragEnd={clearDrag}
                                   onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                                   onDelete={() => deleteLesson.mutate(lesson.id)}
                                   onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '', category_id: lesson.category_id ?? '' }); }}
@@ -1488,20 +1540,32 @@ export default function MentorDashboard() {
                   );
                 })}
 
-                {uncategorized.length > 0 && (
-                  <div className="bg-card rounded-xl card-shadow overflow-hidden">
+                {/* Shown while dragging even if empty, so a lesson can always be
+                    dropped here to leave its category. */}
+                {(uncategorized.length > 0 || dragLesson) && (() => {
+                  const draggedLesson = dragLesson ? lessons.find(l => l.id === dragLesson) : null;
+                  const isUncatTarget = dragOverCategory === '__uncat__' && draggedLesson != null && draggedLesson.category_id !== null;
+                  return (
+                  <div
+                    onDragOver={(e) => handleCategoryDragOver(e, null)}
+                    onDrop={() => handleDrop(null, uncategorized)}
+                    onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverCategory(null); }}
+                    className={`bg-card rounded-xl card-shadow overflow-hidden transition-shadow ${isUncatTarget ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
+                  >
                     <div className="flex items-center gap-3 p-4">
                       <span className="font-semibold text-muted-foreground flex-1 text-sm">ללא קטגוריה</span>
                     </div>
                     <div className="border-t border-border">
-                      {uncategorized.map((lesson, idx) => (
+                      {uncategorized.length === 0 ? (
+                        <div className="px-6 py-6 text-sm text-muted-foreground text-center">גרור/י לכאן כדי להסיר מקטגוריה</div>
+                      ) : uncategorized.map((lesson, idx) => (
                         <LessonRow key={lesson.id} lesson={lesson} index={idx + 1}
                           isDragging={dragLesson === lesson.id}
                           isDragOver={dragOverLesson === lesson.id}
                           onDragStart={() => handleDragStart(lesson.id)}
                           onDragOver={(e) => handleDragOver(e, lesson.id)}
                           onDrop={() => handleDrop(null, uncategorized)}
-                          onDragEnd={() => { setDragLesson(null); setDragOverLesson(null); }}
+                          onDragEnd={clearDrag}
                           onTogglePublish={() => togglePublish.mutate({ id: lesson.id, is_published: lesson.is_published })}
                           onDelete={() => deleteLesson.mutate(lesson.id)}
                           onEdit={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '', category_id: lesson.category_id ?? '' }); }}
@@ -1511,7 +1575,8 @@ export default function MentorDashboard() {
                       ))}
                     </div>
                   </div>
-                )}
+                  );
+                })()}
 
                 {categories.length === 0 && lessons.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
@@ -2529,7 +2594,7 @@ function LessonRow({
       draggable={!!onDragStart}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
-      onDrop={onDrop}
+      onDrop={(e) => { e.preventDefault(); e.stopPropagation(); onDrop?.(); }}
       onDragEnd={onDragEnd}
       className={`flex items-center gap-2 md:gap-3 px-3 md:px-4 py-3 hover:bg-muted/30 transition-colors group cursor-pointer select-none
         ${isDragOver ? 'border-t-2 border-primary bg-primary/5' : ''}

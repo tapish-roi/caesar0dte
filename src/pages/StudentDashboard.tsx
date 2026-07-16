@@ -282,7 +282,7 @@ function LandingScreen({
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.06 }}
                   onClick={() => onSelect(m.mentor_id)}
-                  className="w-full flex items-center gap-4 p-4 bg-surface rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-right group"
+                  className="w-full flex items-center gap-4 p-4 aurora-control rounded-xl transition-all text-right group"
                 >
                   <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-base shrink-0">
                     {m.avatarLetter}
@@ -303,7 +303,7 @@ function LandingScreen({
                   </p>
                   <div className="space-y-2">
                     {invites.map((inv) => (
-                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-surface border border-border rounded-xl">
+                      <div key={inv.id} className="flex items-center gap-3 p-3 aurora-control rounded-xl">
                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                            <span className="text-xs font-bold text-primary">{inv.mentorName[0]?.toUpperCase()}</span>
                          </div>
@@ -346,7 +346,7 @@ function LandingScreen({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.07 }}
-                  className="flex items-center gap-3 p-4 bg-surface border border-border rounded-xl"
+                  className="flex items-center gap-3 p-4 aurora-control rounded-xl"
                 >
                   <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <span className="text-base font-bold text-primary">{inv.mentorName[0]?.toUpperCase()}</span>
@@ -448,7 +448,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
 
   return (
     <div className="px-6 pb-4 mt-4">
-      <div className={`flex items-center gap-4 p-4 rounded-xl border ${hasSubmitted ? 'bg-accent/5 border-accent/20' : 'bg-primary/5 border-primary/20'}`}>
+      <div className={`flex items-center gap-4 p-4 rounded-xl aurora-alert ${hasSubmitted ? 'aurora-alert-emerald' : 'aurora-alert-gold'}`}>
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${hasSubmitted ? 'bg-accent/10' : 'bg-primary/10'}`}>
           {hasSubmitted ? <CheckCircle2 className="w-5 h-5 text-accent" /> : <ClipboardList className="w-5 h-5 text-primary" />}
         </div>
@@ -1905,7 +1905,7 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
                   onChange={e => onCommentChange(e.target.value)}
                   placeholder="כתוב תגובה..."
                   rows={1}
-                  className="flex-1 px-3 py-2 bg-surface border-none ring-1 ring-border rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right resize-none"
+                  className="flex-1 px-3 py-2 aurora-field rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none transition-all text-right resize-none"
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onAddComment(); } }}
                 />
                 <button
@@ -1977,14 +1977,14 @@ function ProfileContent({
           <div className="relative">
             <User className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input value={profileForm.full_name} onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))} placeholder="השם שלך"
-              className="w-full h-9 pr-9 pl-3 bg-surface ring-1 ring-border rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
+              className="w-full h-9 pr-9 pl-3 aurora-field rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-right" />
           </div>
         </div>
         <div><label className="block text-xs text-muted-foreground mb-1">מספר טלפון</label>
           <div className="relative">
             <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input value={profileForm.phone} onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} placeholder="050-0000000" type="tel"
-              className="w-full h-9 pr-9 pl-3 bg-surface ring-1 ring-border rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
+              className="w-full h-9 pr-9 pl-3 aurora-field rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-right" />
           </div>
         </div>
         <div><label className="block text-xs text-muted-foreground mb-1">אימייל</label>
@@ -2003,7 +2003,7 @@ function ProfileContent({
         <div className="relative">
           <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <input type={showPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="סיסמה חדשה (6+ תווים)"
-            className="w-full h-9 pr-9 pl-9 bg-surface ring-1 ring-border rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right" />
+            className="w-full h-9 pr-9 pl-9 aurora-field rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-right" />
           <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
             {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
           </button>

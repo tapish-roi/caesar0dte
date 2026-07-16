@@ -126,10 +126,9 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
           return (
             <div
               key={q.id}
-              className={`rounded-xl border overflow-hidden transition-all ${
-                isOpen ? 'border-primary/30 shadow-sm' : 'border-border'
+              className={`bg-card rounded-xl overflow-hidden transition-all ${
+                isOpen ? 'border-primary/30 shadow-sm' : ''
               } ${!hasAnswer ? 'ring-1 ring-primary/15' : ''}`}
-              style={{ background: 'hsl(200, 40%, 12%)' }}
             >
               <button
                 onClick={() => !isEditingThis && setExpanded(isOpen ? null : q.id)}
@@ -224,7 +223,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                               value={editingText}
                               onChange={e => setEditingText(e.target.value)}
                               rows={3}
-                              className="w-full px-3 py-2 bg-surface ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                              className="w-full px-3 py-2 aurora-field rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none transition-all resize-none text-right"
                             />
                             <div className="flex gap-2 justify-end">
                               <button
@@ -252,7 +251,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
 
                       {/* Answer */}
                       {hasAnswer ? (
-                        <div className="bg-accent/5 border border-accent/20 rounded-lg p-3">
+                        <div className="aurora-alert aurora-alert-emerald rounded-lg p-3">
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center shrink-0">
                               <Reply className="w-2.5 h-2.5 text-accent-foreground" />

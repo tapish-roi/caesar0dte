@@ -42,7 +42,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
           {isDocument && (
             <button
               onClick={(e) => { e.stopPropagation(); setIframeKey(k => k + 1); }}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-lg aurora-control text-xs text-muted-foreground hover:text-primary transition-all"
               title="רענן תצוגה מקדימה"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -53,7 +53,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
             href={openUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-lg aurora-control text-xs text-muted-foreground hover:text-primary transition-all"
             onClick={e => e.stopPropagation()}
           >
             <ExternalLink className="w-3.5 h-3.5" />

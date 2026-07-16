@@ -231,7 +231,10 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            className="mb-5 overflow-hidden"
+            // py-1 keeps the input's focus ring off the overflow-hidden clip
+            // edge; without it the ring's top/bottom got cut, leaving only the
+            // left/right sides of the outline visible.
+            className="mb-5 overflow-hidden py-1"
           >
             <div className="flex gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
@@ -242,7 +245,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                   value={newQuestion === '__focus__' ? '' : newQuestion}
                   onChange={e => setNewQuestion(e.target.value)}
                   placeholder="שאל שאלה שכל התלמידים יראו..."
-                  className="flex-1 min-w-0 h-9 px-3 bg-muted/50 ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right"
+                  className="flex-1 min-w-0 h-9 px-3 aurora-field rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none transition-all text-right"
                   onKeyDown={e => {
                     if (e.key === 'Enter' && newQuestion.trim() && newQuestion !== '__focus__') {
                       postQuestion.mutate(newQuestion.trim());
@@ -285,7 +288,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                     value={editingQuestionText}
                     onChange={e => setEditingQuestionText(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 bg-surface ring-1 ring-primary rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all resize-none text-right"
+                    className="w-full px-3 py-2 aurora-field rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none transition-all resize-none text-right"
                   />
                   <div className="flex gap-2 justify-end">
                     <button
@@ -366,14 +369,14 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                         const isEditingThis = editingAnswer === a.id;
                         const aEdited = wasEdited(a.created_at, a.updated_at);
                         return (
-                          <div key={a.id} className="bg-accent/5 border border-accent/15 rounded-lg p-2.5">
+                          <div key={a.id} className="aurora-alert aurora-alert-emerald rounded-lg p-2.5">
                             {isEditingThis ? (
                               <div className="space-y-2">
                                 <textarea
                                   value={editingAnswerText}
                                   onChange={e => setEditingAnswerText(e.target.value)}
                                   rows={2}
-                                  className="w-full px-3 py-2 bg-surface ring-1 ring-accent rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all resize-none text-right"
+                                  className="w-full px-3 py-2 aurora-field rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none transition-all resize-none text-right"
                                 />
                                 <div className="flex gap-2 justify-end">
                                   <button
@@ -432,7 +435,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                             value={answerTexts[q.id] ?? ''}
                             onChange={e => setAnswerTexts(prev => ({ ...prev, [q.id]: e.target.value }))}
                             placeholder="כתוב תשובה לכל התלמידים..."
-                            className="flex-1 h-8 px-3 bg-surface ring-1 ring-border rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
+                            className="flex-1 h-8 px-3 aurora-field rounded-lg text-xs text-foreground placeholder-muted-foreground focus:outline-none transition-all text-right"
                             onKeyDown={e => {
                               if (e.key === 'Enter' && answerTexts[q.id]?.trim()) {
                                 postAnswer.mutate({ questionId: q.id, content: answerTexts[q.id].trim() });
@@ -499,7 +502,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                   onChange={e => setPrivateQuestion(e.target.value)}
                   placeholder="מה אתה רוצה לשאול..."
                   rows={4}
-                  className="w-full px-3 py-2.5 bg-muted/50 ring-1 ring-border rounded-xl text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all text-right resize-none mb-4"
+                  className="w-full px-3 py-2.5 aurora-field rounded-xl text-sm text-foreground placeholder-muted-foreground focus:outline-none transition-all text-right resize-none mb-4"
                 />
                 <div className="flex gap-2">
                   <button

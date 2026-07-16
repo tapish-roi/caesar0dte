@@ -153,7 +153,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
       </div>
 
       {/* Sub-tabs — horizontal scroll on mobile */}
-      <div className="flex gap-2 mb-6 bg-muted/40 p-1 rounded-xl w-fit max-w-full overflow-x-auto scrollbar-hide">
+      <div className="flex gap-2 mb-6 aurora-tabs p-1 rounded-xl w-fit max-w-full overflow-x-auto scrollbar-hide">
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}

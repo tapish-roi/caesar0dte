@@ -330,7 +330,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
               onChange={e => setTitle(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && canCreate && !isWorking && createMeeting.mutate()}
               placeholder="שם הפגישה (לדוגמה: ניתוח בוקר)"
-              className="w-full h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[rgba(226,181,78,0.60)] text-right"
+              className="w-full h-11 px-4 aurora-field rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none text-right"
               disabled={isWorking}
             />
 
@@ -367,7 +367,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                       value={schedTitle}
                       onChange={e => setSchedTitle(e.target.value)}
                       placeholder="שם הפגישה המתוזמנת"
-                      className="w-full h-10 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[rgba(226,181,78,0.40)] text-right"
+                      className="w-full h-10 px-4 aurora-field rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none text-right"
                       disabled={scheduleMeeting.isPending}
                     />
                     <div className="flex gap-2">
@@ -376,7 +376,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                         value={schedDate}
                         min={nowDate}
                         onChange={e => setSchedDate(e.target.value)}
-                        className="flex-1 h-10 px-3 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[rgba(226,181,78,0.40)]"
+                        className="flex-1 h-10 px-3 aurora-field rounded-lg text-sm text-foreground focus:outline-none"
                         disabled={scheduleMeeting.isPending}
                       />
                       <input
@@ -384,7 +384,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                         value={schedTime}
                         min={schedDate === nowDate ? nowTime : undefined}
                         onChange={e => setSchedTime(e.target.value)}
-                        className="flex-1 h-10 px-3 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[rgba(226,181,78,0.40)]"
+                        className="flex-1 h-10 px-3 aurora-field rounded-lg text-sm text-foreground focus:outline-none"
                         disabled={scheduleMeeting.isPending}
                       />
                     </div>
@@ -424,7 +424,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                       value={manualUrl}
                       onChange={e => setManualUrl(e.target.value)}
                       placeholder="קישור Zoom או מזהה פגישה"
-                      className="w-full h-10 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-[rgba(226,181,78,0.40)] font-mono"
+                      className="w-full h-10 px-4 aurora-field rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none font-mono"
                       dir="ltr"
                       disabled={isWorking}
                     />
