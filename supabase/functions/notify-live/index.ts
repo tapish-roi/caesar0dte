@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { session_id, mentor_id, title } = await req.json();
+    const { session_id, mentor_id, title, siteUrl } = await req.json();
 
     if (!session_id || !mentor_id) {
       return new Response(JSON.stringify({ error: 'Missing session_id or mentor_id' }), {
@@ -63,6 +63,12 @@ Deno.serve(async (req) => {
     const emailRecipients = profiles.filter((p) => p.notify_email && p.email);
     const emailResults: string[] = [];
 
+    // The CTA used to be href="#", so "watch the live" went nowhere. Callers can
+    // pass siteUrl; fall back to the production site so the button always works.
+    const link = typeof siteUrl === 'string' && siteUrl.startsWith('http')
+      ? siteUrl
+      : 'https://tapish-roi.github.io/caesar0dte/';
+
     for (const profile of emailRecipients) {
       try {
         const emailHtml = `
@@ -75,11 +81,11 @@ Deno.serve(async (req) => {
             <p style="color:#444; line-height:1.6; font-size:15px; margin-bottom:20px;">
               <strong>${sessionTitle}</strong> — הלייב כבר פועל. היכנס לקהילה כדי לצפות.
             </p>
-            <a href="#" style="display:inline-block; background:#3b82f6; color:#fff; padding:12px 24px; border-radius:10px; font-size:14px; font-weight:600; text-decoration:none; margin-bottom:24px;">
+            <a href="${link}" style="display:inline-block; background:#3b82f6; color:#fff; padding:12px 24px; border-radius:10px; font-size:14px; font-weight:600; text-decoration:none; margin-bottom:24px;">
               צפה בלייב עכשיו
             </a>
             <hr style="border:none; border-top:1px solid #eee; margin:24px 0;" />
-            <p style="font-size:12px; color:#aaa;">קיבלת אימייל זה כי הפעלת התראות אימייל בפרופיל שלך ב-<p style="font-size:12px; color:#aaa;">קיבלת אימייל זה כי הפעלת התראות אימייל בפרופיל שלך ב-Caesar 0 DTE.</p>.</p>
+            <p style="font-size:12px; color:#aaa;">קיבלת אימייל זה כי הפעלת התראות אימייל בפרופיל שלך ב-Caesar 0 DTE.</p>
           </div>
         `;
 

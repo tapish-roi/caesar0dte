@@ -31,7 +31,26 @@ const queryClient = new QueryClient({
 
 const premiumEase = [0.22, 1, 0.36, 1] as const;
 
+// Decorative starfield — fixed positions so the layout is deterministic.
+const LOADING_STARS = [
+  { top: '12%', left: '14%', size: 2, color: '#dfe9ec', anim: 'ls-twinkle-a', dur: '3.4s', delay: '0s', glow: true },
+  { top: '24%', left: '78%', size: 1.5, color: '#9db4bc', anim: 'ls-twinkle-b', dur: '2.8s', delay: '.4s' },
+  { top: '66%', left: '20%', size: 1.5, color: '#9db4bc', anim: 'ls-twinkle-a', dur: '4.1s', delay: '.9s' },
+  { top: '78%', left: '64%', size: 2, color: '#dfe9ec', anim: 'ls-twinkle-b', dur: '3.1s', delay: '.2s', glow: true },
+  { top: '38%', left: '88%', size: 1.5, color: '#5ac8e6', anim: 'ls-twinkle-a', dur: '3.8s', delay: '1.3s', opacity: 0.6 },
+  { top: '15%', left: '44%', size: 1, color: '#9db4bc', anim: 'ls-twinkle-b', dur: '2.5s', delay: '.7s' },
+  { top: '55%', left: '8%', size: 1, color: '#5ac8e6', anim: 'ls-twinkle-a', dur: '3s', delay: '1.6s', opacity: 0.5 },
+  { top: '86%', left: '36%', size: 1.5, color: '#9db4bc', anim: 'ls-twinkle-b', dur: '3.6s', delay: '1.1s' },
+  { top: '8%', left: '62%', size: 1, color: '#dfe9ec', anim: 'ls-twinkle-a', dur: '2.7s', delay: '.5s', opacity: 0.55 },
+  { top: '47%', left: '70%', size: 1, color: '#9db4bc', anim: 'ls-twinkle-b', dur: '4.4s', delay: '1.8s' },
+  { top: '70%', left: '90%', size: 1.5, color: '#dfe9ec', anim: 'ls-twinkle-a', dur: '3.3s', delay: '.3s', opacity: 0.5 },
+  { top: '30%', left: '6%', size: 1, color: '#dfe9ec', anim: 'ls-twinkle-b', dur: '3.9s', delay: '1.4s', opacity: 0.45 },
+] as const;
+
 function LoadingSpinner({ text = "טוען..." }: { text?: string }) {
+  // The trailing ellipsis is animated by the .ls-dots pseudo-element.
+  const label = text.replace(/\.+$/, '');
+
   return (
     <motion.div
       key="spinner"
@@ -39,17 +58,132 @@ function LoadingSpinner({ text = "טוען..." }: { text?: string }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3, ease: premiumEase }}
-      className="min-h-screen bg-background flex items-center justify-center text-secondary-foreground"
+      className="ls-screen relative min-h-screen w-full flex items-center justify-center overflow-hidden"
+      style={{ background: 'radial-gradient(1100px 700px at 50% 38%, #0b1420 0%, #070d16 60%, #05090f 100%)' }}
       dir="rtl"
     >
-      <div className="text-center space-y-3">
-        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center mx-auto animate-pulse">
-          <svg className="w-5 h-5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="22,7 13.5,15.5 8.5,10.5 2,17" />
-            <polyline points="16,7 22,7 22,13" />
+      {/* aurora tint washes */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(560px 340px at 50% 30%, rgba(226,181,78,.055), transparent 70%), radial-gradient(700px 420px at 78% 78%, rgba(90,200,230,.045), transparent 70%)',
+        }}
+      />
+
+      {/* starfield */}
+      <div className="absolute inset-0 pointer-events-none">
+        {LOADING_STARS.map((star, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              top: star.top,
+              left: star.left,
+              width: star.size,
+              height: star.size,
+              background: star.color,
+              opacity: 'opacity' in star ? star.opacity : undefined,
+              boxShadow: 'glow' in star ? '0 0 6px rgba(223,233,236,.75)' : undefined,
+              animation: `${star.anim} ${star.dur} ease-in-out ${star.delay} infinite`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* center stack */}
+      <div className="relative flex flex-col items-center" style={{ gap: 26 }}>
+        {/* mark: gradient ring + orbiting spark + rocket */}
+        <div className="relative w-[104px] h-[104px] flex items-center justify-center">
+          <div
+            className="absolute rounded-full"
+            style={{
+              inset: 14,
+              background: 'radial-gradient(circle, rgba(226,181,78,.28), transparent 68%)',
+              filter: 'blur(10px)',
+              animation: 'ls-glow 2.6s ease-in-out infinite',
+            }}
+          />
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              border: '3px solid transparent',
+              background:
+                'linear-gradient(#0a1320,#0a1320) padding-box, linear-gradient(150deg,#f0cc70,#c9962a 55%,rgba(90,200,230,.55)) border-box',
+              boxShadow: '0 10px 34px -10px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.07)',
+            }}
+          />
+          <div className="absolute inset-0" style={{ animation: 'ls-orbit 2.4s linear infinite' }}>
+            <div
+              className="absolute rounded-full"
+              style={{
+                top: -4,
+                left: '50%',
+                width: 8,
+                height: 8,
+                marginLeft: -4,
+                background: '#f0cc70',
+                boxShadow: '0 0 14px 4px rgba(240,204,112,.65)',
+              }}
+            />
+          </div>
+          <svg
+            width="42"
+            height="42"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#f0cc70"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              animation: 'ls-float 3.2s ease-in-out infinite',
+              filter: 'drop-shadow(0 0 10px rgba(240,204,112,.35))',
+            }}
+          >
+            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
+            <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
+            <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
           </svg>
         </div>
-        <p className="text-sm text-muted-foreground">{text}</p>
+
+        {/* brand + status */}
+        <div className="flex flex-col items-center" style={{ gap: 10 }}>
+          <div
+            dir="ltr"
+            style={{
+              fontFamily: "'IBM Plex Mono', ui-monospace, monospace",
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '.46em',
+              textIndent: '.46em',
+              color: '#63808a',
+            }}
+          >
+            CAESAR · 0DTE LAB
+          </div>
+          <div className="flex items-baseline" style={{ fontSize: 15, fontWeight: 500, color: '#9db4bc' }}>
+            <span>{label}</span>
+            <span className="ls-dots" />
+          </div>
+        </div>
+
+        {/* gradient shimmer bar */}
+        <div
+          className="relative overflow-hidden"
+          style={{ width: 160, height: 2, borderRadius: 2, background: 'rgba(130,180,200,.12)' }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              width: 64,
+              borderRadius: 2,
+              background: 'linear-gradient(90deg, transparent, #e2b54e 40%, #5ac8e6 70%, transparent)',
+              animation: 'ls-sweep 1.5s ease-in-out infinite alternate',
+            }}
+          />
+        </div>
       </div>
     </motion.div>
   );
