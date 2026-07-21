@@ -236,6 +236,16 @@
     box-shadow: var(--card-shadow-hover);
   }
 
+  /* Opaque surface — opt a `bg-card`/`bg-popover` element out of the glass
+     transparency so nothing behind it shows through (e.g. the profile
+     settings popup). Overrides the `!important` glass background. */
+  .opaque-surface.opaque-surface {
+    background-image: none !important;
+    background-color: hsl(var(--card)) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   /* === Premium glass cards ================================================
      Reduce excessive transparency on all main content containers (anything
      using `bg-card`) so text remains highly readable while still letting
@@ -1158,8 +1168,13 @@
      `border-color` cannot hold a gradient and `border-image` squares off the
      rounded corners. The ring's interior is masked out, so it never covers
      card content. */
-  .bg-card,
-  .card-shadow {
+  /* `position: relative` here only establishes a containing block for the
+     ::before ring. Skip elements that already position themselves — this rule
+     sits in the same layer as Tailwind's positioning utilities but later in
+     source order, so an unguarded `.bg-card` silently overrides `absolute`,
+     `fixed`, and `sticky`. `:where()` keeps specificity at (0,1,0). */
+  .bg-card:where(:not(.absolute, .fixed, .sticky, .relative)),
+  .card-shadow:where(:not(.absolute, .fixed, .sticky, .relative)) {
     position: relative;
   }
   .bg-card::before,

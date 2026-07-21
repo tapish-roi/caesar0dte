@@ -5,6 +5,13 @@
       "name": "Vite Dev Server",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
+      "port": 8080,
+      "autoPort": true
+    },
+    {
+      "name": "Vite Dev Server (alt)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
       "port": 8081,
       "autoPort": true
     },

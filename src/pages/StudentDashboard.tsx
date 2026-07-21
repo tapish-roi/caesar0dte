@@ -9,7 +9,7 @@ import {
   TrendingUp, BookOpen, Users, Video, Film, FileText,
   LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
   MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
-  User, Phone, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
+  User, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
   CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList, LineChart, Calculator, RefreshCw,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -103,9 +103,7 @@ interface ProfileItem {
   id: string;
   full_name: string;
   email: string | null;
-  phone: string | null;
   avatar_url: string | null;
-  notify_sms: boolean;
   notify_email: boolean;
 }
 
@@ -513,12 +511,12 @@ export default function StudentDashboard() {
   // Profile popover state
   const [profileOpen, setProfileOpen] = useState(false);
   const profilePopoverRef = useRef<HTMLDivElement>(null);
-  const [profileForm, setProfileForm] = useState({ full_name: '', phone: '' });
+  const [profileForm, setProfileForm] = useState({ full_name: '' });
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const [notifyState, setNotifyState] = useState({ notify_sms: false, notify_email: false });
+  const [notifyState, setNotifyState] = useState({ notify_email: false });
   const [activeLiveSession, setActiveLiveSession] = useState<{ id: string; title: string; mentor_id: string } | null>(null);
 
   // ── Queries ──────────────────────────────────────────────────────────────────
@@ -526,7 +524,7 @@ export default function StudentDashboard() {
   const { data: invites = [], isLoading: invitesLoading } = useQuery<InviteItem[]>({
     queryKey: ['student-invites', user?.id, user?.email],
     queryFn: async () => {
-      // Match by student_id OR by contact email/phone (fallback for existing users)
+      // Match by student_id OR by contact email (fallback for existing users)
       const orFilter = [
         `student_id.eq.${user!.id}`,
         user?.email ? `contact.eq.${user.email}` : null,
@@ -581,8 +579,8 @@ export default function StudentDashboard() {
   // Sync profile form when data loads
   useEffect(() => {
     if (profile) {
-      setProfileForm({ full_name: profile.full_name ?? '', phone: profile.phone ?? '' });
-      setNotifyState({ notify_sms: profile.notify_sms ?? false, notify_email: profile.notify_email ?? false });
+      setProfileForm({ full_name: profile.full_name ?? '' });
+      setNotifyState({ notify_email: profile.notify_email ?? false });
     }
   }, [profile]);
 
@@ -728,7 +726,6 @@ export default function StudentDashboard() {
     mutationFn: async () => {
       const { error } = await supabase.from('profiles').update({
         full_name: profileForm.full_name.trim(),
-        phone: profileForm.phone.trim() || null,
       }).eq('user_id', user!.id);
       if (error) throw error;
     },
@@ -753,7 +750,7 @@ export default function StudentDashboard() {
   });
 
   const saveNotifications = useMutation({
-    mutationFn: async (prefs: { notify_sms: boolean; notify_email: boolean }) => {
+    mutationFn: async (prefs: { notify_email: boolean }) => {
       const { error } = await supabase.from('profiles').update(prefs).eq('user_id', user!.id);
       if (error) throw error;
       return prefs;
@@ -769,7 +766,7 @@ export default function StudentDashboard() {
     },
     onError: () => {
       // Revert on error
-      setNotifyState({ notify_sms: profile?.notify_sms ?? false, notify_email: profile?.notify_email ?? false });
+      setNotifyState({ notify_email: profile?.notify_email ?? false });
       toast({ title: 'שגיאה בשמירת ההעדפות', variant: 'destructive' });
     },
   });
@@ -945,21 +942,40 @@ export default function StudentDashboard() {
           calculator, etc.). */}
       <MobileBottomNav items={studentNavItems} activeTab={activeTab} onTabChange={(key) => setActiveTab(key as SidebarTab)} />
 
-      {/* Mobile Profile - full screen overlay */}
-      {isMobile && profileOpen && (
-        <div className="fixed inset-0 z-50 bg-card text-card-foreground overflow-y-auto" dir="rtl">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={() => setProfileOpen(false)} className="text-muted-foreground hover:text-card-foreground">
-                <X className="w-5 h-5" />
-              </button>
-              <span className="text-base font-bold text-card-foreground">הפרופיל שלי</span>
-              <div className="w-5" />
-            </div>
-            <ProfileContent profile={profile} user={user} profileForm={profileForm} setProfileForm={setProfileForm} newPassword={newPassword} setNewPassword={setNewPassword} showPassword={showPassword} setShowPassword={setShowPassword} isAvatarUploading={isAvatarUploading} avatarInputRef={avatarInputRef} notifyState={notifyState} saveProfile={saveProfile} savePassword={savePassword} saveNotifications={saveNotifications} uploadAvatar={uploadAvatar} signOut={signOut} />
-          </div>
-        </div>
-      )}
+      {/* Mobile Profile — centered modal over a dimmed backdrop */}
+      <AnimatePresence>
+        {isMobile && profileOpen && (
+          <motion.div
+            key="mobile-profile"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            dir="rtl"
+          >
+            <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={() => setProfileOpen(false)} />
+            <motion.div
+              initial={{ scale: 0.96, y: 8 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.96, y: 8 }}
+              transition={{ duration: 0.15 }}
+              className="relative w-full max-w-sm max-h-[85vh] flex flex-col bg-card opaque-surface text-card-foreground border border-border rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="shrink-0 flex items-center justify-between p-4 border-b border-border">
+                <button onClick={() => setProfileOpen(false)} className="text-muted-foreground hover:text-card-foreground">
+                  <X className="w-5 h-5" />
+                </button>
+                <span className="text-base font-bold text-card-foreground">הפרופיל שלי</span>
+                <div className="w-5" />
+              </div>
+              <div className="flex-1 min-h-0 overflow-y-auto p-4">
+                <ProfileContent profile={profile} user={user} profileForm={profileForm} setProfileForm={setProfileForm} newPassword={newPassword} setNewPassword={setNewPassword} showPassword={showPassword} setShowPassword={setShowPassword} isAvatarUploading={isAvatarUploading} avatarInputRef={avatarInputRef} notifyState={notifyState} saveProfile={saveProfile} savePassword={savePassword} saveNotifications={saveNotifications} uploadAvatar={uploadAvatar} signOut={signOut} />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile Community Switcher Sheet */}
       {isMobile && memberships.length > 1 && (
@@ -1250,7 +1266,7 @@ export default function StudentDashboard() {
                       exit={{ opacity: 0 }}
                        className="bg-card rounded-xl card-shadow overflow-hidden max-w-5xl mx-auto"
                     >
-                      <div className="aspect-video max-h-[55vh] bg-foreground/5 border-b border-border flex items-center justify-center">
+                      <div className="w-full aspect-video max-h-[55vh] bg-foreground/5 border-b border-border flex items-center justify-center">
                         {selectedLessonData.video_url ? (
                           <VideoPlayer
                             src={selectedLessonData.video_url}
@@ -1535,10 +1551,9 @@ export default function StudentDashboard() {
               <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">קהילה</h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {mentorName ? `עדכונים מ${mentorName}` : 'עדכונים מהמנטור שלך'}
-                    {communityDateRange?.from && <span className="ms-2 text-primary font-medium">· מסונן לפי תאריך</span>}
-                  </p>
+                  {communityDateRange?.from && (
+                    <p className="text-sm text-primary font-medium mt-1">מסונן לפי תאריך</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -1935,12 +1950,12 @@ function ProfileContent({
   uploadAvatar, signOut,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  profile: any; user: any; profileForm: { full_name: string; phone: string };
-  setProfileForm: React.Dispatch<React.SetStateAction<{ full_name: string; phone: string }>>;
+  profile: any; user: any; profileForm: { full_name: string };
+  setProfileForm: React.Dispatch<React.SetStateAction<{ full_name: string }>>;
   newPassword: string; setNewPassword: (v: string) => void;
   showPassword: boolean; setShowPassword: (v: (p: boolean) => boolean) => void;
   isAvatarUploading: boolean; avatarInputRef: React.RefObject<HTMLInputElement | null>;
-  notifyState: { notify_sms: boolean; notify_email: boolean };
+  notifyState: { notify_email: boolean };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   saveProfile: any; savePassword: any; saveNotifications: any;
   uploadAvatar: (f: File) => void; signOut: () => void;
@@ -1982,13 +1997,6 @@ function ProfileContent({
               className="w-full h-9 pr-9 pl-3 aurora-field rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-right" />
           </div>
         </div>
-        <div><label className="block text-xs text-muted-foreground mb-1">מספר טלפון</label>
-          <div className="relative">
-            <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input value={profileForm.phone} onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} placeholder="050-0000000" type="tel"
-              className="w-full h-9 pr-9 pl-3 aurora-field rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-right" />
-          </div>
-        </div>
         <div><label className="block text-xs text-muted-foreground mb-1">אימייל</label>
           <div className="relative">
             <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -2019,7 +2027,7 @@ function ProfileContent({
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-1">התראות ועדכונים</p>
         <div className="flex items-center justify-between py-1">
           <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-xs text-foreground">אימייל</span></div>
-          <Switch checked={notifyState.notify_email} onCheckedChange={(val) => saveNotifications.mutate({ notify_sms: notifyState.notify_sms, notify_email: val })} disabled={saveNotifications.isPending} />
+          <Switch checked={notifyState.notify_email} onCheckedChange={(val) => saveNotifications.mutate({ notify_email: val })} disabled={saveNotifications.isPending} />
         </div>
       </div>
       <div className="pt-1 border-t border-border">
@@ -2039,12 +2047,12 @@ function InlineProfilePopover({
   uploadAvatar, signOut, onClose,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  profile: any; user: any; profileForm: { full_name: string; phone: string };
-  setProfileForm: React.Dispatch<React.SetStateAction<{ full_name: string; phone: string }>>;
+  profile: any; user: any; profileForm: { full_name: string };
+  setProfileForm: React.Dispatch<React.SetStateAction<{ full_name: string }>>;
   newPassword: string; setNewPassword: (v: string) => void;
   showPassword: boolean; setShowPassword: (v: (p: boolean) => boolean) => void;
   isAvatarUploading: boolean; avatarInputRef: React.RefObject<HTMLInputElement | null>;
-  notifyState: { notify_sms: boolean; notify_email: boolean };
+  notifyState: { notify_email: boolean };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   saveProfile: any; savePassword: any; saveNotifications: any;
   uploadAvatar: (f: File) => void; signOut: () => void; onClose: () => void;
@@ -2055,17 +2063,17 @@ function InlineProfilePopover({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 8, scale: 0.97 }}
       transition={{ duration: 0.15 }}
-      className="absolute bottom-full mb-2 right-2 left-2 z-50 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
-      style={{ maxHeight: '80vh', overflowY: 'auto' }}
+      className="absolute bottom-full mb-2 right-2 left-2 z-50 flex flex-col bg-card opaque-surface border border-border rounded-2xl shadow-2xl overflow-hidden"
+      style={{ maxHeight: 'min(80vh, calc(100vh - 7rem))' }}
     >
-      <div className="flex items-center justify-between p-4 border-b border-border">
+      <div className="shrink-0 flex items-center justify-between p-4 border-b border-border">
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
           <X className="w-4 h-4" />
         </button>
         <span className="text-sm font-semibold text-foreground">הפרופיל שלי</span>
         <div className="w-4" />
       </div>
-      <div className="p-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4">
         <ProfileContent
           profile={profile} user={user} profileForm={profileForm} setProfileForm={setProfileForm}
           newPassword={newPassword} setNewPassword={setNewPassword} showPassword={showPassword} setShowPassword={setShowPassword}
