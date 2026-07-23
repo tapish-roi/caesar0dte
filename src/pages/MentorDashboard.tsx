@@ -111,6 +111,76 @@ async function pgInsert<T = unknown>(
   return (Array.isArray(body) ? body[0] : body) ?? null;
 }
 
+// Ask the invite-student edge function to (re)send the invitation email for an
+// existing community_invites row. Shared by the first send and by the "שלח שוב"
+// button on a pending invite — resending is literally the same call, which is
+// what makes it safe: for a student who never activated their account the
+// function drops the never-used shell and sends a fresh signup invite, and for
+// one who already has an account it sends a password-reset link instead. Both
+// land on /accept-invite.
+//
+// Raw fetch with the stored token for the same reason sendInvite uses it: a
+// wedged auth lock would otherwise hang the call forever instead of erroring.
+async function sendInviteEmail(
+  inviteId: string,
+  email: string,
+  mentorId: string,
+): Promise<{ emailType?: 'invite' | 'recovery' }> {
+  const stored = getStoredAccessToken();
+  if (!stored || stored.expired) {
+    throw new Error('פג תוקף ההתחברות. התנתק והתחבר מחדש ונסה שוב.');
+  }
+
+  // Cold start plus SMTP takes a few seconds; 60s is generous but bounded so the
+  // button can never spin forever.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000);
+  let res: Response;
+  try {
+    res = await fetch(`${SUPABASE_URL}/functions/v1/invite-student`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${stored.token}`,
+        'Content-Type': 'application/json',
+      },
+      // redirectBase tells the edge function exactly where this app is served,
+      // INCLUDING the /caesar0dte/ sub-path — origin alone drops it, which is why
+      // invite links used to land on a 404. Trailing slash and all; the function
+      // normalizes it.
+      body: JSON.stringify({
+        inviteId,
+        email,
+        mentorId,
+        redirectBase: window.location.origin + import.meta.env.BASE_URL,
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('שליחת המייל לא הסתיימה תוך 60 שניות. נסה שוב בעוד רגע.');
+    }
+    throw new Error(`לא ניתן להגיע לשרת המיילים: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  // A non-JSON body (a gateway 502/504, or the function crashing) would make
+  // res.json() throw something unreadable; report the status instead.
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const raw = json?.error || `שגיאה בשליחת ההזמנה (${res.status})`;
+    // Supabase refuses a second mail to the same address inside its
+    // smtp_max_frequency window (60s on this project) — the one error a mentor
+    // clicking "שלח שוב" twice will actually hit, so name it in Hebrew.
+    if (/security purposes|only request this after|rate limit/i.test(raw)) {
+      throw new Error('כבר נשלח מייל לכתובת הזו ממש עכשיו. המתן דקה ונסה שוב.');
+    }
+    throw new Error(raw);
+  }
+  return json ?? {};
+}
+
 // ── LessonQuizPanel: shows the published quiz for a lesson ──────────────────
 function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: string; mentorId: string; onCreateQuiz: () => void }) {
   const { data: quiz, isLoading } = useQuery({
@@ -809,45 +879,10 @@ export default function MentorDashboard() {
         clearTimeout(insertTimer);
       }
 
-      // 2. If email invite → create student account + send invite email via edge function
+      // 2. If email invite → create student account + send invite email via edge
+      //    function. Same call the "שלח שוב" button makes on a pending invite.
       if (isEmail) {
-        // The edge function sends the mail; on a cold start plus SMTP it can take a
-        // while, so give it 60s — but never let it hang the button indefinitely.
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 60_000);
-        let res: Response;
-        try {
-          res = await fetch(
-            `${SUPABASE_URL}/functions/v1/invite-student`,
-            {
-              method: 'POST',
-              headers: { ...authHeaders, 'Content-Type': 'application/json' },
-              // redirectBase tells the edge function exactly where this app is
-              // served, INCLUDING the /caesar0dte/ sub-path — origin alone drops
-              // it, which is why invite links landed on a 404. Trailing slash and
-              // all; the function normalizes it.
-              body: JSON.stringify({
-                inviteId,
-                email: trimmed,
-                mentorId: user!.id,
-                redirectBase: window.location.origin + import.meta.env.BASE_URL,
-              }),
-              signal: controller.signal,
-            }
-          );
-        } catch (err) {
-          if (err instanceof Error && err.name === 'AbortError') {
-            throw new Error('שליחת המייל לא הסתיימה תוך 60 שניות. ההזמנה נוצרה — נסה לשלוח שוב.');
-          }
-          throw new Error(`לא ניתן להגיע לשרת המיילים: ${err instanceof Error ? err.message : String(err)}`);
-        } finally {
-          clearTimeout(timer);
-        }
-
-        // A non-JSON body (a gateway 502/504, or the function crashing) would make
-        // res.json() throw something unreadable; report the status instead.
-        const json = await res.json().catch(() => null);
-        if (!res.ok) throw new Error(json?.error || `שגיאה בשליחת ההזמנה (${res.status})`);
+        await sendInviteEmail(inviteId, trimmed, user!.id);
       }
     },
     onSuccess: () => {
@@ -856,6 +891,56 @@ export default function MentorDashboard() {
       toast({ title: 'הזמנה נשלחה ✉️', description: 'התלמיד יקבל מייל עם קישור להגדרת סיסמה' });
     },
     onError: (err) => toast({ title: 'שגיאה', description: err instanceof Error ? err.message : 'לא ניתן לשלוח הזמנה', variant: 'destructive' }),
+  });
+
+  // Students are invited by email only — the invite email is the only delivery
+  // channel, so reject anything that isn't a valid-looking email address.
+  const submitInvite = () => {
+    const v = inviteContact.trim();
+    if (!v) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      toast({ title: 'כתובת אימייל לא תקינה', description: 'ניתן להזמין תלמידים באמצעות כתובת אימייל בלבד', variant: 'destructive' });
+      return;
+    }
+    sendInvite.mutate(v);
+  };
+
+  // Re-send the invitation mail for an invite that is still pending. Students
+  // regularly never receive the first one (spam filter, typo'd address, mail
+  // that silently bounced), and until now the mentor's only recourse was to
+  // delete the invite and type the address again. Reuses the exact same edge
+  // function as the first send, so a student who never activated gets a clean
+  // new signup invite and one who already has an account gets a reset link.
+  const resendInvite = useMutation({
+    mutationFn: async (invite: { id: string; contact: string }) => {
+      const email = invite.contact.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new Error('להזמנה הזו אין כתובת אימייל תקינה. מחק אותה והזמן מחדש עם אימייל.');
+      }
+      const result = await sendInviteEmail(invite.id, email, user!.id);
+      return { ...result, email };
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ['invites'] });
+      // The function picks the mail type by account state; say which one went out
+      // so the mentor can tell the student what to look for.
+      toast(
+        result.emailType === 'recovery'
+          ? {
+              title: 'המייל נשלח שוב ✉️',
+              description: `ל-${result.email} כבר יש חשבון, לכן נשלח מייל "אפס את הסיסמה" עם הקישור להצטרפות`,
+            }
+          : {
+              title: 'ההזמנה נשלחה שוב ✉️',
+              description: `מייל הזמנה חדש נשלח אל ${result.email}. אם הוא לא מגיע — שווה לבדוק בתיקיית הספאם`,
+            },
+      );
+    },
+    onError: (err) => toast({
+      title: 'שגיאה בשליחה חוזרת',
+      description: err instanceof Error ? err.message : 'לא ניתן לשלוח את ההזמנה שוב',
+      variant: 'destructive',
+    }),
   });
 
   const deleteInvite = useMutation({
@@ -1759,23 +1844,26 @@ export default function MentorDashboard() {
           {/* ──────── STUDENTS ──────── */}
           {activeTab === 'students' && (
             <motion.div key="students" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-4 md:p-8 max-w-3xl">
-              <div className="mb-8">
-                <h1 className="text-2xl font-bold text-foreground">תלמידים</h1>
-                <p className="text-sm text-muted-foreground mt-1">{members.length} תלמידים רשומים</p>
+              <div className="mb-8 flex items-start justify-between gap-3">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">תלמידים</h1>
+                  <p className="text-sm text-muted-foreground mt-1">{members.length} תלמידים רשומים</p>
+                </div>
               </div>
 
               <div className="bg-card rounded-xl card-shadow p-6 mb-6">
                 <h2 className="font-semibold text-foreground mb-1">הזמן תלמיד לקהילה</h2>
-                <p className="text-sm text-muted-foreground mb-4">הכנס אימייל או טלפון של התלמיד</p>
+                <p className="text-sm text-muted-foreground mb-4">הכנס אימייל של התלמיד</p>
               <div className="flex flex-col md:flex-row gap-2">
                   <input
+                    type="email"
                     value={inviteContact} onChange={e => setInviteContact(e.target.value)}
-                    placeholder="אימייל@example.com או 050-0000000"
+                    placeholder="אימייל@example.com"
                     className="flex-1 h-11 px-4 bg-surface border-none ring-1 ring-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent transition-all text-right"
-                    onKeyDown={e => e.key === 'Enter' && inviteContact.trim() && sendInvite.mutate(inviteContact)}
+                    onKeyDown={e => e.key === 'Enter' && submitInvite()}
                   />
                   <button
-                    onClick={() => inviteContact.trim() && sendInvite.mutate(inviteContact)}
+                    onClick={submitInvite}
                     disabled={!inviteContact.trim() || sendInvite.isPending}
                     className="h-11 px-6 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 w-full md:w-auto"
                   >
@@ -1799,6 +1887,19 @@ export default function MentorDashboard() {
                             {new Date(inv.created_at).toLocaleDateString('he-IL')} · ממתין לאישור
                           </p>
                         </div>
+                        {/* Always visible (not hover-only like delete): a student who
+                            never got the mail is the common case, and this is the fix. */}
+                        <button
+                          onClick={() => resendInvite.mutate({ id: inv.id, contact: inv.contact })}
+                          disabled={resendInvite.isPending}
+                          className="h-7 px-2.5 flex items-center gap-1.5 rounded-md text-xs font-medium text-primary hover:bg-primary/10 transition-all disabled:opacity-50 shrink-0"
+                          title="שלח שוב את מייל ההזמנה"
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${resendInvite.isPending && resendInvite.variables?.id === inv.id ? 'animate-spin' : ''}`} />
+                          <span className="hidden sm:inline">
+                            {resendInvite.isPending && resendInvite.variables?.id === inv.id ? 'שולח…' : 'שלח שוב'}
+                          </span>
+                        </button>
                         <button
                           onClick={() => deleteInvite.mutate(inv.id)}
                           className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"

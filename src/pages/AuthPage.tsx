@@ -18,7 +18,6 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   // Forgot-password sub-flow (shared across both tabs)
@@ -67,7 +66,7 @@ export default function AuthPage() {
         const res = await fetch(`${SUPABASE_URL}/functions/v1/create-mentor`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
-          body: JSON.stringify({ email, password, fullName, phone }),
+          body: JSON.stringify({ email, password, fullName }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'שגיאה ביצירת החשבון');
@@ -404,16 +403,6 @@ export default function AuthPage() {
                               onChange={e => setFullName(e.target.value)}
                               required
                               placeholder="ישראל ישראלי"
-                              className="w-full h-[46px] px-4 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1.5">טלפון (אופציונלי)</label>
-                            <input
-                              type="tel"
-                              value={phone}
-                              onChange={e => setPhone(e.target.value)}
-                              placeholder="050-0000000"
                               className="w-full h-[46px] px-4 aurora-field rounded-2xl text-foreground placeholder:text-[#5f7680] transition-all text-right"
                             />
                           </div>

@@ -616,7 +616,6 @@ export type Database = {
           id: string
           notify_email: boolean
           notify_sms: boolean
-          phone: string | null
           updated_at: string
           user_id: string
         }
@@ -628,7 +627,6 @@ export type Database = {
           id?: string
           notify_email?: boolean
           notify_sms?: boolean
-          phone?: string | null
           updated_at?: string
           user_id: string
         }
@@ -640,7 +638,6 @@ export type Database = {
           id?: string
           notify_email?: boolean
           notify_sms?: boolean
-          phone?: string | null
           updated_at?: string
           user_id?: string
         }

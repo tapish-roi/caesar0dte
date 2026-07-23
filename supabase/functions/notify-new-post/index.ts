@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     // Fetch profiles with notification preferences for these students
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('user_id, full_name, email, phone, notify_sms, notify_email')
+      .select('user_id, full_name, email, notify_email')
       .in('user_id', studentIds);
 
     if (!profiles || profiles.length === 0) {
@@ -74,51 +74,8 @@ Deno.serve(async (req) => {
     }
 
     const postPreview = post.content.length > 120 ? post.content.substring(0, 120) + '...' : post.content;
-    const messageBody = `פוסט חדש מ${mentorName}:\n${postPreview}`;
 
-    const smsResults: string[] = [];
     const emailResults: string[] = [];
-
-    // ─── SMS via Twilio ───────────────────────────────────────────────────────
-    const twilioApiKey = Deno.env.get('TWILIO_API_KEY');
-    const twilioFrom = Deno.env.get('TWILIO_FROM_NUMBER');
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-
-    if (twilioApiKey && twilioFrom && lovableApiKey) {
-      const smsRecipients = profiles.filter((p) => p.notify_sms && p.phone);
-
-      for (const profile of smsRecipients) {
-        try {
-          const phone = profile.phone!.replace(/[^\d+]/g, '');
-          const normalizedPhone = phone.startsWith('0') ? '+972' + phone.slice(1) : phone;
-
-          const response = await fetch('https://connector-gateway.lovable.dev/twilio/Messages.json', {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${lovableApiKey}`,
-              'X-Connection-Api-Key': twilioApiKey,
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              To: normalizedPhone,
-              From: twilioFrom,
-              Body: messageBody,
-            }),
-          });
-
-          if (response.ok) {
-            smsResults.push(profile.user_id);
-          } else {
-            const errBody = await response.text();
-            console.error(`SMS failed for ${profile.user_id}: ${response.status} ${errBody}`);
-          }
-        } catch (e) {
-          console.error(`SMS error for ${profile.user_id}:`, e);
-        }
-      }
-    } else {
-      console.log('Twilio not configured — skipping SMS notifications');
-    }
 
     // ─── Email via Lovable send-transactional-email ───────────────────────────
     const emailRecipients = profiles.filter((p) => p.notify_email && p.email);
@@ -161,9 +118,7 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        sms_sent: smsResults.length,
         email_sent: emailResults.length,
-        sms_recipients: smsResults,
         email_recipients: emailResults,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

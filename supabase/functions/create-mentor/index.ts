@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { email, password, fullName, phone } = await req.json();
+    const { email, password, fullName } = await req.json();
 
     if (!email || !password || !fullName) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -74,7 +74,6 @@ Deno.serve(async (req) => {
       user_id: userId,
       full_name: fullName,
       email,
-      phone: phone || null,
     }, { onConflict: 'user_id' });
 
     if (profileError) {
