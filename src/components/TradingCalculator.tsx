@@ -12,6 +12,7 @@ import TickerCard from './trading-calculator/TickerCard';
 import TickerInputTable from './trading-calculator/TickerInputTable';
 import EconomicCalendar from './trading-calculator/EconomicCalendar';
 import PositionCalculatorSection from './position-calculator/PositionCalculatorSection';
+import ComingSoonCard from './trading-calculator/ComingSoonCard';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Trading Calculator (מחשבון מסחר) — 3 sections via PageToggle:
@@ -213,7 +214,15 @@ export default function TradingCalculator() {
 
   // ── Position calculator state lives in PositionCalculatorSection ─────────
 
+  // Gated: hide the full calculator on the live site.
+  // Remove this early return to restore the full calculator.
+  return (
+    <div className="calc-typeface p-4 md:p-8 mx-auto max-w-6xl" dir="rtl">
+      <ComingSoonCard />
+    </div>
+  );
 
+  // eslint-disable-next-line no-unreachable
   return (
     <div className={`calc-typeface p-4 md:p-8 mx-auto ${activeTab === 'position' ? 'max-w-7xl' : 'max-w-6xl'}`} dir="rtl">
       {/* ── Header ───────────────────────────────────────────────────────── */}
