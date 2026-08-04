@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Radio, ArrowRight, Users, Wifi, WifiOff } from 'lucide-react';
+import { ArrowRightIcon, LiveIcon, UsersIcon, WifiOffIcon } from '@/components/icons';
 // Lazy-loaded — LiveRoom is huge and LiveRoomLK pulls the entire LiveKit stack;
 // neither should weigh down the initial bundle or the lobby view of this page.
 const LiveRoom = lazy(() => import('@/components/LiveRoom'));
@@ -94,7 +94,7 @@ export default function LivestreamPage() {
       <div className="min-h-screen bg-background flex items-center justify-center" dir="rtl">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center mx-auto animate-pulse">
-            <Radio className="w-5 h-5 text-primary-foreground" />
+            <LiveIcon solid className="w-5 h-5 text-primary-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">טוען...</p>
         </div>
@@ -166,7 +166,7 @@ export default function LivestreamPage() {
           className="bg-card rounded-2xl card-shadow p-8 max-w-md w-full mx-4 text-center"
         >
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-            <WifiOff className="w-8 h-8 text-muted-foreground opacity-40" />
+            <WifiOffIcon className="w-8 h-8 text-muted-foreground opacity-40" />
           </div>
           <h2 className="text-lg font-bold text-foreground mb-2">הלייב הסתיים</h2>
           <p className="text-sm text-muted-foreground mb-6">השידור שניסית להצטרף אליו כבר לא פעיל.</p>
@@ -174,7 +174,7 @@ export default function LivestreamPage() {
             onClick={() => navigate('/')}
             className="h-11 px-6 bg-primary text-primary-foreground rounded-xl font-medium hover:opacity-90 transition-all flex items-center gap-2 mx-auto"
           >
-            <ArrowRight className="w-4 h-4 rotate-180" />
+            <ArrowRightIcon solid className="w-4 h-4 rotate-180" />
             חזרה לדשבורד
           </button>
         </motion.div>
@@ -192,7 +192,7 @@ export default function LivestreamPage() {
       >
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
-            <Radio className="w-5 h-5 text-destructive" />
+            <LiveIcon solid className="w-5 h-5 text-destructive" />
           </div>
           <div>
             <h2 className="text-lg font-bold text-foreground">לייבים פעילים</h2>
@@ -203,7 +203,7 @@ export default function LivestreamPage() {
         {activeSessions.length === 0 ? (
           <div className="text-center py-8">
             <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-              <Radio className="w-8 h-8 text-muted-foreground opacity-40" />
+              <LiveIcon className="w-8 h-8 text-muted-foreground opacity-40" />
             </div>
             <p className="text-sm font-semibold text-foreground mb-1">אין שידורים חיים כרגע</p>
             <p className="text-xs text-muted-foreground">בקרוב יתחיל שידור חדש</p>
@@ -221,7 +221,7 @@ export default function LivestreamPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm text-foreground">{session.title}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                      <Users className="w-3 h-3" />
+                      <UsersIcon className="w-3 h-3" />
                       {session.viewer_count > 0 ? `${session.viewer_count} צופים` : 'שידור חי'}
                     </p>
                   </div>
@@ -236,7 +236,7 @@ export default function LivestreamPage() {
           onClick={() => navigate('/')}
           className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto"
         >
-          <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+          <ArrowRightIcon className="w-3.5 h-3.5 rotate-180" />
           חזרה לדשבורד
         </button>
       </motion.div>

@@ -1,24 +1,15 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
-import { useLiquidGlass } from "@/hooks/use-liquid-glass";
 
+// No useLiquidGlass here: Aurora cards suppress `.liquid-glass::before`, so the
+// cursor-tracked sheen it feeds (--mx/--my) has nothing to paint. Attaching it
+// would cost a pointermove listener per card (10+ on the ATR grid) for nothing.
+// The hook is still used by the sidebars and mobile header, which do show it.
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => {
-  const glassRef = useLiquidGlass<HTMLDivElement>();
-
-  // Merge the forwarded ref with the internal liquid-glass ref.
-  const setRefs = React.useCallback(
-    (node: HTMLDivElement | null) => {
-      (glassRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      if (typeof ref === "function") ref(node);
-      else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
-    },
-    [ref, glassRef]
-  );
-
   return (
     <div
-      ref={setRefs}
+      ref={ref}
       className={cn(
         "liquid-glass aurora-edge rounded-3xl text-card-foreground transition-all duration-300",
         className

@@ -6,12 +6,12 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Home, BookOpen, Calculator, LogOut } from 'lucide-react';
+import { HomeIcon, JournalIcon, CalculatorIcon, LogoutIcon } from '@/components/icons';
 
 const items = [
-  { label: 'בית', url: '/', icon: Home },
-  { label: 'מחשבון', url: '/trading-calculator', icon: Calculator },
-  { label: 'שיעורים', url: '/', icon: BookOpen },
+  { label: 'בית', url: '/', icon: HomeIcon },
+  { label: 'מחשבון', url: '/trading-calculator', icon: CalculatorIcon },
+  { label: 'שיעורים', url: '/', icon: JournalIcon },
 ];
 
 function AppSidebar() {
@@ -66,7 +66,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span className="hidden sm:inline">{user?.email}</span>
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1">
-                <LogOut className="h-4 w-4" />
+                <LogoutIcon className="h-4 w-4" />
                 <span className="hidden sm:inline">יציאה</span>
               </Button>
             </div>

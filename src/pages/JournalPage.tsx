@@ -14,7 +14,7 @@ import { TradesProvider, useTrades, type TradeRow } from '@/contexts/TradesConte
 import { StrategiesProvider, useStrategies } from '@/contexts/StrategiesContext';
 import { TagsProvider, useTags } from '@/contexts/TagsContext';
 import { Button } from '@/components/ui/button';
-import { Upload, Trash2, Settings, BarChart3, EyeOff, Eye } from 'lucide-react';
+import { BarChartIcon, EyeIcon, EyeOffIcon, SettingsIcon, TrashIcon, UploadIcon } from '@/components/icons';
 
 function JournalContent() {
   const { trades, isReadOnly } = useTrades();
@@ -41,10 +41,10 @@ function JournalContent() {
         </div>
         {!isReadOnly && (
           <div className="flex flex-wrap items-center gap-1">
-            <Button onClick={() => setImportOpen(true)} className="gap-1"><Upload className="h-4 w-4" /> ייבא</Button>
-            <Button variant="outline" onClick={() => setStratOpen(true)} className="gap-1"><Settings className="h-4 w-4" /> אסטרטגיות</Button>
-            <Button variant="outline" onClick={() => setTrashOpen(true)} className="gap-1"><Trash2 className="h-4 w-4" /> פח</Button>
-            <Button variant="outline" onClick={() => setClearOpen(true)} className="gap-1 text-destructive"><Trash2 className="h-4 w-4" /> מחק הכל</Button>
+            <Button onClick={() => setImportOpen(true)} className="gap-1"><UploadIcon className="h-4 w-4" /> ייבא</Button>
+            <Button variant="outline" onClick={() => setStratOpen(true)} className="gap-1"><SettingsIcon className="h-4 w-4" /> אסטרטגיות</Button>
+            <Button variant="outline" onClick={() => setTrashOpen(true)} className="gap-1"><TrashIcon className="h-4 w-4" /> פח</Button>
+            <Button variant="outline" onClick={() => setClearOpen(true)} className="gap-1 text-destructive"><TrashIcon className="h-4 w-4" /> מחק הכל</Button>
           </div>
         )}
       </div>
@@ -55,8 +55,8 @@ function JournalContent() {
 
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={() => setShowAnalytics((v) => !v)} className="gap-1">
-          {showAnalytics ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          <BarChart3 className="h-4 w-4" />
+          {showAnalytics ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+          <BarChartIcon className="h-4 w-4" />
           {showAnalytics ? 'הסתר ניתוחים' : 'הצג ניתוחים'}
         </Button>
         <span className="text-xs text-muted-foreground">

@@ -50,11 +50,7 @@ import '@livekit/components-styles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Mic, MicOff, Video, VideoOff, Monitor, MonitorOff,
-  PhoneOff, Users, MessageSquare, Send, X, Wifi, WifiOff,
-  UserX, Volume2, VolumeX,
-} from 'lucide-react';
+import { CloseIcon, HangUpIcon, MessageIcon, MicIcon, MicOffIcon, ScreenIcon, ScreenOffIcon, SendIcon, UserRemoveIcon, UsersIcon, VideoIcon, VideoOffIcon, VolumeIcon, VolumeOffIcon, WifiIcon, WifiOffIcon } from '@/components/icons';
 
 interface Props {
   sessionId: string;
@@ -131,7 +127,7 @@ export default function LiveRoomLK(props: Props) {
       <div className="fixed inset-0 z-[200] bg-background flex items-center justify-center" dir="rtl">
         <div className="bg-card rounded-2xl card-shadow p-8 max-w-md w-full mx-4 text-center">
           <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-            <WifiOff className="w-8 h-8 text-destructive" />
+            <WifiOffIcon solid className="w-8 h-8 text-destructive" />
           </div>
           <h2 className="text-lg font-bold text-foreground mb-2">שגיאת התחברות</h2>
           <p className="text-sm text-muted-foreground mb-6">{tokenError}</p>
@@ -151,7 +147,7 @@ export default function LiveRoomLK(props: Props) {
       <div className="fixed inset-0 z-[200] bg-background flex items-center justify-center" dir="rtl">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center mx-auto animate-pulse">
-            <Wifi className="w-5 h-5 text-primary-foreground" />
+            <WifiIcon solid className="w-5 h-5 text-primary-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">מתחבר לשרת הלייב...</p>
         </div>
@@ -435,9 +431,9 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
               <span className="text-muted-foreground/50">•</span>
               <span className="flex items-center gap-1">
                 {connectionState === ConnectionState.Connected ? (
-                  <><Wifi className="w-3 h-3 text-emerald-500" /> מחובר</>
+                  <><WifiIcon solid className="w-3 h-3 text-emerald-500" /> מחובר</>
                 ) : (
-                  <><WifiOff className="w-3 h-3 text-amber-500" /> מתחבר...</>
+                  <><WifiOffIcon solid className="w-3 h-3 text-amber-500" /> מתחבר...</>
                 )}
               </span>
             </p>
@@ -452,7 +448,7 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
             }`}
             aria-label="משתתפים"
           >
-            <Users className="w-4 h-4" />
+            <UsersIcon solid className="w-4 h-4" />
             <span className="hidden sm:inline">{allParticipants.length}</span>
           </button>
           <button
@@ -462,14 +458,14 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
             }`}
             aria-label="צ'אט"
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageIcon className="w-4 h-4" />
           </button>
           <button
             onClick={onClose}
             className="h-9 w-9 rounded-lg bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center"
             aria-label="סגור"
           >
-            <X className="w-4 h-4" />
+            <CloseIcon className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -533,7 +529,7 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
                     onClick={() => setShowMembers(false)}
                     className="md:hidden text-muted-foreground hover:text-foreground"
                   >
-                    <X className="w-4 h-4" />
+                    <CloseIcon className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -577,7 +573,7 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
                     onClick={() => setShowChat(false)}
                     className="md:hidden text-muted-foreground hover:text-foreground"
                   >
-                    <X className="w-4 h-4" />
+                    <CloseIcon className="w-4 h-4" />
                   </button>
                 </div>
                 <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -611,7 +607,7 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
                     disabled={isSending || !chatInput.trim()}
                     className="h-9 w-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50"
                   >
-                    <Send className="w-4 h-4" />
+                    <SendIcon solid className="w-4 h-4" />
                   </button>
                 </div>
               </motion.div>
@@ -624,8 +620,8 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
       <div className="h-16 sm:h-20 bg-card border-t border-border flex items-center justify-center gap-2 sm:gap-3 px-2 shrink-0">
         <ControlButton
           active={micEnabled}
-          activeIcon={<Mic className="w-5 h-5" />}
-          inactiveIcon={<MicOff className="w-5 h-5" />}
+          activeIcon={<MicIcon className="w-5 h-5" />}
+          inactiveIcon={<MicOffIcon className="w-5 h-5" />}
           activeColor="bg-emerald-500/20 text-emerald-500"
           inactiveColor="bg-muted text-muted-foreground"
           onClick={toggleMic}
@@ -633,8 +629,8 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
         />
         <ControlButton
           active={!audioMuted}
-          activeIcon={<Volume2 className="w-5 h-5" />}
-          inactiveIcon={<VolumeX className="w-5 h-5" />}
+          activeIcon={<VolumeIcon className="w-5 h-5" />}
+          inactiveIcon={<VolumeOffIcon className="w-5 h-5" />}
           activeColor="bg-[rgba(226,181,78,0.20)] text-[#e2b54e]"
           inactiveColor="bg-muted text-muted-foreground"
           onClick={toggleAudio}
@@ -642,8 +638,8 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
         />
         <ControlButton
           active={cameraEnabled}
-          activeIcon={<Video className="w-5 h-5" />}
-          inactiveIcon={<VideoOff className="w-5 h-5" />}
+          activeIcon={<VideoIcon className="w-5 h-5" />}
+          inactiveIcon={<VideoOffIcon className="w-5 h-5" />}
           activeColor="bg-[rgba(226,181,78,0.20)] text-[#e2b54e]"
           inactiveColor="bg-muted text-muted-foreground"
           onClick={toggleCamera}
@@ -651,8 +647,8 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
         />
         <ControlButton
           active={screenSharing}
-          activeIcon={<Monitor className="w-5 h-5" />}
-          inactiveIcon={<MonitorOff className="w-5 h-5" />}
+          activeIcon={<ScreenIcon className="w-5 h-5" />}
+          inactiveIcon={<ScreenOffIcon className="w-5 h-5" />}
           activeColor="bg-amber-500/20 text-amber-500"
           inactiveColor="bg-muted text-muted-foreground"
           onClick={toggleScreenShare}
@@ -663,7 +659,7 @@ function RoomInner({ sessionId, mentorId, userId, userName, sessionTitle, isMent
           className="h-11 px-3 sm:px-5 bg-destructive text-destructive-foreground rounded-xl flex items-center gap-2 hover:opacity-90 transition-all font-medium text-sm"
           aria-label="עזוב לייב"
         >
-          <PhoneOff className="w-4 h-4" />
+          <HangUpIcon solid className="w-4 h-4" />
           <span className="hidden sm:inline">{isMentor && mentorId === userId ? 'סיים לייב' : 'עזוב'}</span>
         </button>
       </div>
@@ -730,15 +726,15 @@ function ParticipantRow({
         </p>
       </div>
       <div className="flex items-center gap-1">
-        {isMicOn ? <Mic className="w-3.5 h-3.5 text-emerald-500" /> : <MicOff className="w-3.5 h-3.5 text-muted-foreground" />}
-        {isCamOn && <Video className="w-3.5 h-3.5 text-[#e2b54e]" />}
+        {isMicOn ? <MicIcon solid className="w-3.5 h-3.5 text-emerald-500" /> : <MicOffIcon className="w-3.5 h-3.5 text-muted-foreground" />}
+        {isCamOn && <VideoIcon className="w-3.5 h-3.5 text-[#e2b54e]" />}
         {showForceMute && (
           <button
             onClick={() => onForceMute(participant)}
             className="ms-1 p-1 rounded hover:bg-destructive/20 text-destructive"
             title="השתק"
           >
-            <UserX className="w-3.5 h-3.5" />
+            <UserRemoveIcon className="w-3.5 h-3.5" />
           </button>
         )}
       </div>

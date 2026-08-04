@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { X } from 'lucide-react';
+import { CloseIcon } from '@/components/icons';
 
 interface MediaLightboxProps {
   open: boolean;
@@ -18,7 +18,7 @@ export default function MediaLightbox({ open, onOpenChange, url, type }: MediaLi
           onClick={() => onOpenChange(false)}
           className="absolute top-3 left-3 z-10 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
         >
-          <X className="w-5 h-5" />
+          <CloseIcon className="w-5 h-5" />
         </button>
         {type === 'video' ? (
           <video src={url} className="w-full max-h-[85vh] rounded-xl" controls autoPlay controlsList="nodownload" onContextMenu={e => e.preventDefault()} />

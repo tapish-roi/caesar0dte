@@ -1,4 +1,5 @@
-import { Wallet, RotateCcw } from 'lucide-react';
+import { ResetIcon, WalletIcon } from '@/components/icons';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -26,7 +27,7 @@ export default function AccountCard({
       : 0;
 
   return (
-    <div className="relative bg-card rounded-2xl card-shadow border border-border p-5">
+    <Card className="relative rounded-2xl p-5">
       <Button
         type="button"
         variant="ghost"
@@ -35,11 +36,11 @@ export default function AccountCard({
         className="absolute top-2 end-2 h-7 w-7 text-muted-foreground hover:text-foreground z-10"
         title="נקה כרטיס"
       >
-        <RotateCcw className="w-3.5 h-3.5" />
+        <ResetIcon className="w-3.5 h-3.5" />
       </Button>
 
       <div className="flex items-center gap-2 mb-4 pe-9">
-        <Wallet className="w-4 h-4 text-primary shrink-0" />
+        <WalletIcon className="w-4 h-4 text-[#e2b54e] shrink-0" />
         <h3 className="text-sm font-semibold text-foreground">גודל חשבון וסיכון</h3>
       </div>
 
@@ -55,7 +56,7 @@ export default function AccountCard({
             step="100"
             value={accountSize}
             onChange={(e) => onAccountSizeChange(e.target.value)}
-            className="mt-1 tabular-nums"
+            className="mt-1 aurora-mono"
             dir="ltr"
             placeholder="100000"
           />
@@ -72,17 +73,17 @@ export default function AccountCard({
             step="10"
             value={riskAmount}
             onChange={(e) => onRiskAmountChange(e.target.value)}
-            className="mt-1 tabular-nums"
+            className="mt-1 aurora-mono"
             dir="ltr"
             placeholder="1000"
           />
           {riskPctOfAccount > 0 && (
-            <span className="text-[10px] text-muted-foreground mt-1 block tabular-nums">
+            <span className="text-[10px] text-muted-foreground mt-1 block aurora-mono">
               ≈ {riskPctOfAccount.toFixed(2)}% מהחשבון
             </span>
           )}
         </label>
       </div>
-    </div>
+    </Card>
   );
 }

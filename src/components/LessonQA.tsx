@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  MessageCircleQuestion, Lock, Globe, Send, X, Reply, Clock, ChevronDown, Check, Pencil,
-} from 'lucide-react';
+import { CheckIcon, ChevronDownIcon, ClockIcon, CloseIcon, EditIcon, GlobeIcon, LockIcon, QuestionIcon, ReplyIcon, SendIcon } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -200,7 +198,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
       {/* Section header */}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
         <div className="flex items-center gap-2 min-w-0">
-          <MessageCircleQuestion className="w-5 h-5 text-primary shrink-0" />
+          <QuestionIcon className="w-5 h-5 text-primary shrink-0" />
           <h3 className="font-semibold text-foreground truncate">שאלות ותשובות</h3>
           {questions.length > 0 && (
             <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">{questions.length}</span>
@@ -213,13 +211,13 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
               onClick={() => setPrivateModalOpen(true)}
               className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-all whitespace-nowrap"
             >
-              <Lock className="w-3 h-3 shrink-0" />שאלה פרטית
+              <LockIcon className="w-3 h-3 shrink-0" />שאלה פרטית
             </button>
             <button
               onClick={() => setNewQuestion(prev => prev === '__focus__' ? '' : '__focus__')}
               className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all whitespace-nowrap"
             >
-              <Globe className="w-3 h-3 shrink-0" />שאלה פומבית
+              <GlobeIcon className="w-3 h-3 shrink-0" />שאלה פומבית
             </button>
           </div>
         )}
@@ -257,7 +255,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                   disabled={!newQuestion.trim() || newQuestion === '__focus__' || postQuestion.isPending}
                   className="h-9 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5 shrink-0"
                 >
-                  <Send className="w-3 h-3" /><span className="hidden sm:inline">שלח</span>
+                  <SendIcon solid className="w-3 h-3" /><span className="hidden sm:inline">שלח</span>
                 </button>
               </div>
             </div>
@@ -269,7 +267,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
       <div className="space-y-3">
         {questions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            <MessageCircleQuestion className="w-8 h-8 mx-auto mb-2 opacity-20" />
+            <QuestionIcon className="w-8 h-8 mx-auto mb-2 opacity-20" />
             <p className="text-sm">עדיין אין שאלות לשיעור זה</p>
             {!isMentor && <p className="text-xs mt-1">היה הראשון לשאול!</p>}
           </div>
@@ -305,7 +303,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                       disabled={!editingQuestionText.trim() || editQuestion.isPending}
                       className="h-7 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
                     >
-                      <Check className="w-3 h-3" />שמור
+                      <CheckIcon solid className="w-3 h-3" />שמור
                     </button>
                   </div>
                 </div>
@@ -322,16 +320,16 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                       <span className="text-xs font-semibold text-foreground">{q.studentName}</span>
                       {isMe && <span className="text-[10px] text-muted-foreground">(אתה)</span>}
                       <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                        <Clock className="w-2.5 h-2.5" />{fmt(q.created_at)}
+                        <ClockIcon className="w-2.5 h-2.5" />{fmt(q.created_at)}
                       </span>
                       {qEdited && (
                         <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                          <Pencil className="w-2 h-2" />נערך
+                          <EditIcon className="w-2 h-2" />נערך
                         </span>
                       )}
                       {hasAnswers && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-accent/10 text-accent text-[10px] rounded-full font-medium">
-                          <Reply className="w-2.5 h-2.5" />{q.answers!.length} תשובה
+                          <ReplyIcon className="w-2.5 h-2.5" />{q.answers!.length} תשובה
                         </span>
                       )}
                     </div>
@@ -346,11 +344,11 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                         }}
                         className="mt-1 flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary transition-colors"
                       >
-                        <Pencil className="w-2.5 h-2.5" />ערוך שאלה
+                        <EditIcon className="w-2.5 h-2.5" />ערוך שאלה
                       </button>
                     )}
                   </div>
-                  <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground shrink-0 mt-1 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                  <ChevronDownIcon className={`w-3.5 h-3.5 text-muted-foreground shrink-0 mt-1 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
                 </button>
               )}
 
@@ -393,14 +391,14 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                                     disabled={!editingAnswerText.trim() || editAnswer.isPending}
                                     className="h-7 px-3 bg-accent text-accent-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
                                   >
-                                    <Check className="w-3 h-3" />שמור
+                                    <CheckIcon className="w-3 h-3" />שמור
                                   </button>
                                 </div>
                               </div>
                             ) : (
                               <div className="flex gap-2.5">
                                 <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center shrink-0">
-                                  <Reply className="w-3 h-3 text-accent-foreground" />
+                                  <ReplyIcon className="w-3 h-3 text-accent-foreground" />
                                 </div>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
@@ -408,7 +406,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                                     <span className="text-[10px] text-muted-foreground">{fmt(a.created_at)}</span>
                                     {aEdited && (
                                       <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                                        <Pencil className="w-2 h-2" />נערך
+                                        <EditIcon className="w-2 h-2" />נערך
                                       </span>
                                     )}
                                     {isMentor && (
@@ -416,7 +414,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                                         onClick={() => { setEditingAnswer(a.id); setEditingAnswerText(a.content); }}
                                         className="mr-auto flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-accent transition-colors"
                                       >
-                                        <Pencil className="w-2.5 h-2.5" />ערוך
+                                        <EditIcon className="w-2.5 h-2.5" />ערוך
                                       </button>
                                     )}
                                   </div>
@@ -483,14 +481,14 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
               <div className="bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-md" dir="rtl">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-primary" />
+                    <LockIcon className="w-4 h-4 text-primary" />
                     <h3 className="text-base font-bold text-foreground">שאלה פרטית למנטור</h3>
                   </div>
                   <button
                     onClick={() => setPrivateModalOpen(false)}
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                   >
-                    <X className="w-4 h-4" />
+                    <CloseIcon className="w-4 h-4" />
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground mb-4 text-right leading-relaxed">
@@ -516,7 +514,7 @@ export default function LessonQA({ lessonId, mentorId, studentId, studentName, i
                     disabled={!privateQuestion.trim() || postPrivate.isPending}
                     className="flex-1 h-10 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    <Send className="w-4 h-4" />
+                    <SendIcon solid className="w-4 h-4" />
                     שלח שאלה פרטית
                   </button>
                 </div>

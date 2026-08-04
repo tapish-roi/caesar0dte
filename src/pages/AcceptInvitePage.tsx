@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { getStoredAccessToken } from '@/lib/authToken';
-import { TrendingUp, GraduationCap, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { CheckCircleIcon, EyeIcon, EyeOffIcon, GraduationIcon, TrendIcon } from '@/components/icons';
 
 // Public project identifiers (same values as integrations/supabase/client.ts).
 const SUPABASE_URL = 'https://dnsguhzzgxvymtjrraok.supabase.co';
@@ -148,7 +148,7 @@ export default function AcceptInvitePage() {
         {/* Logo */}
         <div className="text-center mb-8 flex flex-col items-center gap-2">
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-            <TrendingUp className="w-6 h-6 text-primary-foreground" />
+            <TrendIcon solid className="w-6 h-6 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-secondary-foreground">Caesar 0 DTE</h1>
           <p className="text-sm text-secondary-foreground/60">פלטפורמת מנטורינג למסחר מקצועי</p>
@@ -163,7 +163,7 @@ export default function AcceptInvitePage() {
                 className="text-center py-6 space-y-4"
               >
                 <div className="w-14 h-14 rounded-full bg-accent/15 flex items-center justify-center mx-auto">
-                  <CheckCircle className="w-7 h-7 text-accent" />
+                  <CheckCircleIcon className="w-7 h-7 text-accent" />
                 </div>
                 <h2 className="text-xl font-bold text-foreground">ברוך הבא!</h2>
                 <p className="text-sm text-muted-foreground">החשבון שלך מוכן. מעביר אותך למסך הכניסה — התחבר/י עם המייל והסיסמה שבחרת.</p>
@@ -173,7 +173,7 @@ export default function AcceptInvitePage() {
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
-                    <GraduationCap className="w-5 h-5 text-accent" />
+                    <GraduationIcon className="w-5 h-5 text-accent" />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-foreground">הצטרפות לקהילה</h2>
@@ -218,7 +218,7 @@ export default function AcceptInvitePage() {
                         onClick={() => setShowPass(v => !v)}
                         className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPass ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>

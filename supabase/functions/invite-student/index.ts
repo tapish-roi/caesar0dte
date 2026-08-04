@@ -81,6 +81,10 @@ Deno.serve(async (req) => {
     }
 
     let studentId: string;
+    // Which mail actually went out. The mentor dashboard shows this after a
+    // "send again", so it can tell the student whether to look for the invite
+    // mail or the "reset your password" one.
+    let emailType: 'invite' | 'recovery';
 
     if (existingUser) {
       // Real existing user (has signed in before) — ensure student role and send a
@@ -97,6 +101,7 @@ Deno.serve(async (req) => {
         redirectTo: acceptInviteUrl,
       });
       if (resetError) throw new Error(`Failed to send reset email: ${resetError.message}`);
+      emailType = 'recovery';
       console.log('Sent password recovery email to existing user:', email);
     } else {
       // New (or freshly-cleared) user — inviteUserByEmail creates the account AND
@@ -110,6 +115,7 @@ Deno.serve(async (req) => {
       );
       if (inviteError) throw new Error(`Failed to invite user: ${inviteError.message}`);
       studentId = inviteData.user.id;
+      emailType = 'invite';
       console.log('Invited new student:', email, studentId);
     }
 
@@ -135,7 +141,7 @@ Deno.serve(async (req) => {
       .update({ student_id: studentId })
       .eq('id', inviteId);
 
-    return new Response(JSON.stringify({ success: true, studentId }), {
+    return new Response(JSON.stringify({ success: true, studentId, emailType }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

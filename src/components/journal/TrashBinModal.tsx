@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RotateCcw, Trash2 } from 'lucide-react';
+import { ResetIcon, TrashIcon } from '@/components/icons';
 import { useTrades } from '@/contexts/TradesContext';
 
 interface Props { open: boolean; onClose: () => void }
@@ -45,13 +45,13 @@ export default function TrashBinModal({ open, onClose }: Props) {
                   נותרו {days} ימים
                 </Badge>
                 <Button size="icon" variant="ghost" onClick={() => restoreTrade(t.id)} title="שחזר">
-                  <RotateCcw className="h-4 w-4" />
+                  <ResetIcon className="h-4 w-4" />
                 </Button>
                 <Button
                   size="icon" variant="ghost"
                   onClick={() => { if (confirm('למחוק לצמיתות?')) permanentlyDeleteTrade(t.id); }}
                   className="text-destructive" title="מחק לצמיתות"
-                ><Trash2 className="h-4 w-4" /></Button>
+                ><TrashIcon solid className="h-4 w-4" /></Button>
               </Card>
             );
           })}

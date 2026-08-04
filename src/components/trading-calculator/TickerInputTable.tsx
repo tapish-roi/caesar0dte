@@ -1,48 +1,31 @@
 import { useState, useEffect } from 'react';
-import { Trash2, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TrashIcon, ArrowUpRightIcon, ArrowDownRightIcon } from '@/components/icons';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-
-const SLOTS = 6;
-const EMPTY: string[] = Array.from({ length: SLOTS }, () => '');
-const LONGS_KEY = 'atr-longs';
-const SHORTS_KEY = 'atr-shorts';
+import {
+  LONGS_KEY,
+  SHORTS_KEY,
+  emptySlots,
+  keyForSide,
+  readList,
+  writeList,
+  type ListSide,
+} from '@/lib/atrLists';
 
 interface TickerInputTableProps {
   onTickersChange?: (longs: string[], shorts: string[]) => void;
 }
 
-function readSession(key: string): string[] {
-  try {
-    // One-time migration from sessionStorage → localStorage
-    const legacy = sessionStorage.getItem(key);
-    if (legacy && !localStorage.getItem(key)) {
-      localStorage.setItem(key, legacy);
-      sessionStorage.removeItem(key);
-    }
-    const raw = localStorage.getItem(key);
-    if (!raw) return [...EMPTY];
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length === SLOTS) return parsed.map((s) => String(s ?? ''));
-  } catch {
-    /* noop */
-  }
-  return [...EMPTY];
-}
-
-function writeSession(key: string, arr: string[]) {
-  localStorage.setItem(key, JSON.stringify(arr));
-}
-
 export default function TickerInputTable({ onTickersChange }: TickerInputTableProps) {
-  const [longs, setLongs] = useState<string[]>(() => readSession(LONGS_KEY));
-  const [shorts, setShorts] = useState<string[]>(() => readSession(SHORTS_KEY));
+  const [longs, setLongs] = useState<string[]>(() => readList(LONGS_KEY));
+  const [shorts, setShorts] = useState<string[]>(() => readList(SHORTS_KEY));
 
-  // Re-hydrate on storage events (TradingCalculator dispatches one after add-to-list)
+  // Re-read whenever a ticker card writes. That write dispatches a manual
+  // `storage` event, because the native one never fires in the same tab.
   useEffect(() => {
     const onStorage = () => {
-      setLongs(readSession(LONGS_KEY));
-      setShorts(readSession(SHORTS_KEY));
+      setLongs(readList(LONGS_KEY));
+      setShorts(readList(SHORTS_KEY));
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -52,35 +35,36 @@ export default function TickerInputTable({ onTickersChange }: TickerInputTablePr
     onTickersChange?.(longs, shorts);
   }, [longs, shorts, onTickersChange]);
 
-  const clearSlot = (side: 'long' | 'short', index: number) => {
+  const setSlot = (side: ListSide, index: number, value: string) => {
     const setter = side === 'long' ? setLongs : setShorts;
-    const key = side === 'long' ? LONGS_KEY : SHORTS_KEY;
     setter((prev) => {
       const next = [...prev];
-      next[index] = '';
-      writeSession(key, next);
+      next[index] = value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5);
+      writeList(keyForSide(side), next);
       return next;
     });
   };
 
-  const clearAll = (side: 'long' | 'short') => {
-    const key = side === 'long' ? LONGS_KEY : SHORTS_KEY;
-    writeSession(key, [...EMPTY]);
-    if (side === 'long') setLongs([...EMPTY]);
-    else setShorts([...EMPTY]);
+  const clearSlot = (side: ListSide, index: number) => setSlot(side, index, '');
+
+  const clearAll = (side: ListSide) => {
+    writeList(keyForSide(side), emptySlots());
+    if (side === 'long') setLongs(emptySlots());
+    else setShorts(emptySlots());
   };
 
   const renderColumn = (
-    side: 'long' | 'short',
+    side: ListSide,
     title: string,
-    Icon: React.ComponentType<{ className?: string }>,
+    Icon: React.ComponentType<{ className?: string; solid?: boolean }>,
     arr: string[],
     accent: string,
   ) => (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Icon className={`w-4 h-4 ${accent}`} />
+          {/* solid so the long/short accent color survives instead of the gradient */}
+          <Icon solid className={`w-4 h-4 ${accent}`} />
           <h3 className="font-semibold text-foreground">{title}</h3>
         </div>
         <Button
@@ -90,7 +74,7 @@ export default function TickerInputTable({ onTickersChange }: TickerInputTablePr
           onClick={() => clearAll(side)}
           className="text-xs text-muted-foreground hover:text-destructive h-7 px-2"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <TrashIcon className="w-3.5 h-3.5" />
           נקה הכל
         </Button>
       </div>
@@ -98,23 +82,28 @@ export default function TickerInputTable({ onTickersChange }: TickerInputTablePr
         {arr.map((value, i) => {
           const isLong = side === 'long';
           const wrapperClass = isLong
-            ? 'border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50 hover:shadow-[0_0_18px_-6px_rgb(16,185,129,0.45)]'
-            : 'border-rose-500/30 bg-rose-500/5 hover:border-rose-500/50 hover:shadow-[0_0_18px_-6px_rgb(244,63,94,0.45)]';
-          const tickerColor = isLong ? 'text-emerald-300' : 'text-rose-300';
+            ? 'aurora-chip aurora-chip-emerald hover:shadow-[0_0_18px_-6px_rgba(52,211,153,0.5)]'
+            : 'aurora-chip aurora-chip-rose hover:shadow-[0_0_18px_-6px_rgba(244,63,94,0.5)]';
+          const tickerColor = isLong ? 'text-[#6ee7b7]' : 'text-[#fda4af]';
           return (
             <div
               key={i}
-              className={`flex items-center gap-2 rounded-lg border p-1.5 transition-all ${wrapperClass}`}
+              className={`flex items-center gap-2 rounded-lg p-1.5 transition-all ${wrapperClass}`}
             >
-              <span className="text-[10px] text-muted-foreground tabular-nums w-4 ps-1">{i + 1}.</span>
-              <div
-                className={`flex-1 h-9 flex items-center font-mono uppercase tracking-wider text-sm font-semibold ${
+              <span className="text-[10px] text-muted-foreground aurora-mono w-4 ps-1">{i + 1}.</span>
+              {/* Deliberately a bare input, not <Input>: the chip is already the
+                  surface, and .aurora-field paints its edge with background-image,
+                  so a nested field would draw a second ring inside the chip. */}
+              <input
+                value={value}
+                onChange={(e) => setSlot(side, i, e.target.value)}
+                maxLength={5}
+                dir="ltr"
+                placeholder="—"
+                className={`min-w-0 flex-1 h-9 bg-transparent border-0 outline-none focus:outline-none placeholder:text-muted-foreground/40 aurora-mono uppercase tracking-wider text-sm font-semibold ${
                   value ? tickerColor : 'text-muted-foreground/50'
                 }`}
-                dir="ltr"
-              >
-                {value || '—'}
-              </div>
+              />
               <Button
                 type="button"
                 variant="ghost"
@@ -123,7 +112,7 @@ export default function TickerInputTable({ onTickersChange }: TickerInputTablePr
                 onClick={() => clearSlot(side, i)}
                 disabled={!value}
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <TrashIcon className="w-3.5 h-3.5" />
               </Button>
             </div>
           );
@@ -133,10 +122,10 @@ export default function TickerInputTable({ onTickersChange }: TickerInputTablePr
   );
 
   return (
-    <Card className="p-5">
+    <Card className="rounded-2xl p-5">
       <div className="grid md:grid-cols-2 gap-6">
-        {renderColumn('long', 'לונגים', ArrowUpRight, longs, 'text-emerald-400')}
-        {renderColumn('short', 'שורטים', ArrowDownRight, shorts, 'text-rose-400')}
+        {renderColumn('long', 'לונגים', ArrowUpRightIcon, longs, 'text-emerald-400')}
+        {renderColumn('short', 'שורטים', ArrowDownRightIcon, shorts, 'text-rose-400')}
       </div>
     </Card>
   );

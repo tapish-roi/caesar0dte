@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { TrendingUp, KeyRound, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { AlertIcon, CheckCircleIcon, EyeIcon, EyeOffIcon, KeyIcon, LoaderIcon, TrendIcon } from '@/components/icons';
 
 /**
  * ResetPasswordPage — landing target for the Supabase password-recovery email.
@@ -108,7 +108,7 @@ export default function ResetPasswordPage() {
         {/* Logo */}
         <div className="text-center mb-8 flex flex-col items-center gap-2">
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-            <TrendingUp className="w-6 h-6 text-primary-foreground" />
+            <TrendIcon solid className="w-6 h-6 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-secondary-foreground">Caesar 0 DTE</h1>
           <p className="text-sm text-secondary-foreground/60">פלטפורמת מנטורינג למסחר מקצועי</p>
@@ -118,7 +118,7 @@ export default function ResetPasswordPage() {
           <div className="p-8">
             {status === 'checking' && (
               <div className="text-center py-8 space-y-4">
-                <Loader2 className="w-8 h-8 text-accent animate-spin mx-auto" />
+                <LoaderIcon className="w-8 h-8 text-accent animate-spin mx-auto" />
                 <p className="text-sm text-muted-foreground">מאמת את קישור האיפוס...</p>
               </div>
             )}
@@ -126,7 +126,7 @@ export default function ResetPasswordPage() {
             {status === 'invalid' && (
               <div className="text-center py-6 space-y-4">
                 <div className="w-14 h-14 rounded-full bg-destructive/15 flex items-center justify-center mx-auto">
-                  <AlertCircle className="w-7 h-7 text-destructive" />
+                  <AlertIcon solid className="w-7 h-7 text-destructive" />
                 </div>
                 <h2 className="text-xl font-bold text-foreground">הקישור אינו תקין</h2>
                 <p className="text-sm text-muted-foreground">
@@ -148,7 +148,7 @@ export default function ResetPasswordPage() {
                 className="text-center py-6 space-y-4"
               >
                 <div className="w-14 h-14 rounded-full bg-accent/15 flex items-center justify-center mx-auto">
-                  <CheckCircle className="w-7 h-7 text-accent" />
+                  <CheckCircleIcon className="w-7 h-7 text-accent" />
                 </div>
                 <h2 className="text-xl font-bold text-foreground">הסיסמה עודכנה!</h2>
                 <p className="text-sm text-muted-foreground">מעביר אותך למסך הכניסה...</p>
@@ -158,7 +158,7 @@ export default function ResetPasswordPage() {
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center shrink-0">
-                    <KeyRound className="w-5 h-5 text-accent" />
+                    <KeyIcon className="w-5 h-5 text-accent" />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-foreground">איפוס סיסמה</h2>
@@ -185,7 +185,7 @@ export default function ResetPasswordPage() {
                         onClick={() => setShowPass(v => !v)}
                         className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPass ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -208,7 +208,7 @@ export default function ResetPasswordPage() {
                     disabled={loading}
                     className="w-full h-[46px] aurora-gold rounded-2xl font-bold transition-all disabled:cursor-not-allowed mt-2"
                   >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'עדכן סיסמה'}
+                    {loading ? <LoaderIcon className="w-4 h-4 animate-spin mx-auto" /> : 'עדכן סיסמה'}
                   </button>
                 </form>
               </motion.div>

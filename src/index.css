@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&family=IBM+Plex+Sans+Hebrew:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,6 +6,15 @@
 
 @layer base {
   :root {
+    /* Declare the surface as dark to the browser itself. There is no `.dark`
+       class here — the palette below is simply dark by default — so without
+       this the UA assumes `light` and paints WHITE native chrome. That is the
+       white scrollbar: on iOS/Android the overlay scrollbar is drawn by the
+       browser and is unreachable from ::-webkit-scrollbar rules, so this
+       declaration (not the CSS further down) is what fixes it on mobile. It
+       also darkens native date pickers, selects and spinners for free. */
+    color-scheme: dark;
+
     /* === Core Palette — Aurora Glass (imported from Claude Design) ==========
        Canvas #070d16 · glass #0d1721 · field #12202a · gold #e2b54e
        cyan #5ac8e6 · text #dfe9ec · muted #9db4bc · rose #f43f5e */
@@ -61,7 +70,11 @@
     --au-emerald-soft: #5eead4;
 
     --au-canvas: #070d16;
-    --au-glass: rgba(13, 23, 33, 0.94);
+    /* Card fill for .aurora-edge. Tracks --lg-bg so an Aurora card is the SAME
+       frosted glass as every `bg-card` surface — at the old hard-coded 0.94 the
+       blur behind it was invisible and cards read as flat dark boxes next to the
+       rest of the app. --lg-bg also has a .dark override; a literal here did not. */
+    --au-glass: var(--lg-bg);
     --au-field: rgba(18, 32, 42, 0.8);
     --au-field-ink: #dfe9ec;
     --au-label: #7b969e;
@@ -226,6 +239,60 @@
   .tabular {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Scrollbars — aurora-tinted, for the classic (space-taking) scrollbars on
+     desktop Chrome/Safari/Edge. Mobile overlay scrollbars are UA-drawn and
+     ignore these rules; `color-scheme: dark` on :root is what covers those.
+     Firefox uses the two standard properties instead of the -webkit- ones.
+     `.scrollbar-hide` is a class, so it still outranks the `*` rule here. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(226, 181, 78, 0.38) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(7, 13, 22, 0.45);
+  }
+  ::-webkit-scrollbar-thumb {
+    /* Inset via a transparent border + content-box clip, so the thumb reads as
+       a floating pill on the track rather than filling the gutter edge to edge. */
+    background-color: rgba(226, 181, 78, 0.38);
+    background-clip: content-box;
+    border: 2px solid transparent;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(226, 181, 78, 0.65);
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background-color: rgba(226, 181, 78, 0.85);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Native number spinners — removed everywhere. Chrome/Safari paint a solid
+     light-grey stepper block that ignores the page palette entirely; on the
+     translucent emerald/rose fields in the position calculator it read as a
+     bright chip glued to the edge of the input. There is no reliable way to
+     recolour ::-webkit-inner-spin-button, so the control is dropped rather
+     than restyled.
+
+     Stepping is NOT lost: ↑/↓ arrow keys and scroll-on-focus still increment
+     by the field's `step`, which is how these prices get nudged in practice. */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield; /* Firefox */
+    appearance: textfield;
+  }
 }
 
 @layer utilities {
@@ -356,6 +423,14 @@
     transform: translateY(0) scale(0.995);
     transition-duration: 120ms;
   }
+  /* Large container cards (e.g. the economic-calendar list) shouldn't lift and
+     scale like a small interactive tile — on a full-height surface that motion
+     reads as a jarring "jump" on every press. Keep the shadow/border feedback,
+     drop the transform. */
+  .liquid-glass.glass-flat:hover,
+  .liquid-glass.glass-flat:active {
+    transform: none;
+  }
 
   /* === Aurora Glass — gradient-edged surfaces ============================
      The signature look: a gold⇄cyan hairline that can't be done with a plain
@@ -377,6 +452,15 @@
       0 12px 44px rgba(0, 0, 0, 0.4),
       0 0 40px -18px rgba(90, 200, 230, 0.25),
       inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+  /* No cursor-tracked sheen on Aurora cards. `.liquid-glass::before` paints a
+     radial highlight that follows the pointer — that is the SIDEBAR's effect.
+     Cards in this design are lit only by their static top-edge catch, and the
+     `bg-card` cards everywhere else never had the sheen, so a card carrying it
+     read as a different (older) surface. `.liquid-glass-sidebar::before` is a
+     separate rule and keeps its sheen. */
+  .liquid-glass.aurora-edge::before {
+    content: none;
   }
 
   /* Form fields — softer cyan-leaning edge, inset "pressed glass" depth */
@@ -416,6 +500,62 @@
     box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
+  /* Semantic field tints — entry/stop inputs in the position calculator, where
+     the edge colour carries meaning (long = emerald, short/stop = rose). Only
+     the edge layer changes; the fill, inset depth and focus ring stay shared,
+     so these compose with .aurora-field rather than replacing it. Do NOT pair
+     with `border-*` / `bg-*` utilities — those paint over the gradient edge. */
+  .aurora-field-emerald {
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 40%),
+      linear-gradient(rgba(14, 30, 30, 0.8), rgba(14, 30, 30, 0.8)),
+      linear-gradient(135deg, rgba(52, 211, 153, 0.55), rgba(94, 234, 212, 0.2));
+  }
+  .aurora-field-emerald::placeholder {
+    color: rgba(110, 231, 183, 0.55);
+  }
+  .aurora-field-emerald:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      inset 0 2px 6px rgba(0, 0, 0, 0.18),
+      0 0 18px -6px rgba(52, 211, 153, 0.45);
+  }
+  .aurora-field-emerald:focus-visible,
+  .aurora-field-emerald:focus-within {
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 40%),
+      linear-gradient(rgba(14, 30, 30, 0.8), rgba(14, 30, 30, 0.8)),
+      linear-gradient(135deg, rgba(52, 211, 153, 0.9), rgba(94, 234, 212, 0.5));
+    box-shadow:
+      0 0 0 3px rgba(52, 211, 153, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+  .aurora-field-rose {
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 40%),
+      linear-gradient(rgba(28, 16, 22, 0.8), rgba(28, 16, 22, 0.8)),
+      linear-gradient(135deg, rgba(244, 63, 94, 0.55), rgba(255, 140, 120, 0.2));
+  }
+  .aurora-field-rose::placeholder {
+    color: rgba(253, 164, 175, 0.55);
+  }
+  .aurora-field-rose:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      inset 0 2px 6px rgba(0, 0, 0, 0.18),
+      0 0 18px -6px rgba(244, 63, 94, 0.45);
+  }
+  .aurora-field-rose:focus-visible,
+  .aurora-field-rose:focus-within {
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 40%),
+      linear-gradient(rgba(28, 16, 22, 0.8), rgba(28, 16, 22, 0.8)),
+      linear-gradient(135deg, rgba(244, 63, 94, 0.9), rgba(255, 140, 120, 0.5));
+    box-shadow:
+      0 0 0 3px rgba(244, 63, 94, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
   /* Glass control with a gradient edge — secondary buttons, tab rails, toggles */
   .aurora-control {
     border: 1px solid transparent;
@@ -433,6 +573,32 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.12),
       0 4px 18px rgba(0, 0, 0, 0.34),
       0 0 18px -4px rgba(90, 200, 230, 0.35);
+  }
+
+  /* "Add another" affordance — full-width dashed slot at the end of a list.
+     Keeps the dashed edge (it still reads as "empty slot, click to fill") but
+     carries its own glass fill: a bare hairline outline sat directly on the
+     Spline scene and dissolved into the moving planets behind it. The fill is
+     what makes it legible; the gold edge and glow are what make it a CTA. */
+  .aurora-add {
+    border: 1.5px dashed rgba(226, 181, 78, 0.55);
+    background-color: rgba(13, 23, 33, 0.62);
+    backdrop-filter: blur(10px) saturate(1.15);
+    -webkit-backdrop-filter: blur(10px) saturate(1.15);
+    color: #e9c46a;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 2px 14px rgba(0, 0, 0, 0.3),
+      0 0 24px -12px rgba(226, 181, 78, 0.5);
+  }
+  .aurora-add:hover {
+    border-color: rgba(226, 181, 78, 0.95);
+    background-color: rgba(32, 27, 16, 0.75);
+    color: #f7dc9a;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 4px 18px rgba(0, 0, 0, 0.34),
+      0 0 30px -8px rgba(226, 181, 78, 0.6);
   }
 
   /* Primary gold fill — buttons, active tabs, checked controls */
@@ -524,6 +690,21 @@
       linear-gradient(135deg, rgba(233, 183, 74, 0.6), rgba(90, 200, 230, 0.3));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 20px -8px rgba(226, 181, 78, 0.25);
   }
+  /* cyan sibling — the second half of a gold/cyan stat pair (price ⇄ ATR) */
+  .aurora-alert-cyan {
+    background-image:
+      linear-gradient(180deg, rgba(90, 200, 230, 0.08), rgba(90, 200, 230, 0.02)),
+      linear-gradient(rgba(14, 26, 41, 0.85), rgba(14, 26, 41, 0.85)),
+      linear-gradient(135deg, rgba(90, 200, 230, 0.55), rgba(233, 183, 74, 0.28));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 20px -8px rgba(90, 200, 230, 0.28);
+  }
+  /* neutral sibling — unlabelled stat tiles, inset summary rows */
+  .aurora-alert-neutral {
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
+      linear-gradient(rgba(16, 27, 37, 0.85), rgba(16, 27, 37, 0.85)),
+      linear-gradient(135deg, rgba(130, 190, 210, 0.3), rgba(233, 183, 74, 0.16));
+  }
 
   /* Status chips — dark core, coloured gradient edge (long / short / PRO) */
   .aurora-chip {
@@ -576,9 +757,20 @@
     background-color: rgba(18, 32, 42, 0.5);
   }
 
-  /* Monospace numerals — prices, tickers, spec chips */
+  /* Trading-calculator tab runs on Rubik. Scoped to the tab's root rather
+     than set on body, so the rest of the platform keeps IBM Plex Sans Hebrew.
+     Descendants inherit; anything rendered through a portal (dropdowns,
+     toasts) sits outside this subtree and stays on the global font. */
+  .calc-typeface {
+    font-family: 'Rubik', 'Segoe UI', system-ui, sans-serif;
+  }
+
+  /* Tabular numerals — prices, tickers, spec chips.
+     Rubik rather than a monospace: its zero is a clean oval (IBM Plex Mono's
+     is dotted), and it carries Hebrew, so mixed strings no longer fall back
+     to Menlo/Courier the way they did with a Latin-only mono. */
   .aurora-mono {
-    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-family: 'Rubik', 'Segoe UI', system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
   }
 

@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  MessageCircleQuestion, Lock, Globe, BookOpen, Send, X, ChevronDown,
-  Clock, Check, Reply, Pencil,
-} from 'lucide-react';
+import { CheckIcon, ChevronDownIcon, ClockIcon, CloseIcon, EditIcon, GlobeIcon, JournalIcon, LockIcon, QuestionIcon, ReplyIcon, SendIcon } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -223,7 +220,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
       <div className="px-8 pt-8 pb-0">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <MessageCircleQuestion className="w-5 h-5 text-primary" />
+            <QuestionIcon className="w-5 h-5 text-primary" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">שאלות</h1>
@@ -243,7 +240,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                 section === 'private' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Lock className="w-3.5 h-3.5" />
+              <LockIcon className="w-3.5 h-3.5" />
               שאלות פרטיות
               {unansweredPrivate > 0 && (
                 <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
@@ -257,7 +254,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                 section === 'lesson' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Globe className="w-3.5 h-3.5" />
+              <GlobeIcon className="w-3.5 h-3.5" />
               שאלות משיעורים
               {unansweredLesson > 0 && (
                 <span className="w-5 h-5 rounded-full bg-accent text-accent-foreground text-[10px] font-bold flex items-center justify-center">
@@ -282,7 +279,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                 >
                   {privateQuestions.length === 0 ? (
                     <div className="text-center py-20 text-muted-foreground">
-                      <Lock className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                      <LockIcon className="w-10 h-10 mx-auto mb-3 opacity-20" />
                       <p className="font-medium">אין שאלות פרטיות</p>
                       <p className="text-sm mt-1">כשתלמיד ישלח שאלה פרטית — היא תופיע כאן</p>
                     </div>
@@ -312,12 +309,12 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                               <span className="text-sm font-semibold text-foreground">{q.studentName}</span>
                               {q.lessonTitle && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded-full text-[10px] text-muted-foreground">
-                                  <BookOpen className="w-2.5 h-2.5" />{q.lessonTitle}
+                                  <JournalIcon className="w-2.5 h-2.5" />{q.lessonTitle}
                                 </span>
                               )}
                               {hasAnswer ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 rounded-full text-[10px] text-accent font-medium">
-                                  <Check className="w-2.5 h-2.5" />נענה
+                                  <CheckIcon className="w-2.5 h-2.5" />נענה
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-full text-[10px] text-primary font-medium animate-pulse">
@@ -327,11 +324,11 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                             </div>
                             <p className="text-sm text-foreground mt-1 leading-relaxed line-clamp-2">{q.question}</p>
                             <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
-                              <Clock className="w-2.5 h-2.5" />
+                              <ClockIcon className="w-2.5 h-2.5" />
                               {fmt(q.created_at)}
                             </div>
                           </div>
-                          <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 mt-1 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+                          <ChevronDownIcon className={`w-4 h-4 text-muted-foreground shrink-0 mt-1 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
                         </button>
 
                         {/* Expanded content */}
@@ -358,10 +355,10 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                         onClick={() => { setEditingPrivateAnswer(q.id); setEditingPrivateText(q.answer ?? ''); }}
                                         className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
                                       >
-                                        <Pencil className="w-2.5 h-2.5" />ערוך
+                                        <EditIcon className="w-2.5 h-2.5" />ערוך
                                       </button>
                                       <p className="text-xs font-medium text-accent flex items-center gap-1">
-                                        <Check className="w-3 h-3" />התשובה שלך:
+                                        <CheckIcon className="w-3 h-3" />התשובה שלך:
                                       </p>
                                     </div>
                                     <p className="text-sm text-foreground leading-relaxed">{q.answer}</p>
@@ -371,7 +368,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                       )}
                                       {answerEdited && (
                                         <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                                          <Pencil className="w-2 h-2" />נערך
+                                          <EditIcon className="w-2 h-2" />נערך
                                         </span>
                                       )}
                                     </div>
@@ -402,7 +399,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                         disabled={!editingPrivateText.trim() || editPrivateAnswer.isPending}
                                         className="h-8 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
                                       >
-                                        <Check className="w-3 h-3" />שמור
+                                        <CheckIcon solid className="w-3 h-3" />שמור
                                       </button>
                                     </div>
                                   </div>
@@ -427,13 +424,13 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                         disabled={!privateAnswerText[q.id]?.trim() || answerPrivate.isPending}
                                         className="h-9 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
                                       >
-                                        <Send className="w-3 h-3" />שלח
+                                        <SendIcon solid className="w-3 h-3" />שלח
                                       </button>
                                       <button
                                         onClick={() => deletePrivateQuestion.mutate(q.id)}
                                         className="h-9 px-3 bg-destructive/10 text-destructive rounded-lg text-xs hover:bg-destructive/20 transition-all flex items-center gap-1.5"
                                       >
-                                        <X className="w-3 h-3" />מחק
+                                        <CloseIcon solid className="w-3 h-3" />מחק
                                       </button>
                                     </div>
                                   </div>
@@ -443,7 +440,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                     onClick={() => deletePrivateQuestion.mutate(q.id)}
                                     className="text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
                                   >
-                                    <X className="w-3 h-3" />מחק שאלה
+                                    <CloseIcon className="w-3 h-3" />מחק שאלה
                                   </button>
                                 )}
                               </div>
@@ -467,7 +464,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                 >
                   {lessonQuestions.length === 0 ? (
                     <div className="text-center py-20 text-muted-foreground">
-                      <Globe className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                      <GlobeIcon className="w-10 h-10 mx-auto mb-3 opacity-20" />
                       <p className="font-medium">אין שאלות משיעורים</p>
                       <p className="text-sm mt-1">כשתלמיד ישאל שאלה פומבית בשיעור — היא תופיע כאן</p>
                     </div>
@@ -493,11 +490,11 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                             <div className="flex items-center gap-2 flex-wrap justify-end">
                               <span className="text-sm font-semibold text-foreground">{q.studentName}</span>
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded-full text-[10px] text-muted-foreground">
-                                <BookOpen className="w-2.5 h-2.5" />{q.lessonTitle}
+                                <JournalIcon className="w-2.5 h-2.5" />{q.lessonTitle}
                               </span>
                               {hasAnswers ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 rounded-full text-[10px] text-accent font-medium">
-                                  <Check className="w-2.5 h-2.5" />{q.answers!.length} תשובות
+                                  <CheckIcon className="w-2.5 h-2.5" />{q.answers!.length} תשובות
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 rounded-full text-[10px] text-accent font-medium animate-pulse">
@@ -507,10 +504,10 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                             </div>
                             <p className="text-sm text-foreground mt-1 leading-relaxed line-clamp-2">{q.content}</p>
                             <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
-                              <Clock className="w-2.5 h-2.5" />{fmt(q.created_at)}
+                              <ClockIcon className="w-2.5 h-2.5" />{fmt(q.created_at)}
                             </div>
                           </div>
-                          <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 mt-1 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+                          <ChevronDownIcon className={`w-4 h-4 text-muted-foreground shrink-0 mt-1 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
                         </button>
 
                         <AnimatePresence>
@@ -561,7 +558,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                                   disabled={!editingLessonAnswerText.trim() || editLessonAnswer.isPending}
                                                   className="h-7 px-3 bg-accent text-accent-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
                                                 >
-                                                  <Check className="w-3 h-3" />שמור
+                                                  <CheckIcon className="w-3 h-3" />שמור
                                                 </button>
                                               </div>
                                             </div>
@@ -572,10 +569,10 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                                   onClick={() => { setEditingLessonAnswer(a.id); setEditingLessonAnswerText(a.content); }}
                                                   className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-accent transition-colors"
                                                 >
-                                                  <Pencil className="w-2.5 h-2.5" />ערוך
+                                                  <EditIcon className="w-2.5 h-2.5" />ערוך
                                                 </button>
                                                 <p className="text-xs font-medium text-accent flex items-center gap-1">
-                                                  <Reply className="w-3 h-3" />תשובתך:
+                                                  <ReplyIcon className="w-3 h-3" />תשובתך:
                                                 </p>
                                               </div>
                                               <p className="text-sm text-foreground leading-relaxed">{a.content}</p>
@@ -583,7 +580,7 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                                 <p className="text-[10px] text-muted-foreground">{fmt(a.created_at)}</p>
                                                 {edited && (
                                                   <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                                                    <Pencil className="w-2 h-2" />נערך
+                                                    <EditIcon className="w-2 h-2" />נערך
                                                   </span>
                                                 )}
                                               </div>
@@ -613,13 +610,13 @@ export default function MentorQuestionsHub({ mentorId }: Props) {
                                       disabled={!lessonAnswerText[q.id]?.trim() || answerLesson.isPending}
                                       className="h-9 px-3 bg-accent text-accent-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-1.5"
                                     >
-                                      <Send className="w-3 h-3" />פרסם
+                                      <SendIcon className="w-3 h-3" />פרסם
                                     </button>
                                     <button
                                       onClick={() => deleteLessonQuestion.mutate(q.id)}
                                       className="h-9 px-3 bg-destructive/10 text-destructive rounded-lg text-xs hover:bg-destructive/20 transition-all flex items-center gap-1.5"
                                     >
-                                      <X className="w-3 h-3" />מחק
+                                      <CloseIcon className="w-3 h-3" />מחק
                                     </button>
                                   </div>
                                 </div>

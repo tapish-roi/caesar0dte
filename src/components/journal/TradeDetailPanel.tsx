@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Star, Upload, X, Plus } from 'lucide-react';
+import { CloseIcon, PlusIcon, StarIcon, UploadIcon } from '@/components/icons';
 import { useTrades, type TradeRow } from '@/contexts/TradesContext';
 import { useStrategies } from '@/contexts/StrategiesContext';
 import { useTags } from '@/contexts/TagsContext';
@@ -201,7 +201,7 @@ export default function TradeDetailPanel({ trade, onClose }: Props) {
                 <div className="flex flex-wrap gap-1 mb-1">
                   {(trade.tags ?? []).map((t) => (
                     <Badge key={t} variant="secondary" className="gap-1">
-                      #{t}<X className="h-3 w-3 cursor-pointer" onClick={() => removeTag(t)} />
+                      #{t}<CloseIcon className="h-3 w-3 cursor-pointer" onClick={() => removeTag(t)} />
                     </Badge>
                   ))}
                 </div>
@@ -215,7 +215,7 @@ export default function TradeDetailPanel({ trade, onClose }: Props) {
                   <datalist id="all-tags">
                     {tagNames.map((t) => <option key={t} value={t} />)}
                   </datalist>
-                  <Button size="sm" variant="outline" onClick={() => addTag(tagInput)}><Plus className="h-3 w-3" /></Button>
+                  <Button size="sm" variant="outline" onClick={() => addTag(tagInput)}><PlusIcon className="h-3 w-3" /></Button>
                 </div>
               </div>
 
@@ -240,13 +240,13 @@ export default function TradeDetailPanel({ trade, onClose }: Props) {
                         <button
                           onClick={() => removeImage(p)}
                           className="absolute top-1 left-1 bg-destructive text-destructive-foreground rounded p-0.5 opacity-0 group-hover:opacity-100"
-                        ><X className="h-3 w-3" /></button>
+                        ><CloseIcon solid className="h-3 w-3" /></button>
                       </div>
                     );
                   })}
                 </div>
                 <label className="flex items-center justify-center gap-2 border border-dashed border-border rounded p-3 cursor-pointer hover:bg-accent text-sm">
-                  <Upload className="h-4 w-4" />
+                  <UploadIcon solid className="h-4 w-4" />
                   {uploading ? 'מעלה...' : 'העלה תמונות'}
                   <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => onUpload(e.target.files)} />
                 </label>
@@ -263,7 +263,7 @@ export default function TradeDetailPanel({ trade, onClose }: Props) {
                   key={n} disabled={!isMentorView}
                   onClick={() => isMentorView && updateMentorFeedback(trade.id, n, mentorNotes)}
                 >
-                  <Star className={`h-5 w-5 ${n <= (mentorRating ?? 0) ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground'}`} />
+                  <StarIcon solid className={`h-5 w-5 ${n <= (mentorRating ?? 0) ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground'}`} />
                 </button>
               ))}
             </div>

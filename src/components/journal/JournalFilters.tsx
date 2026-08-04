@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Check, ChevronDown, X, CalendarDays } from 'lucide-react';
+import { CalendarIcon, CheckIcon, ChevronDownIcon, CloseIcon } from '@/components/icons';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import type { TradeRow } from '@/contexts/TradesContext';
@@ -43,7 +43,7 @@ function MultiPicker({ label, options, selected, onChange }: {
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="justify-between min-w-[140px]">
           <span className="truncate">{label}{selected.length ? ` (${selected.length})` : ''}</span>
-          <ChevronDown className="h-3 w-3 ms-2" />
+          <ChevronDownIcon className="h-3 w-3 ms-2" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-1 max-h-72 overflow-auto" align="start">
@@ -55,7 +55,7 @@ function MultiPicker({ label, options, selected, onChange }: {
             className="w-full flex items-center justify-between px-2 py-1.5 text-sm rounded hover:bg-accent text-start"
           >
             <span className="truncate">{o.label}</span>
-            {selected.includes(o.value) && <Check className="h-3 w-3 text-primary" />}
+            {selected.includes(o.value) && <CheckIcon className="h-3 w-3 text-primary" />}
           </button>
         ))}
       </PopoverContent>
@@ -87,7 +87,7 @@ export default function JournalFilters({ trades, strategies, allTags, filters, o
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="gap-2">
-              <CalendarDays className="h-4 w-4" />
+              <CalendarIcon className="h-4 w-4" />
               {filters.dateRange?.from
                 ? `${format(filters.dateRange.from, 'dd/MM/yy')}${filters.dateRange.to ? ` – ${format(filters.dateRange.to, 'dd/MM/yy')}` : ''}`
                 : 'טווח תאריכים'}
@@ -117,7 +117,7 @@ export default function JournalFilters({ trades, strategies, allTags, filters, o
 
         {hasAny && (
           <Button variant="ghost" size="sm" onClick={() => onChange(emptyFilters)} className="gap-1 ms-auto">
-            <X className="h-3 w-3" /> נקה הכל
+            <CloseIcon className="h-3 w-3" /> נקה הכל
           </Button>
         )}
       </div>
@@ -126,18 +126,18 @@ export default function JournalFilters({ trades, strategies, allTags, filters, o
         <div className="flex flex-wrap gap-1 mt-2">
           {filters.symbols.map((s) => (
             <Badge key={`s-${s}`} variant="secondary" className="gap-1">
-              {s}<X className="h-3 w-3 cursor-pointer" onClick={() => set({ symbols: filters.symbols.filter((x) => x !== s) })} />
+              {s}<CloseIcon className="h-3 w-3 cursor-pointer" onClick={() => set({ symbols: filters.symbols.filter((x) => x !== s) })} />
             </Badge>
           ))}
           {filters.strategies.map((id) => (
             <Badge key={`st-${id}`} variant="secondary" className="gap-1">
               {strategies.find((x) => x.id === id)?.name ?? id}
-              <X className="h-3 w-3 cursor-pointer" onClick={() => set({ strategies: filters.strategies.filter((x) => x !== id) })} />
+              <CloseIcon className="h-3 w-3 cursor-pointer" onClick={() => set({ strategies: filters.strategies.filter((x) => x !== id) })} />
             </Badge>
           ))}
           {filters.tags.map((t) => (
             <Badge key={`t-${t}`} variant="secondary" className="gap-1">
-              #{t}<X className="h-3 w-3 cursor-pointer" onClick={() => set({ tags: filters.tags.filter((x) => x !== t) })} />
+              #{t}<CloseIcon className="h-3 w-3 cursor-pointer" onClick={() => set({ tags: filters.tags.filter((x) => x !== t) })} />
             </Badge>
           ))}
         </div>

@@ -1,5 +1,9 @@
-// fetch-finviz-data — Scrape Price + ATR(14) from Finviz for a batch of tickers.
+// fetch-finviz-data — Scrape Prev Close + ATR(14) from Finviz for a batch of tickers.
 // Validates JWT, throttles requests (500ms), upserts into stock_atr_data.
+//
+// "Prev Close", never "Price": the stored value must be the prior session's
+// close. Finviz's "Price" field is the live/last trade, so during market hours
+// it drifts all day and every ATR level derived from it drifts with it.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -21,19 +25,13 @@ interface StockData {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function parsePriceFromHtml(html: string): number | null {
-  const m = html.match(
-    /snapshot-td-label">Price<\/div><\/td>\s*<td[^>]*>.*?<b>([0-9,]+\.?\d*)<\/b>/is,
-  );
-  if (!m) return null;
-  const n = parseFloat(m[1].replace(/,/g, ""));
-  return Number.isFinite(n) ? n : null;
-}
+const prevCloseRe =
+  /snapshot-td-label">Prev Close<\/div><\/td>\s*<td[^>]*>.*?<b>([0-9,]+\.?\d*)<\/b>/is;
+const atrRe =
+  /snapshot-td-label">ATR\s*\(14\)<\/div><\/td>\s*<td[^>]*>.*?<b>([0-9,]+\.?\d*)<\/b>/is;
 
-function parseAtrFromHtml(html: string): number | null {
-  const m = html.match(
-    /snapshot-td-label">ATR\s*\(14\)<\/div><\/td>\s*<td[^>]*>.*?<b>([0-9,]+\.?\d*)<\/b>/is,
-  );
+function parseSnapshotValue(html: string, re: RegExp): number | null {
+  const m = html.match(re);
   if (!m) return null;
   const n = parseFloat(m[1].replace(/,/g, ""));
   return Number.isFinite(n) ? n : null;
@@ -55,9 +53,9 @@ async function fetchFinviz(ticker: string): Promise<StockData | null> {
     const res = await fetch(url, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept":
-          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
       },
     });
@@ -66,10 +64,13 @@ async function fetchFinviz(ticker: string): Promise<StockData | null> {
       return null;
     }
     const html = await res.text();
-    const closePrice = parsePriceFromHtml(html);
-    const atr = parseAtrFromHtml(html);
+    const closePrice = parseSnapshotValue(html, prevCloseRe);
+    const atr = parseSnapshotValue(html, atrRe);
+    // One bad ticker must never fail the whole batch.
     if (closePrice === null || atr === null) {
-      console.warn(`Finviz ${ticker}: failed to parse price/atr, skipping`);
+      console.warn(
+        `Finviz ${ticker}: failed to parse prev close/atr, skipping`,
+      );
       return null;
     }
     return { ticker, closePrice, atr };

@@ -4,11 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { withTimeout } from '@/lib/withTimeout';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  ClipboardList, Plus, Trash2, Eye, EyeOff, BookOpen, Users,
-  ChevronDown, ChevronLeft, X, Check, GripVertical, AlignLeft,
-  List, Send, Filter, ChevronRight,
-} from 'lucide-react';
+import { AlignLeftIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, EyeIcon, EyeOffIcon, FilterIcon, GripIcon, JournalIcon, ListIcon, PlusIcon, QuizIcon, SendIcon, TrashIcon, UsersIcon } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
@@ -240,11 +236,11 @@ function QuizBuilder({
       <div className="px-4 md:px-8 pt-4 md:pt-8 pb-0 shrink-0">
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <button onClick={onDone} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
-            <ChevronRight className="w-4 h-4" />חזרה
+            <ChevronRightIcon className="w-4 h-4" />חזרה
           </button>
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <ClipboardList className="w-4 h-4 text-primary" />
+              <QuizIcon className="w-4 h-4 text-primary" />
             </div>
             <h1 className="text-xl font-bold text-foreground truncate">יצירת מבחן חדש</h1>
           </div>
@@ -303,7 +299,7 @@ function QuizBuilder({
             <div key={q.id} className="bg-card border border-border rounded-xl overflow-hidden">
               {/* Question header */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
-                <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
+                <GripIcon className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="text-sm font-semibold text-foreground">שאלה {qIdx + 1}</span>
                 <div className="flex gap-1 mr-auto">
                   <button
@@ -317,7 +313,7 @@ function QuizBuilder({
                       q.type === 'multiple_choice' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                     }`}
                   >
-                    <List className="w-3 h-3" />אמריקאית
+                    <ListIcon className="w-3 h-3" />אמריקאית
                   </button>
                   <button
                     onClick={() => updateQuestion(q.id, { type: 'free_text', options: [] })}
@@ -325,12 +321,12 @@ function QuizBuilder({
                       q.type === 'free_text' ? 'bg-accent/10 text-accent' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                     }`}
                   >
-                    <AlignLeft className="w-3 h-3" />חופשית
+                    <AlignLeftIcon className="w-3 h-3" />חופשית
                   </button>
                 </div>
                 {questions.length > 1 && (
                   <button onClick={() => removeQuestion(q.id)} className="text-muted-foreground hover:text-destructive transition-colors">
-                    <X className="w-4 h-4" />
+                    <CloseIcon className="w-4 h-4" />
                   </button>
                 )}
               </div>
@@ -357,7 +353,7 @@ function QuizBuilder({
                             opt.isCorrect ? 'border-accent bg-accent' : 'border-border hover:border-accent/50'
                           }`}
                         >
-                          {opt.isCorrect && <Check className="w-2.5 h-2.5 text-accent-foreground" />}
+                          {opt.isCorrect && <CheckIcon className="w-2.5 h-2.5 text-accent-foreground" />}
                         </button>
                         <span className="text-xs text-muted-foreground font-medium w-5 shrink-0 text-center">
                           {String.fromCharCode(65 + oIdx)}
@@ -370,7 +366,7 @@ function QuizBuilder({
                         />
                         {q.options.length > 2 && (
                           <button onClick={() => removeOption(q.id, opt.id)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                            <X className="w-3.5 h-3.5" />
+                            <CloseIcon className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
@@ -380,7 +376,7 @@ function QuizBuilder({
                         onClick={() => addOption(q.id)}
                         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors mt-1"
                       >
-                        <Plus className="w-3 h-3" />הוסף אפשרות
+                        <PlusIcon className="w-3 h-3" />הוסף אפשרות
                       </button>
                     )}
                   </div>
@@ -390,7 +386,7 @@ function QuizBuilder({
                 {q.type === 'free_text' && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 p-2.5 bg-accent/5 border border-accent/20 rounded-lg">
-                      <AlignLeft className="w-3.5 h-3.5 text-accent shrink-0" />
+                      <AlignLeftIcon className="w-3.5 h-3.5 text-accent shrink-0" />
                       <p className="text-xs text-muted-foreground">שאלה פתוחה — התלמיד יוכל לכתוב תשובה חופשית. לשאלה זו לא ינתן ציון אוטומטי.</p>
                     </div>
                     <div>
@@ -416,13 +412,13 @@ function QuizBuilder({
             onClick={() => addQuestion('multiple_choice')}
             className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap"
           >
-            <List className="w-4 h-4 text-primary shrink-0" />הוסף שאלה אמריקאית
+            <ListIcon className="w-4 h-4 text-primary shrink-0" />הוסף שאלה אמריקאית
           </button>
           <button
             onClick={() => addQuestion('free_text')}
             className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap"
           >
-            <AlignLeft className="w-4 h-4 text-accent shrink-0" />הוסף שאלה פתוחה
+            <AlignLeftIcon className="w-4 h-4 text-accent shrink-0" />הוסף שאלה פתוחה
           </button>
         </div>
 
@@ -440,7 +436,7 @@ function QuizBuilder({
             disabled={isSaving || !title.trim()}
             className="flex-1 h-11 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isSaving ? <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />מפרסם...</> : <><Send className="w-4 h-4" />פרסם לתלמידים</>}
+            {isSaving ? <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />מפרסם...</> : <><SendIcon solid className="w-4 h-4" />פרסם לתלמידים</>}
           </button>
         </div>
       </div>
@@ -635,11 +631,11 @@ function QuizDetail({
         <div className="px-4 md:px-8 pt-4 md:pt-8 pb-0 shrink-0">
           <div className="flex flex-wrap items-center gap-3 mb-5">
             <button onClick={() => setIsEditing(false)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
-              <ChevronRight className="w-4 h-4" />ביטול עריכה
+              <ChevronRightIcon className="w-4 h-4" />ביטול עריכה
             </button>
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <ClipboardList className="w-4 h-4 text-primary" />
+                <QuizIcon className="w-4 h-4 text-primary" />
               </div>
               <h1 className="text-xl font-bold text-foreground truncate">עריכת מבחן</h1>
             </div>
@@ -693,7 +689,7 @@ function QuizDetail({
             {editQuestions.map((q, qIdx) => (
               <div key={q.id} className="bg-card border border-border rounded-xl overflow-hidden">
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
-                  <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <GripIcon className="w-4 h-4 text-muted-foreground shrink-0" />
                   <span className="text-sm font-semibold text-foreground">שאלה {qIdx + 1}</span>
                   <div className="flex gap-1 mr-auto">
                     <button
@@ -705,7 +701,7 @@ function QuizDetail({
                         q.type === 'multiple_choice' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                       }`}
                     >
-                      <List className="w-3 h-3" />אמריקאית
+                      <ListIcon className="w-3 h-3" />אמריקאית
                     </button>
                     <button
                       onClick={() => updateEditQuestion(q.id, { type: 'free_text', options: [] })}
@@ -713,12 +709,12 @@ function QuizDetail({
                         q.type === 'free_text' ? 'bg-accent/10 text-accent' : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                       }`}
                     >
-                      <AlignLeft className="w-3 h-3" />חופשית
+                      <AlignLeftIcon className="w-3 h-3" />חופשית
                     </button>
                   </div>
                   {editQuestions.length > 1 && (
                     <button onClick={() => removeEditQuestion(q.id)} className="text-muted-foreground hover:text-destructive transition-colors">
-                      <X className="w-4 h-4" />
+                      <CloseIcon className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -741,7 +737,7 @@ function QuizDetail({
                               opt.isCorrect ? 'border-accent bg-accent' : 'border-border hover:border-accent/50'
                             }`}
                           >
-                            {opt.isCorrect && <Check className="w-2.5 h-2.5 text-accent-foreground" />}
+                            {opt.isCorrect && <CheckIcon className="w-2.5 h-2.5 text-accent-foreground" />}
                           </button>
                           <span className="text-xs text-muted-foreground font-medium w-5 shrink-0 text-center">{String.fromCharCode(65 + oIdx)}</span>
                           <input
@@ -752,14 +748,14 @@ function QuizDetail({
                           />
                           {q.options.length > 2 && (
                             <button onClick={() => removeEditOption(q.id, opt.id)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                              <X className="w-3.5 h-3.5" />
+                              <CloseIcon className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
                       ))}
                       {q.options.length < 6 && (
                         <button onClick={() => addEditOption(q.id)} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors mt-1">
-                          <Plus className="w-3 h-3" />הוסף אפשרות
+                          <PlusIcon className="w-3 h-3" />הוסף אפשרות
                         </button>
                       )}
                     </div>
@@ -767,7 +763,7 @@ function QuizDetail({
                   {q.type === 'free_text' && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 p-2.5 bg-accent/5 border border-accent/20 rounded-lg">
-                        <AlignLeft className="w-3.5 h-3.5 text-accent shrink-0" />
+                        <AlignLeftIcon className="w-3.5 h-3.5 text-accent shrink-0" />
                         <p className="text-xs text-muted-foreground">שאלה פתוחה — לא ינתן ציון אוטומטי.</p>
                       </div>
                       <div>
@@ -790,10 +786,10 @@ function QuizDetail({
           {/* Add question buttons */}
           <div className="flex flex-wrap gap-2 mb-6">
             <button onClick={() => addEditQuestion('multiple_choice')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap">
-              <List className="w-4 h-4 text-primary shrink-0" />הוסף שאלה אמריקאית
+              <ListIcon className="w-4 h-4 text-primary shrink-0" />הוסף שאלה אמריקאית
             </button>
             <button onClick={() => addEditQuestion('free_text')} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap">
-              <AlignLeft className="w-4 h-4 text-accent shrink-0" />הוסף שאלה פתוחה
+              <AlignLeftIcon className="w-4 h-4 text-accent shrink-0" />הוסף שאלה פתוחה
             </button>
           </div>
 
@@ -803,7 +799,7 @@ function QuizDetail({
             disabled={isSavingEdit || !editTitle.trim()}
             className="w-full h-11 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isSavingEdit ? <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />שומר...</> : <><Send className="w-4 h-4" />שמור שינויים</>}
+            {isSavingEdit ? <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />שומר...</> : <><SendIcon solid className="w-4 h-4" />שמור שינויים</>}
           </button>
         </div>
       </div>
@@ -816,13 +812,13 @@ function QuizDetail({
       <div className="px-4 md:px-8 pt-4 md:pt-8 pb-0 shrink-0">
         <div className="flex items-center gap-3 mb-2">
           <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
-            <ChevronRight className="w-4 h-4" />חזרה למבחנים
+            <ChevronRightIcon className="w-4 h-4" />חזרה למבחנים
           </button>
         </div>
         {quiz && (
           <div className="flex flex-wrap items-start gap-4 mb-5">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${quiz.is_published ? 'bg-accent/10' : 'bg-muted'}`}>
-              <ClipboardList className={`w-5 h-5 ${quiz.is_published ? 'text-accent' : 'text-muted-foreground'}`} />
+              <QuizIcon className={`w-5 h-5 ${quiz.is_published ? 'text-accent' : 'text-muted-foreground'}`} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -834,11 +830,11 @@ function QuizDetail({
               {quiz.description && <p className="text-sm text-muted-foreground mt-0.5 break-words">{quiz.description}</p>}
               <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                 {lessonTitle && (
-                  <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" />{lessonTitle}</span>
+                  <span className="flex items-center gap-1"><JournalIcon className="w-3 h-3" />{lessonTitle}</span>
                 )}
                 <span>{fmt(quiz.created_at)}</span>
                 <span>{questions.length} שאלות</span>
-                <span className="flex items-center gap-1"><Users className="w-3 h-3" />{quiz.submissionCount ?? 0} הגשות</span>
+                <span className="flex items-center gap-1"><UsersIcon className="w-3 h-3" />{quiz.submissionCount ?? 0} הגשות</span>
               </div>
             </div>
             <div className="w-full sm:w-auto flex flex-wrap items-center gap-2">
@@ -846,7 +842,7 @@ function QuizDetail({
                 onClick={() => detailNavigate(`/mentor/quiz/edit/${quizId}`)}
                 className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-all whitespace-nowrap"
               >
-                <Send className="w-3.5 h-3.5" />ערוך
+                <SendIcon className="w-3.5 h-3.5" />ערוך
               </button>
               <button
                 onClick={() => onTogglePublish(quiz.id, quiz.is_published)}
@@ -856,13 +852,13 @@ function QuizDetail({
                     : 'bg-accent text-accent-foreground border-accent hover:opacity-90'
                 }`}
               >
-                {quiz.is_published ? <><EyeOff className="w-3.5 h-3.5" />הסתר</> : <><Eye className="w-3.5 h-3.5" />פרסם</>}
+                {quiz.is_published ? <><EyeOffIcon className="w-3.5 h-3.5" />הסתר</> : <><EyeIcon className="w-3.5 h-3.5" />פרסם</>}
               </button>
               <button
                 onClick={handleDelete}
                 className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all whitespace-nowrap"
               >
-                <Trash2 className="w-3.5 h-3.5" />מחק
+                <TrashIcon className="w-3.5 h-3.5" />מחק
               </button>
             </div>
           </div>
@@ -876,7 +872,7 @@ function QuizDetail({
           </div>
         ) : questions.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
-            <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-20" />
+            <QuizIcon className="w-8 h-8 mx-auto mb-2 opacity-20" />
             <p className="text-sm">אין שאלות במבחן זה</p>
           </div>
         ) : (
@@ -891,7 +887,7 @@ function QuizDetail({
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
                       q.question_type === 'multiple_choice' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent'
                     }`}>
-                      {q.question_type === 'multiple_choice' ? <><List className="w-2.5 h-2.5" />אמריקאית</> : <><AlignLeft className="w-2.5 h-2.5" />פתוחה</>}
+                      {q.question_type === 'multiple_choice' ? <><ListIcon className="w-2.5 h-2.5" />אמריקאית</> : <><AlignLeftIcon className="w-2.5 h-2.5" />פתוחה</>}
                     </span>
                   </div>
                   <div className="p-5">
@@ -908,7 +904,7 @@ function QuizDetail({
                               <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[11px] font-bold shrink-0 ${
                                 opt.is_correct ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-muted-foreground'
                               }`}>
-                                {opt.is_correct ? <Check className="w-3 h-3" /> : String.fromCharCode(65 + oIdx)}
+                                {opt.is_correct ? <CheckIcon className="w-3 h-3" /> : String.fromCharCode(65 + oIdx)}
                               </span>
                               <span className={`text-sm flex-1 ${opt.is_correct ? 'font-medium' : ''}`}>{opt.option_text}</span>
                               {opt.is_correct && <span className="text-[10px] font-medium text-accent shrink-0">✓ תשובה נכונה</span>}
@@ -925,7 +921,7 @@ function QuizDetail({
                     ) : (
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
-                          <AlignLeft className="w-4 h-4 text-accent shrink-0" />
+                          <AlignLeftIcon className="w-4 h-4 text-accent shrink-0" />
                           <p className="text-xs text-muted-foreground">שאלה פתוחה — התלמיד יכתוב תשובה חופשית. לא ינתן ציון אוטומטי.</p>
                         </div>
                         {q.expected_answer && (
@@ -978,7 +974,7 @@ function SubmissionDetail({ submission, reviewAnswers, onBack }: {
       {/* Header */}
       <div className="px-8 pt-8 pb-0 shrink-0">
         <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-          <ChevronRight className="w-4 h-4" />חזרה לתוצאות
+          <ChevronRightIcon className="w-4 h-4" />חזרה לתוצאות
         </button>
 
         {/* Score card */}
@@ -989,8 +985,8 @@ function SubmissionDetail({ submission, reviewAnswers, onBack }: {
                 pct == null ? 'bg-primary/10' : pct >= 70 ? 'bg-accent/10' : 'bg-destructive/10'
               }`}>
                 {pct == null || pct >= 70
-                  ? <Check className={`w-6 h-6 ${pct == null ? 'text-primary' : 'text-accent'}`} />
-                  : <X className="w-6 h-6 text-destructive" />}
+                  ? <CheckIcon className={`w-6 h-6 ${pct == null ? 'text-primary' : 'text-accent'}`} />
+                  : <CloseIcon solid className="w-6 h-6 text-destructive" />}
               </div>
               {pct != null && (
                 <div>
@@ -1028,7 +1024,7 @@ function SubmissionDetail({ submission, reviewAnswers, onBack }: {
                   ra.is_correct ? 'bg-accent text-accent-foreground' : 'bg-destructive text-destructive-foreground'
                 }`}>
                   {ra.question_type === 'free_text' ? idx + 1 :
-                   ra.is_correct ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                   ra.is_correct ? <CheckIcon className="w-3 h-3" /> : <CloseIcon className="w-3 h-3" />}
                 </span>
                 <p className="text-sm font-semibold text-foreground flex-1 text-right">{ra.question_text}</p>
                 {ra.question_type !== 'free_text' && (
@@ -1057,8 +1053,8 @@ function SubmissionDetail({ submission, reviewAnswers, onBack }: {
                               isStudentAnswer ? 'border-destructive bg-destructive text-destructive-foreground' :
                               'border-border text-muted-foreground'
                             }`}>
-                              {isCorrectAnswer ? <Check className="w-3.5 h-3.5" /> :
-                               isStudentAnswer ? <X className="w-3.5 h-3.5" /> :
+                              {isCorrectAnswer ? <CheckIcon className="w-3.5 h-3.5" /> :
+                               isStudentAnswer ? <CloseIcon className="w-3.5 h-3.5" /> :
                                String.fromCharCode(65 + oIdx)}
                             </span>
                             <span className="text-sm flex-1">{opt.option_text}</span>
@@ -1344,12 +1340,12 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
         <div className="flex flex-wrap items-center gap-3 mb-5">
           {onBack && (
             <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0">
-              <ChevronRight className="w-4 h-4" />חזרה
+              <ChevronRightIcon className="w-4 h-4" />חזרה
             </button>
           )}
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <ClipboardList className="w-5 h-5 text-primary" />
+              <QuizIcon className="w-5 h-5 text-primary" />
             </div>
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-foreground truncate">מבחנים</h1>
@@ -1363,7 +1359,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                 view === 'submissions' ? 'bg-accent/10 border-accent/30 text-accent' : 'border-border text-foreground hover:bg-muted'
               }`}
             >
-              <Users className="w-4 h-4 shrink-0" />
+              <UsersIcon className="w-4 h-4 shrink-0" />
               תוצאות תלמידים
               {submissions.length > 0 && (
                 <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center shrink-0">{submissions.length}</span>
@@ -1373,7 +1369,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
               onClick={() => navigate(initialLessonId ? `/mentor/quiz/new?lessonId=${initialLessonId}` : '/mentor/quiz/new')}
               className="flex items-center gap-2 h-9 px-3 sm:px-4 rounded-lg bg-primary text-primary-foreground text-xs sm:text-sm font-medium hover:opacity-90 transition-all whitespace-nowrap"
             >
-              <Plus className="w-4 h-4 shrink-0" />צור מבחן חדש
+              <PlusIcon solid className="w-4 h-4 shrink-0" />צור מבחן חדש
             </button>
           </div>
         </div>
@@ -1387,7 +1383,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
               {/* Filter bar */}
               <div className="flex items-center gap-3 mb-4 mt-4 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+                  <FilterIcon className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">סנן:</span>
                 </div>
                 {/* Category filter */}
@@ -1417,7 +1413,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                 </div>
               ) : isError ? (
                 <div className="text-center py-20 text-muted-foreground">
-                  <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                  <QuizIcon className="w-10 h-10 mx-auto mb-3 opacity-20" />
                   <p className="font-medium">לא הצלחנו לטעון את המבחנים</p>
                   <p className="text-sm mt-1">ייתכן שחיבור הרשת איטי או שהחיבור נותק. נסה/י שוב.</p>
                   <button
@@ -1432,7 +1428,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                 </div>
               ) : filteredQuizzes.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">
-                  <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                  <QuizIcon solid className="w-10 h-10 mx-auto mb-3 opacity-20" />
                   <p className="font-medium">אין מבחנים עדיין</p>
                   <p className="text-sm mt-1">לחץ על "צור מבחן חדש" כדי להתחיל</p>
                 </div>
@@ -1448,7 +1444,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                           quiz.is_published ? 'bg-accent/10' : 'bg-muted'
                         }`}>
-                          <ClipboardList className={`w-5 h-5 ${quiz.is_published ? 'text-accent' : 'text-muted-foreground'}`} />
+                          <QuizIcon className={`w-5 h-5 ${quiz.is_published ? 'text-accent' : 'text-muted-foreground'}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap justify-end">
@@ -1459,7 +1455,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                             </span>
                             {quiz.lessonTitle && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded-full text-[10px] text-muted-foreground">
-                                <BookOpen className="w-2.5 h-2.5" />{quiz.lessonTitle}
+                                <JournalIcon className="w-2.5 h-2.5" />{quiz.lessonTitle}
                               </span>
                             )}
                             <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{quiz.title}</h3>
@@ -1469,7 +1465,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                             <span>{fmt(quiz.created_at)}</span>
                             <span>{quiz.questionCount} שאלות</span>
                             <span className="flex items-center gap-0.5">
-                              <Users className="w-2.5 h-2.5" />{quiz.submissionCount} הגשות
+                              <UsersIcon className="w-2.5 h-2.5" />{quiz.submissionCount} הגשות
                             </span>
                           </div>
                         </div>
@@ -1479,15 +1475,15 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
                             title={quiz.is_published ? 'הסתר מתלמידים' : 'פרסם לתלמידים'}
                           >
-                            {quiz.is_published ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            {quiz.is_published ? <EyeOffIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
                           </button>
                           <button
                             onClick={e => { e.stopPropagation(); deleteQuiz.mutate(quiz.id); }}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <TrashIcon className="w-3.5 h-3.5" />
                           </button>
-                          <ChevronLeft className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ChevronLeftIcon className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                       </div>
                     </div>
@@ -1503,7 +1499,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
               {/* Filters */}
               <div className="flex items-center gap-3 mb-4 mt-4 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+                  <FilterIcon className="w-3.5 h-3.5 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground font-medium">סנן:</span>
                 </div>
                 {/* Category filter */}
@@ -1536,7 +1532,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
 
               {filteredSubmissions.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">
-                  <Users className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                  <UsersIcon className="w-10 h-10 mx-auto mb-3 opacity-20" />
                   <p className="font-medium">אין הגשות עדיין</p>
                   <p className="text-sm mt-1">כשתלמידים יגישו מבחנים — התוצאות יופיעו כאן</p>
                 </div>
@@ -1562,7 +1558,7 @@ export default function MentorQuizzesHub({ mentorId, initialLessonId, onBack }: 
                           <p className="text-xs text-muted-foreground">{sub.quizTitle}</p>
                           <p className="text-[10px] text-muted-foreground mt-0.5">{fmt(sub.submitted_at)}</p>
                         </div>
-                        <ChevronLeft className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <ChevronLeftIcon className="w-4 h-4 text-muted-foreground shrink-0" />
                       </div>
                     </button>
                   ))}

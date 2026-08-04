@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, CheckCircle2, Clock, Eye } from 'lucide-react';
+import { CheckCircleIcon, ClockIcon, EyeIcon, UsersIcon } from '@/components/icons';
 
 interface ProgressEntry {
   student_id: string;
@@ -63,7 +63,7 @@ export default function LessonStudentProgress({ lessonId, mentorId, durationMinu
   if (progress.length === 0) {
     return (
       <div className="text-center py-6">
-        <Eye className="w-6 h-6 mx-auto mb-2 text-muted-foreground opacity-30" />
+        <EyeIcon className="w-6 h-6 mx-auto mb-2 text-muted-foreground opacity-30" />
         <p className="text-xs text-muted-foreground">אף תלמיד עדיין לא צפה בשיעור זה</p>
       </div>
     );
@@ -76,11 +76,11 @@ export default function LessonStudentProgress({ lessonId, mentorId, durationMinu
       {/* Summary */}
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
-          <Users className="w-3.5 h-3.5" />
+          <UsersIcon className="w-3.5 h-3.5" />
           {progress.length} צפו
         </span>
         <span className="flex items-center gap-1.5">
-          <CheckCircle2 className="w-3.5 h-3.5 text-accent" />
+          <CheckCircleIcon className="w-3.5 h-3.5 text-accent" />
           {completedCount} השלימו
         </span>
       </div>
@@ -117,7 +117,7 @@ export default function LessonStudentProgress({ lessonId, mentorId, durationMinu
                 {/* Last watched */}
                 {p.last_watched_at && (
                   <div className="flex items-center gap-1 mt-1">
-                    <Clock className="w-2.5 h-2.5 text-muted-foreground" />
+                    <ClockIcon className="w-2.5 h-2.5 text-muted-foreground" />
                     <span className="text-[10px] text-muted-foreground">
                       {p.completed ? 'הושלם' : 'נצפה לאחרונה'} · {formatDate(p.last_watched_at)}
                     </span>

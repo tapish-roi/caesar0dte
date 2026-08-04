@@ -8,13 +8,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Mic, MicOff, Volume2, VolumeX, Video, VideoOff,
-  Monitor, MonitorOff, Settings, X, Users, PhoneOff,
-  Pencil, Eraser, RotateCcw, MessageSquare, Send, Headphones,
-  FlaskConical, StopCircle, Type, Zap, Minus, Plus,
-  Lock, Unlock, UserX, Copy, Link2, LayoutGrid, Maximize2,
-} from 'lucide-react';
+import { CloseIcon, EditIcon, EraserIcon, ExpandIcon, FlaskIcon, GridIcon, HangUpIcon, HeadphonesIcon, LinkIcon, LockIcon, MessageIcon, MicIcon, MicOffIcon, MinusIcon, PlusIcon, ResetIcon, ScreenIcon, ScreenOffIcon, SendIcon, SettingsIcon, StopIcon, TextIcon, UnlockIcon, UserRemoveIcon, UsersIcon, VideoIcon, VideoOffIcon, VolumeIcon, VolumeOffIcon, ZapIcon } from '@/components/icons';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ChatMessage { id: string; user_id: string; display_name: string; message: string; created_at: string; }
@@ -2074,16 +2068,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2.5 py-1.5 flex items-center gap-1.5">
           {isMuted ? (
             <div className="w-5 h-5 rounded-full bg-red-500/80 flex items-center justify-center">
-              <MicOff className="w-2.5 h-2.5 text-white" />
+              <MicOffIcon className="w-2.5 h-2.5 text-white" />
             </div>
           ) : isSpeaking ? (
             <div className="w-5 h-5 rounded-full bg-green-500/80 flex items-center justify-center">
-              <Mic className="w-2.5 h-2.5 text-white" />
+              <MicIcon className="w-2.5 h-2.5 text-white" />
             </div>
           ) : null}
           {forceMuted && (
             <div className="w-5 h-5 rounded-full bg-orange-500/80 flex items-center justify-center" title="מושתק ע״י מנטור">
-              <MicOff className="w-2.5 h-2.5 text-white" />
+              <MicOffIcon className="w-2.5 h-2.5 text-white" />
             </div>
           )}
           <span className={`text-[11px] font-medium text-foreground truncate ${size === 'sm' ? 'max-w-[60px]' : ''}`}>
@@ -2098,11 +2092,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             <div className="ms-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק'}
                 className="w-6 h-6 flex items-center justify-center rounded-md bg-black/50 hover:bg-red-500/50 text-foreground/70 hover:text-foreground transition-all">
-                {forceMuted ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
+                {forceMuted ? <MicIcon className="w-3 h-3" /> : <MicOffIcon className="w-3 h-3" />}
               </button>
               <button onClick={() => kickParticipant(p.userId)} title="הסר"
                 className="w-6 h-6 flex items-center justify-center rounded-md bg-black/50 hover:bg-red-500/50 text-foreground/70 hover:text-foreground transition-all">
-                <UserX className="w-3 h-3" />
+                <UserRemoveIcon className="w-3 h-3" />
               </button>
             </div>
           )}
@@ -2124,7 +2118,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
           className="bg-card rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 text-center space-y-4"
         >
           <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
-            <PhoneOff className="w-7 h-7 text-destructive" />
+            <HangUpIcon solid className="w-7 h-7 text-destructive" />
           </div>
           <h2 className="text-lg font-bold text-foreground">הלייב הסתיים</h2>
           <p className="text-sm text-muted-foreground">המנטור סיים את השידור החי.</p>
@@ -2190,13 +2184,13 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             <>
               <button onClick={toggleRoomLock} title={roomLocked ? 'פתח חדר' : 'נעל חדר'}
                 className={`h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${roomLocked ? 'bg-amber-500/20 text-amber-400' : 'text-amber-400/70 hover:bg-amber-500/10 hover:text-amber-400'}`}>
-                {roomLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                {roomLocked ? <LockIcon className="w-3.5 h-3.5" /> : <UnlockIcon className="w-3.5 h-3.5" />}
                 <span className="hidden sm:inline">{roomLocked ? 'נעול' : ''}</span>
               </button>
               <button onClick={() => { const link = `${window.location.origin}/livestream?session=${sessionId}`; navigator.clipboard.writeText(link); toast({ title: '🔗 הלינק הועתק!' }); }}
                 title="העתק לינק"
                 className="h-8 px-2 sm:px-3 rounded-lg text-xs text-emerald-400/70 hover:bg-emerald-500/10 hover:text-emerald-400 transition-all flex items-center gap-1.5">
-                <Link2 className="w-3.5 h-3.5" />
+                <LinkIcon className="w-3.5 h-3.5" />
               </button>
             </>
           )}
@@ -2205,17 +2199,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             <button onClick={() => setViewMode(v => v === 'gallery' ? 'speaker' : 'gallery')}
               title={viewMode === 'gallery' ? 'Speaker View' : 'Gallery View'}
               className="h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-[#e2b54e]/70 hover:bg-[rgba(226,181,78,0.10)] hover:text-[#e2b54e]">
-              {viewMode === 'gallery' ? <Maximize2 className="w-3.5 h-3.5" /> : <LayoutGrid className="w-3.5 h-3.5" />}
+              {viewMode === 'gallery' ? <ExpandIcon className="w-3.5 h-3.5" /> : <GridIcon className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{viewMode === 'gallery' ? 'Speaker' : 'Gallery'}</span>
             </button>
           )}
           <button onClick={() => setShowMembers(v => !v)}
             className={`h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showMembers ? 'bg-[rgba(226,181,78,0.20)] text-[#e2b54e]' : 'text-[#e2b54e]/70 hover:bg-[rgba(226,181,78,0.10)] hover:text-[#e2b54e]'}`}>
-            <Users className="w-3.5 h-3.5" />{participants.length}
+            <UsersIcon className="w-3.5 h-3.5" />{participants.length}
           </button>
           <button onClick={() => setShowChat(v => !v)}
             className={`relative h-8 px-2 sm:px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${showChat ? 'bg-[rgba(226,181,78,0.20)] text-[#e2b54e]' : 'text-[#e2b54e]/70 hover:bg-[rgba(226,181,78,0.10)] hover:text-[#e2b54e]'}`}>
-            <MessageSquare className="w-3.5 h-3.5" />
+            <MessageIcon className="w-3.5 h-3.5" />
             {chatMessages.length > 0 && !showChat && (
               <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold">
                 {chatMessages.length > 9 ? '9+' : chatMessages.length}
@@ -2237,7 +2231,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
             exit={{ opacity: 0, y: -20 }}
             className="shrink-0 bg-amber-500/10 border-b border-amber-500/30 px-5 py-2.5 flex items-center gap-3"
           >
-            <Monitor className="w-4 h-4 text-amber-400 shrink-0" />
+            <ScreenIcon solid className="w-4 h-4 text-amber-400 shrink-0" />
             <span className="text-sm text-foreground/80 flex-1">
               <span className="font-semibold text-amber-300">{req.userName}</span> מבקש לשתף מסך
             </span>
@@ -2297,7 +2291,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
 
                   {/* Screen share label */}
                   <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-card/80 backdrop-blur px-3 py-1.5 rounded-full border border-border">
-                    <Monitor className="w-3.5 h-3.5 text-green-400" />
+                    <ScreenIcon solid className="w-3.5 h-3.5 text-green-400" />
                     <span className="text-xs text-foreground/80 font-medium">
                       {screenSharing ? 'אתה משתף את המסך' : `${remoteScreenSharer} משתף את המסך`}
                     </span>
@@ -2359,7 +2353,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         : 'bg-card/80 border-border text-foreground/60 hover:text-foreground hover:bg-black/80'
                     }`}
                   >
-                    <Pencil className="w-4 h-4" />
+                    <EditIcon solid className="w-4 h-4" />
                   </button>
 
                   {/* Drawing toolbar */}
@@ -2374,10 +2368,10 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                       >
                         <div className="flex gap-1 mb-1">
                           {([
-                            { id: 'pen', icon: <Pencil className="w-3.5 h-3.5" />, label: 'עיפרון' },
-                            { id: 'text', icon: <Type className="w-3.5 h-3.5" />, label: 'טקסט' },
-                            { id: 'laser', icon: <Zap className="w-3.5 h-3.5" />, label: 'לייזר' },
-                            { id: 'eraser', icon: <Eraser className="w-3.5 h-3.5" />, label: 'מחק' },
+                            { id: 'pen', icon: <EditIcon className="w-3.5 h-3.5" />, label: 'עיפרון' },
+                            { id: 'text', icon: <TextIcon className="w-3.5 h-3.5" />, label: 'טקסט' },
+                            { id: 'laser', icon: <ZapIcon className="w-3.5 h-3.5" />, label: 'לייזר' },
+                            { id: 'eraser', icon: <EraserIcon className="w-3.5 h-3.5" />, label: 'מחק' },
                           ] as const).map(t => (
                             <button
                               key={t.id}
@@ -2405,34 +2399,34 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         )}
                         {activeTool === 'pen' && (
                           <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-2 py-1.5">
-                            <button onClick={() => setPenSize(s => Math.max(1, s - 1))} className="text-muted-foreground hover:text-foreground"><Minus className="w-3 h-3" /></button>
+                            <button onClick={() => setPenSize(s => Math.max(1, s - 1))} className="text-muted-foreground hover:text-foreground"><MinusIcon className="w-3 h-3" /></button>
                             <div className="flex-1 text-center text-[11px] text-foreground/70 font-bold">{penSize}px</div>
-                            <button onClick={() => setPenSize(s => Math.min(30, s + 1))} className="text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3" /></button>
+                            <button onClick={() => setPenSize(s => Math.min(30, s + 1))} className="text-muted-foreground hover:text-foreground"><PlusIcon className="w-3 h-3" /></button>
                           </div>
                         )}
                         {activeTool === 'eraser' && (
                           <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-2 py-1.5">
-                            <button onClick={() => setEraserSize(s => Math.max(8, s - 4))} className="text-muted-foreground hover:text-foreground"><Minus className="w-3 h-3" /></button>
+                            <button onClick={() => setEraserSize(s => Math.max(8, s - 4))} className="text-muted-foreground hover:text-foreground"><MinusIcon className="w-3 h-3" /></button>
                             <div className="flex-1 text-center text-[11px] text-foreground/70 font-bold">{eraserSize}px</div>
-                            <button onClick={() => setEraserSize(s => Math.min(80, s + 4))} className="text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3" /></button>
+                            <button onClick={() => setEraserSize(s => Math.min(80, s + 4))} className="text-muted-foreground hover:text-foreground"><PlusIcon className="w-3 h-3" /></button>
                           </div>
                         )}
                         {activeTool === 'text' && (
                           <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-2 py-1.5">
-                            <button onClick={() => setFontSize(s => Math.max(10, s - 2))} className="text-muted-foreground hover:text-foreground"><Minus className="w-3 h-3" /></button>
+                            <button onClick={() => setFontSize(s => Math.max(10, s - 2))} className="text-muted-foreground hover:text-foreground"><MinusIcon className="w-3 h-3" /></button>
                             <div className="flex-1 text-center text-[11px] text-foreground/70 font-bold">{fontSize}px</div>
-                            <button onClick={() => setFontSize(s => Math.min(72, s + 2))} className="text-muted-foreground hover:text-foreground"><Plus className="w-3 h-3" /></button>
+                            <button onClick={() => setFontSize(s => Math.min(72, s + 2))} className="text-muted-foreground hover:text-foreground"><PlusIcon className="w-3 h-3" /></button>
                           </div>
                         )}
                         <div className="border-t border-border my-1" />
                         <div className="flex gap-1">
                           <button onClick={handleUndo} title="בטל ציור אחרון"
                             className="flex-1 h-7 flex items-center justify-center gap-1 rounded-lg text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-                            <RotateCcw className="w-3 h-3" /> בטל
+                            <ResetIcon className="w-3 h-3" /> בטל
                           </button>
                           <button onClick={handleClearAll} title="נקה הכל"
                             className="flex-1 h-7 flex items-center justify-center gap-1 rounded-lg text-[10px] text-red-400/70 hover:text-red-400 hover:bg-red-400/10 transition-all">
-                            <X className="w-3 h-3" /> נקה
+                            <CloseIcon className="w-3 h-3" /> נקה
                           </button>
                         </div>
                         <div className="flex items-center justify-center gap-1.5 mt-1">
@@ -2559,7 +2553,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md disabled:opacity-40 ${
                     micEnabled ? 'bg-secondary hover:bg-secondary/80 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
                   } ${isForceMuted ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-card' : ''}`}>
-                  {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                  {micEnabled ? <MicIcon className="w-5 h-5" /> : <MicOffIcon className="w-5 h-5" />}
                 </button>
                 {isForceMuted && (
                   <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full w-4 h-4 flex items-center justify-center">
@@ -2573,7 +2567,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md ${
                   deafened ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-secondary hover:bg-secondary/80 text-white'
                 }`}>
-                {deafened ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                {deafened ? <VolumeOffIcon className="w-5 h-5" /> : <VolumeIcon className="w-5 h-5" />}
               </button>
 
               {/* Camera */}
@@ -2581,7 +2575,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md ${
                   cameraEnabled ? 'bg-secondary hover:bg-secondary/80 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
                 }`}>
-                {cameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                {cameraEnabled ? <VideoIcon className="w-5 h-5" /> : <VideoOffIcon className="w-5 h-5" />}
               </button>
 
               {/* Screen share */}
@@ -2590,7 +2584,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md ${
                     screenSharing ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-secondary hover:bg-secondary/80 text-foreground/60 hover:text-foreground'
                   }`}>
-                  {screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+                  {screenSharing ? <ScreenOffIcon className="w-5 h-5" /> : <ScreenIcon className="w-5 h-5" />}
                 </button>
               ) : studentScreenShareApproved ? (
                 <button onClick={screenSharing ? stopScreenShare : toggleScreenShare}
@@ -2598,7 +2592,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md ${
                     screenSharing ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/40'
                   }`}>
-                  {screenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+                  {screenSharing ? <ScreenOffIcon className="w-5 h-5" /> : <ScreenIcon className="w-5 h-5" />}
                 </button>
               ) : (
                 <button
@@ -2609,7 +2603,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                       ? 'bg-amber-500/80 text-white cursor-not-allowed'
                       : 'bg-secondary hover:bg-secondary/80 text-foreground/60 hover:text-foreground'
                   }`}>
-                  <Monitor className="w-5 h-5" />
+                  <ScreenIcon className="w-5 h-5" />
                   {screenShareRequested && (
                     <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-card animate-pulse" />
                   )}
@@ -2621,7 +2615,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               {/* Settings */}
               <button onClick={() => { setShowSettings(true); setSettingsTab('mic'); }} title="הגדרות"
                 className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground">
-                <Settings className="w-5 h-5" />
+                <SettingsIcon className="w-5 h-5" />
               </button>
 
               <div className="w-px h-8 bg-muted mx-1" />
@@ -2629,7 +2623,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               {/* Leave / End */}
               <button onClick={handleLeave} title={isMentor ? 'סיים שידור' : 'עזוב'}
                 className="h-12 px-5 rounded-2xl bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 transition-all shadow-lg shadow-red-500/20 font-medium text-sm">
-                <PhoneOff className="w-5 h-5" />
+                <HangUpIcon className="w-5 h-5" />
                 {isMentor ? 'סיים שידור' : 'צא'}
               </button>
             </div>
@@ -2660,7 +2654,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               <div className="px-4 h-12 border-b border-border flex items-center justify-between shrink-0">
                 <p className="text-sm font-semibold text-foreground/80">משתתפים ({participants.length})</p>
                 <button onClick={() => setShowMembers(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground/60 hover:bg-muted/50 transition-all">
-                  <X className="w-4 h-4" />
+                  <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
@@ -2690,15 +2684,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           {isMentorEntry && !isMe && <span className="text-[10px] text-primary ms-1">מנטור</span>}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          {isMuted ? <MicOff className="w-3 h-3 text-red-400/70" /> : (
+                          {isMuted ? <MicOffIcon solid className="w-3 h-3 text-red-400/70" /> : (
                             <span className="relative inline-flex">
-                              <Mic className={`w-3 h-3 ${isSpeaking ? 'text-green-400' : 'text-muted-foreground/50'}`} />
+                              <MicIcon solid className={`w-3 h-3 ${isSpeaking ? 'text-green-400' : 'text-muted-foreground/50'}`} />
                               {isSpeaking && <span className="absolute inset-0 rounded-full animate-ping bg-green-400/40" />}
                             </span>
                           )}
-                          {(isMe ? cameraEnabled : p.hasCamera) ? <Video className="w-3 h-3 text-muted-foreground/50" /> : <VideoOff className="w-3 h-3 text-red-400/70" />}
-                          {(isMe ? screenSharing : p.hasScreen) && <Monitor className="w-3 h-3 text-[#e2b54e]" />}
-                          {p.isDeafened && <VolumeX className="w-3 h-3 text-red-400/70" />}
+                          {(isMe ? cameraEnabled : p.hasCamera) ? <VideoIcon solid className="w-3 h-3 text-muted-foreground/50" /> : <VideoOffIcon solid className="w-3 h-3 text-red-400/70" />}
+                          {(isMe ? screenSharing : p.hasScreen) && <ScreenIcon className="w-3 h-3 text-[#e2b54e]" />}
+                          {p.isDeafened && <VolumeOffIcon solid className="w-3 h-3 text-red-400/70" />}
                           <span className="text-[10px] text-muted-foreground/50 ms-0.5">
                             {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : isMuted ? 'מיקרופון כבוי' : isSpeaking ? 'מדבר...' : 'מחובר'}
                           </span>
@@ -2713,7 +2707,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                             onClick={() => approveScreenShare(p.userId)}
                             className="h-7 px-2.5 rounded-lg bg-green-500/20 text-green-400 text-[10px] font-semibold hover:bg-green-500/30 border border-green-500/40 transition-all flex items-center gap-1 whitespace-nowrap"
                           >
-                            <Monitor className="w-3 h-3" />
+                            <ScreenIcon className="w-3 h-3" />
                             אשר שיתוף
                           </motion.button>
                         )}
@@ -2721,11 +2715,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק'}
                               className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${forceMuted ? 'bg-orange-500/20 text-orange-400' : 'bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400'}`}>
-                              {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                              {forceMuted ? <MicIcon className="w-3.5 h-3.5" /> : <MicOffIcon className="w-3.5 h-3.5" />}
                             </button>
                             <button onClick={() => kickParticipant(p.userId)} title="הסר"
                               className="w-7 h-7 flex items-center justify-center rounded-lg bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400 transition-all">
-                              <UserX className="w-3.5 h-3.5" />
+                              <UserRemoveIcon className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         )}
@@ -2747,7 +2741,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               <div className="px-4 h-12 border-b border-border flex items-center justify-between shrink-0">
                 <p className="text-sm font-semibold text-foreground/80">משתתפים ({participants.length})</p>
                 <button onClick={() => setShowMembers(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground/60 hover:bg-muted/50 transition-all">
-                  <X className="w-4 h-4" />
+                  <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
@@ -2777,15 +2771,15 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           {isMentorEntry && !isMe && <span className="text-[10px] text-primary ms-1">מנטור</span>}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          {isMuted ? <MicOff className="w-3 h-3 text-red-400/70" /> : (
+                          {isMuted ? <MicOffIcon solid className="w-3 h-3 text-red-400/70" /> : (
                             <span className="relative inline-flex">
-                              <Mic className={`w-3 h-3 ${isSpeaking ? 'text-green-400' : 'text-muted-foreground/50'}`} />
+                              <MicIcon solid className={`w-3 h-3 ${isSpeaking ? 'text-green-400' : 'text-muted-foreground/50'}`} />
                               {isSpeaking && <span className="absolute inset-0 rounded-full animate-ping bg-green-400/40" />}
                             </span>
                           )}
-                          {(isMe ? cameraEnabled : p.hasCamera) ? <Video className="w-3 h-3 text-muted-foreground/50" /> : <VideoOff className="w-3 h-3 text-red-400/70" />}
-                          {(isMe ? screenSharing : p.hasScreen) && <Monitor className="w-3 h-3 text-[#e2b54e]" />}
-                          {p.isDeafened && <VolumeX className="w-3 h-3 text-red-400/70" />}
+                          {(isMe ? cameraEnabled : p.hasCamera) ? <VideoIcon solid className="w-3 h-3 text-muted-foreground/50" /> : <VideoOffIcon solid className="w-3 h-3 text-red-400/70" />}
+                          {(isMe ? screenSharing : p.hasScreen) && <ScreenIcon className="w-3 h-3 text-[#e2b54e]" />}
+                          {p.isDeafened && <VolumeOffIcon solid className="w-3 h-3 text-red-400/70" />}
                           <span className="text-[10px] text-muted-foreground/50 ms-0.5">
                             {p.isDeafened ? 'מושתק לחלוטין' : forceMuted ? 'מושתק ע"י מנטור' : isMuted ? 'מיקרופון כבוי' : isSpeaking ? 'מדבר...' : 'מחובר'}
                           </span>
@@ -2800,7 +2794,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                             onClick={() => approveScreenShare(p.userId)}
                             className="h-7 px-2.5 rounded-lg bg-green-500/20 text-green-400 text-[10px] font-semibold hover:bg-green-500/30 border border-green-500/40 transition-all flex items-center gap-1 whitespace-nowrap"
                           >
-                            <Monitor className="w-3 h-3" />
+                            <ScreenIcon className="w-3 h-3" />
                             אשר שיתוף
                           </motion.button>
                         )}
@@ -2808,11 +2802,11 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => toggleForceMute(p.userId, forceMuted)} title={forceMuted ? 'הסר השתקה' : 'השתק'}
                               className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${forceMuted ? 'bg-orange-500/20 text-orange-400' : 'bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400'}`}>
-                              {forceMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                              {forceMuted ? <MicIcon className="w-3.5 h-3.5" /> : <MicOffIcon className="w-3.5 h-3.5" />}
                             </button>
                             <button onClick={() => kickParticipant(p.userId)} title="הסר"
                               className="w-7 h-7 flex items-center justify-center rounded-lg bg-muted/50 text-muted-foreground/70 hover:bg-red-500/20 hover:text-red-400 transition-all">
-                              <UserX className="w-3.5 h-3.5" />
+                              <UserRemoveIcon className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         )}
@@ -2843,17 +2837,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               >
                 <div className="px-4 h-12 border-b border-border flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-muted-foreground/70" />
+                    <MessageIcon className="w-4 h-4 text-muted-foreground/70" />
                     <span className="text-sm font-semibold text-foreground/80">צ'אט</span>
                   </div>
                   <button onClick={() => setShowChat(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground/60 hover:bg-muted/50 transition-all">
-                    <X className="w-4 h-4" />
+                    <CloseIcon className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
                   {chatMessages.length === 0 && (
                     <div className="text-center py-10 text-muted-foreground/30">
-                      <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <MessageIcon className="w-8 h-8 mx-auto mb-2 opacity-30" />
                       <p className="text-xs">עוד לא נשלחו הודעות</p>
                     </div>
                   )}
@@ -2875,7 +2869,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                       className="flex-1 bg-transparent text-xs text-foreground/80 placeholder:text-muted-foreground/40 focus:outline-none text-right min-w-0" />
                     <button onClick={sendMessage} disabled={!chatInput.trim() || isSendingMsg}
                       className="w-7 h-7 flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg transition-all disabled:opacity-30 shrink-0">
-                      <Send className="w-3 h-3" />
+                      <SendIcon solid className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -2891,17 +2885,17 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               transition={{ duration: 0.2 }} className="hidden md:flex bg-card/95 backdrop-blur-xl border-s border-border flex-col shrink-0 overflow-hidden" style={{ minWidth: 0 }}>
               <div className="px-4 h-12 border-b border-border flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-muted-foreground/70" />
+                  <MessageIcon className="w-4 h-4 text-muted-foreground/70" />
                   <span className="text-sm font-semibold text-foreground/80">צ'אט</span>
                 </div>
                 <button onClick={() => setShowChat(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground/50 hover:text-foreground/60 hover:bg-muted/50 transition-all">
-                  <X className="w-4 h-4" />
+                  <CloseIcon className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
                 {chatMessages.length === 0 && (
                   <div className="text-center py-10 text-muted-foreground/30">
-                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <MessageIcon className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-xs">עוד לא נשלחו הודעות</p>
                   </div>
                 )}
@@ -2923,7 +2917,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                     className="flex-1 bg-transparent text-xs text-foreground/80 placeholder:text-muted-foreground/40 focus:outline-none text-right min-w-0" />
                   <button onClick={sendMessage} disabled={!chatInput.trim() || isSendingMsg}
                     className="w-7 h-7 flex items-center justify-center bg-primary hover:bg-primary/80 text-primary-foreground rounded-lg transition-all disabled:opacity-30 shrink-0">
-                    <Send className="w-3 h-3" />
+                    <SendIcon solid className="w-3 h-3" />
                   </button>
                 </div>
               </div>
@@ -2949,16 +2943,16 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                   <h2 className="text-base font-bold text-white">הגדרות</h2>
                   <button onClick={() => setShowSettings(false)}
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground/70 hover:text-foreground/80 hover:bg-muted/30 transition-all">
-                    <X className="w-4 h-4" />
+                    <CloseIcon className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="flex flex-col sm:flex-row min-h-0">
                   {/* Sub-tabs: horizontal strip on mobile, vertical sidebar on sm+ */}
                   <div className="flex sm:flex-col flex-row sm:w-44 w-full bg-muted p-2 sm:p-3 gap-1 shrink-0 overflow-x-auto sm:overflow-visible scrollbar-hide">
                     {([
-                      { id: 'mic', icon: <Mic className="w-4 h-4 shrink-0" />, label: 'מיקרופון' },
-                      { id: 'audio', icon: <Headphones className="w-4 h-4 shrink-0" />, label: 'שמע' },
-                      { id: 'camera', icon: <Video className="w-4 h-4 shrink-0" />, label: 'מצלמה' },
+                      { id: 'mic', icon: <MicIcon className="w-4 h-4 shrink-0" />, label: 'מיקרופון' },
+                      { id: 'audio', icon: <HeadphonesIcon className="w-4 h-4 shrink-0" />, label: 'שמע' },
+                      { id: 'camera', icon: <VideoIcon className="w-4 h-4 shrink-0" />, label: 'מצלמה' },
                     ] as const).map(t => (
                       <button key={t.id} onClick={() => setSettingsTab(t.id)}
                         className={`flex items-center gap-2 sm:gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-right whitespace-nowrap shrink-0 sm:w-full ${settingsTab === t.id ? 'bg-muted text-white' : 'text-muted-foreground hover:text-foreground/80 hover:bg-muted/50'}`}>
@@ -2976,7 +2970,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                             {audioDevices.map(d => (
                               <button key={d.deviceId} onClick={() => setSelectedMic(d.deviceId)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedMic === d.deviceId ? 'border-primary/60 bg-primary/10 text-white' : 'border-border bg-muted/30 text-foreground/60 hover:bg-muted/60 hover:text-foreground/80'}`}>
-                                <Mic className={`w-4 h-4 shrink-0 ${selectedMic === d.deviceId ? 'text-primary' : 'text-muted-foreground/50'}`} />
+                                <MicIcon className={`w-4 h-4 shrink-0 ${selectedMic === d.deviceId ? 'text-primary' : 'text-muted-foreground/50'}`} />
                                 <span className="truncate">{d.label || `מיקרופון ${d.deviceId.slice(0, 8)}`}</span>
                                 {selectedMic === d.deviceId && <span className="ms-auto text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                               </button>
@@ -3004,7 +2998,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                             )}
                             <button onClick={micTesting ? stopMicTest : startMicTest}
                               className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-semibold transition-all ${micTesting ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30' : 'bg-primary hover:bg-primary/80 text-primary-foreground'}`}>
-                              {micTesting ? <><StopCircle className="w-4 h-4" />הפסק בדיקה</> : <><FlaskConical className="w-4 h-4" />בדוק מיקרופון</>}
+                              {micTesting ? <><StopIcon className="w-4 h-4" />הפסק בדיקה</> : <><FlaskIcon className="w-4 h-4" />בדוק מיקרופון</>}
                             </button>
                           </div>
                         </div>
@@ -3019,7 +3013,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                             {outputDevices.map(d => (
                               <button key={d.deviceId} onClick={() => setSelectedOutput(d.deviceId)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedOutput === d.deviceId ? 'border-primary/60 bg-primary/10 text-white' : 'border-border bg-muted/30 text-foreground/60 hover:bg-muted/60 hover:text-foreground/80'}`}>
-                                <Headphones className={`w-4 h-4 shrink-0 ${selectedOutput === d.deviceId ? 'text-primary' : 'text-muted-foreground/50'}`} />
+                                <HeadphonesIcon className={`w-4 h-4 shrink-0 ${selectedOutput === d.deviceId ? 'text-primary' : 'text-muted-foreground/50'}`} />
                                 <span className="truncate">{d.label || `התקן ${d.deviceId.slice(0, 8)}`}</span>
                                 {selectedOutput === d.deviceId && <span className="ms-auto text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                               </button>
@@ -3029,9 +3023,9 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                         <div>
                           <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest mb-3">עוצמת שמע</p>
                           <div className="flex items-center gap-4 bg-muted rounded-xl px-4 py-3">
-                            <VolumeX className="w-4 h-4 text-muted-foreground/50 shrink-0" />
+                            <VolumeOffIcon className="w-4 h-4 text-muted-foreground/50 shrink-0" />
                             <input type="range" min={0} max={100} value={volume} onChange={e => setVolume(Number(e.target.value))} className="flex-1 accent-primary h-1.5" />
-                            <Volume2 className="w-4 h-4 text-foreground/60 shrink-0" />
+                            <VolumeIcon className="w-4 h-4 text-foreground/60 shrink-0" />
                             <span className="text-sm font-bold text-foreground/70 w-10 text-center shrink-0">{volume}%</span>
                           </div>
                         </div>
@@ -3055,7 +3049,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                             )}
                             <button onClick={soundTesting ? stopSoundTest : startSoundTest}
                               className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-semibold transition-all ${soundTesting ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30' : 'bg-primary hover:bg-primary/80 text-primary-foreground'}`}>
-                              {soundTesting ? <><StopCircle className="w-4 h-4" />הפסק בדיקה</> : <><Volume2 className="w-4 h-4" />בדוק שמע</>}
+                              {soundTesting ? <><StopIcon className="w-4 h-4" />הפסק בדיקה</> : <><VolumeIcon className="w-4 h-4" />בדוק שמע</>}
                             </button>
                           </div>
                         </div>
@@ -3069,7 +3063,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                           {videoDevices.map(d => (
                             <button key={d.deviceId} onClick={() => setSelectedCamera(d.deviceId)}
                               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all text-right border ${selectedCamera === d.deviceId ? 'border-primary/60 bg-primary/10 text-white' : 'border-border bg-muted/30 text-foreground/60 hover:bg-muted/60 hover:text-foreground/80'}`}>
-                              <Video className={`w-4 h-4 shrink-0 ${selectedCamera === d.deviceId ? 'text-primary' : 'text-muted-foreground/50'}`} />
+                              <VideoIcon className={`w-4 h-4 shrink-0 ${selectedCamera === d.deviceId ? 'text-primary' : 'text-muted-foreground/50'}`} />
                               <span className="truncate">{d.label || `מצלמה ${d.deviceId.slice(0, 8)}`}</span>
                               {selectedCamera === d.deviceId && <span className="ms-auto text-[10px] font-bold text-primary bg-primary/20 px-2 py-0.5 rounded-full shrink-0">פעיל</span>}
                             </button>
@@ -3103,7 +3097,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
               <div className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl overflow-hidden" dir="rtl">
                 <div className="p-6 space-y-4 text-center">
                   <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center mx-auto">
-                    <Monitor className="w-7 h-7 text-red-400" />
+                    <ScreenIcon solid className="w-7 h-7 text-red-400" />
                   </div>
                   <h2 className="text-lg font-bold text-foreground">הקלטת הלייב</h2>
                   <p className="text-sm text-muted-foreground">לחץ כדי להתחיל הקלטת מסך של הלייב. ההקלטה תכלול את כל מה שמופיע על המסך — כולל וידאו, שיתוף מסך ופאנל משתתפים.</p>
@@ -3140,7 +3134,7 @@ export default function LiveRoom({ sessionId, mentorId, userId, userName, sessio
                 <div className="p-6 space-y-5">
                   <div className="text-center space-y-2">
                     <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mx-auto">
-                      <Video className="w-7 h-7 text-primary" />
+                      <VideoIcon className="w-7 h-7 text-primary" />
                     </div>
                     <h2 className="text-lg font-bold text-foreground">שמירת לייב מוקלט</h2>
                     <p className="text-sm text-muted-foreground">האם ברצונך לשמור את ההקלטה ולהעלות אותה ללייבים מוקלטים?</p>

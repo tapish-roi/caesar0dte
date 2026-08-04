@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Trash2, Plus, Pencil, Check, X } from 'lucide-react';
+import { CheckIcon, CloseIcon, EditIcon, PlusIcon, TrashIcon } from '@/components/icons';
 import { useStrategies } from '@/contexts/StrategiesContext';
 import { useTrades } from '@/contexts/TradesContext';
 
@@ -48,7 +48,7 @@ export default function StrategyManager({ open, onClose }: Props) {
           <div className="grid grid-cols-[1fr_120px_auto] gap-2">
             <Input placeholder="שם אסטרטגיה" value={name} onChange={(e) => setName(e.target.value)} dir="auto" />
             <Input placeholder="R Amount ($)" type="number" value={rAmount} onChange={(e) => setRAmount(e.target.value)} />
-            <Button onClick={onCreate} className="gap-1"><Plus className="h-4 w-4" /> הוסף</Button>
+            <Button onClick={onCreate} className="gap-1"><PlusIcon solid className="h-4 w-4" /> הוסף</Button>
           </div>
         </Card>
 
@@ -66,8 +66,8 @@ export default function StrategyManager({ open, onClose }: Props) {
                     <Button size="icon" variant="ghost" onClick={async () => {
                       await updateStrategy(s.id, { name: editName, r_amount: editR ? Number(editR) : null });
                       setEditingId(null);
-                    }}><Check className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
+                    }}><CheckIcon className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}><CloseIcon className="h-4 w-4" /></Button>
                   </>
                 ) : (
                   <>
@@ -79,10 +79,10 @@ export default function StrategyManager({ open, onClose }: Props) {
                       </div>
                     </div>
                     <Button size="icon" variant="ghost" onClick={() => startEdit(s.id, s.name, s.r_amount as unknown as number | null)}>
-                      <Pencil className="h-4 w-4" />
+                      <EditIcon className="h-4 w-4" />
                     </Button>
                     <Button size="icon" variant="ghost" onClick={() => deleteStrategy(s.id)} className="text-destructive">
-                      <Trash2 className="h-4 w-4" />
+                      <TrashIcon solid className="h-4 w-4" />
                     </Button>
                   </>
                 )}

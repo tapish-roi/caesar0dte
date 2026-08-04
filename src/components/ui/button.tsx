@@ -20,6 +20,8 @@ const buttonVariants = cva(
           "border border-[rgba(226,181,78,0.4)] bg-transparent text-[#e2b54e] hover:bg-[rgba(226,181,78,0.08)] hover:border-[rgba(226,181,78,0.6)]",
         // Glass with the gold⇄cyan gradient edge
         secondary: "aurora-control text-foreground",
+        // Dashed gold slot on its own glass fill — "add another" rows
+        add: "aurora-add",
         ghost: "border-none bg-transparent text-muted-foreground hover:bg-[rgba(157,180,188,0.1)] hover:text-foreground",
         link: "text-[#e2b54e] underline-offset-4 hover:underline hover:text-[#f0c86e]",
       },

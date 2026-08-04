@@ -10,10 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isPast, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
-import {
-  CalendarDays, Play, Clock, Radio, Video,
-  ChevronLeft, Bell, BellOff,
-} from 'lucide-react';
+import { BellIcon, BellOffIcon, CalendarIcon, ChevronLeftIcon, ClockIcon, LiveIcon, PlayIcon, VideoIcon, type IconComponent } from '@/components/icons';
 import { useToast } from '@/hooks/use-toast';
 import LiveRoom from '@/components/LiveRoom';
 
@@ -139,10 +136,10 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
   const pastScheduled = scheduled.filter(s => isPast(parseISO(s.scheduled_at)));
   const hasActiveSession = activeSessions.length > 0;
 
-  const tabs: { key: SubTab; label: string; icon: typeof CalendarDays }[] = [
-    { key: 'live', label: 'לייב נוכחי', icon: Radio },
-    { key: 'scheduled', label: 'לוח מודעות', icon: CalendarDays },
-    { key: 'recordings', label: 'לייבים מוקלטים', icon: Video },
+  const tabs: { key: SubTab; label: string; icon: IconComponent }[] = [
+    { key: 'live', label: 'לייב נוכחי', icon: LiveIcon },
+    { key: 'scheduled', label: 'לוח מודעות', icon: CalendarIcon },
+    { key: 'recordings', label: 'לייבים מוקלטים', icon: VideoIcon },
   ];
 
   return (
@@ -181,7 +178,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                   <div key={session.id} className="bg-card rounded-2xl card-shadow p-5 border border-destructive/20">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center">
-                        <Radio className="w-6 h-6 text-destructive" />
+                        <LiveIcon solid className="w-6 h-6 text-destructive" />
                       </div>
                       <div>
                         <p className="font-bold text-foreground">{session.title}</p>
@@ -198,7 +195,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                       onClick={() => setActiveSession(session)}
                       className="w-full h-11 bg-destructive text-destructive-foreground rounded-xl font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
                     >
-                      <Radio className="w-4 h-4" />
+                      <LiveIcon solid className="w-4 h-4" />
                       הצטרף לשידור
                     </button>
                   </div>
@@ -207,7 +204,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
             ) : (
               <div className="bg-card rounded-2xl card-shadow p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-                  <Radio className="w-8 h-8 text-muted-foreground opacity-40" />
+                  <LiveIcon className="w-8 h-8 text-muted-foreground opacity-40" />
                 </div>
                 <p className="font-semibold text-foreground mb-1">אין שידור חי כרגע</p>
                 <p className="text-sm text-muted-foreground">
@@ -225,7 +222,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
           <motion.div key="scheduled" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             {upcomingLives.length === 0 && pastScheduled.length === 0 ? (
               <div className="bg-card rounded-2xl card-shadow p-8 text-center">
-                <CalendarDays className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-3" />
+                <CalendarIcon className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-3" />
                 <p className="font-semibold text-foreground mb-1">לוח הלייבים ריק</p>
                 <p className="text-sm text-muted-foreground">המנטור עדיין לא תזמן לייבים עתידיים</p>
               </div>
@@ -251,7 +248,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                               <p className="font-semibold text-sm text-foreground">{item.title}</p>
                               {item.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>}
                               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
+                                <ClockIcon className="w-3 h-3" />
                                 {format(dt, "HH:mm | EEEE", { locale: he })}
                               </p>
                             </div>
@@ -266,14 +263,14 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                                   : 'bg-muted/50 border-border text-muted-foreground hover:border-accent hover:text-accent'
                               }`}
                             >
-                              {hasReminder ? <Bell className="w-4 h-4 fill-current" /> : <BellOff className="w-4 h-4" />}
+                              {hasReminder ? <BellIcon className="w-4 h-4 fill-current" /> : <BellOffIcon className="w-4 h-4" />}
                             </button>
                           </div>
                         );
                       })}
                     </div>
                     <p className="text-xs text-muted-foreground mt-3 text-center flex items-center justify-center gap-1.5">
-                      <Bell className="w-3 h-3" />
+                      <BellIcon className="w-3 h-3" />
                       לחץ על הפעמון לקבלת תזכורת למייל/SMS לפני הלייב
                     </p>
                   </div>
@@ -294,7 +291,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm text-muted-foreground">{item.title}</p>
                               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
+                                <ClockIcon className="w-3 h-3" />
                                 {format(dt, "HH:mm | EEEE", { locale: he })}
                               </p>
                             </div>
@@ -319,7 +316,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                     onClick={() => setPlayingRecording(null)}
                     className="flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeftIcon className="w-4 h-4" />
                     חזור ללייבים מוקלטים
                   </button>
                 </div>
@@ -329,7 +326,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       <div className="text-center">
-                        <Video className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                        <VideoIcon className="w-12 h-12 mx-auto mb-2 opacity-30" />
                         <p className="text-sm">הקלטה אינה זמינה</p>
                       </div>
                     </div>
@@ -340,14 +337,14 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                   {playingRecording.description && <p className="text-sm text-muted-foreground mt-1">{playingRecording.description}</p>}
                   {playingRecording.duration_minutes && (
                     <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />{playingRecording.duration_minutes} דקות
+                      <ClockIcon className="w-3.5 h-3.5" />{playingRecording.duration_minutes} דקות
                     </p>
                   )}
                 </div>
               </div>
             ) : recordings.length === 0 ? (
               <div className="bg-card rounded-2xl card-shadow p-8 text-center">
-                <Video className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-3" />
+                <VideoIcon className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-3" />
                 <p className="font-semibold text-foreground mb-1">אין לייבים מוקלטים עדיין</p>
                 <p className="text-sm text-muted-foreground">לייבים שיוקלטו יישמרו כאן אוטומטית</p>
               </div>
@@ -360,7 +357,7 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                     className="w-full bg-card rounded-xl card-shadow p-4 flex items-center gap-4 hover:bg-muted/30 transition-colors text-right"
                   >
                     <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <Play className="w-6 h-6 text-primary" />
+                      <PlayIcon className="w-6 h-6 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm text-foreground">{rec.title}</p>
@@ -371,12 +368,12 @@ export default function LiveHubStudent({ mentorId, mentorName, userId, userName,
                         </span>
                         {rec.duration_minutes && (
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="w-3 h-3" />{rec.duration_minutes} דק'
+                            <ClockIcon className="w-3 h-3" />{rec.duration_minutes} דק'
                           </span>
                         )}
                       </div>
                     </div>
-                    <Play className="w-5 h-5 text-muted-foreground shrink-0" />
+                    <PlayIcon className="w-5 h-5 text-muted-foreground shrink-0" />
                   </button>
                 ))}
               </div>

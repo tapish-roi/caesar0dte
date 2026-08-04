@@ -5,10 +5,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Mic, MicOff, Volume2, VolumeX, Users, Wifi,
-  WifiOff, X, ChevronDown, MessageSquare, Send,
-} from 'lucide-react';
+import { ChevronDownIcon, CloseIcon, MessageIcon, MicIcon, MicOffIcon, SendIcon, UsersIcon, VolumeIcon, VolumeOffIcon, WifiIcon, WifiOffIcon } from '@/components/icons';
 
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
@@ -277,7 +274,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
           </div>
           <div className="flex items-center gap-3">
             <span className={`text-xs font-medium flex items-center gap-1 ${statusColor[status]}`}>
-              {status === 'connected' ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+              {status === 'connected' ? <WifiIcon className="w-3.5 h-3.5" /> : <WifiOffIcon className="w-3.5 h-3.5" />}
               {statusLabel[status]}
             </span>
             <button
@@ -287,7 +284,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
               }`}
               title="צ'אט"
             >
-              <MessageSquare className="w-3.5 h-3.5" />
+              <MessageIcon className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">צ'אט</span>
               {chatMessages.length > 0 && (
                 <span className="bg-primary text-primary-foreground text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
@@ -296,7 +293,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
               )}
             </button>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-              <X className="w-4 h-4" />
+              <CloseIcon solid className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -321,7 +318,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
                     </>
                   ) : (
                     <>
-                      <WifiOff className="w-10 h-10 opacity-40" />
+                      <WifiOffIcon className="w-10 h-10 opacity-40" />
                       <span className="text-sm">החיבור אבד</span>
                     </>
                   )}
@@ -337,7 +334,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
                   soundEnabled ? 'border-border text-foreground hover:bg-muted' : 'border-destructive/30 bg-destructive/10 text-destructive'
                 }`}
               >
-                {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                {soundEnabled ? <VolumeIcon className="w-3.5 h-3.5" /> : <VolumeOffIcon className="w-3.5 h-3.5" />}
                 {soundEnabled ? 'שמע' : 'מושתק'}
               </button>
 
@@ -348,9 +345,9 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
                     micEnabled ? 'border-primary bg-primary/5 text-primary' : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >
-                  {micEnabled ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                  {micEnabled ? <MicIcon className="w-3.5 h-3.5" /> : <MicOffIcon className="w-3.5 h-3.5" />}
                   {micEnabled ? 'מיק פעיל' : 'מיקרופון'}
-                  {audioDevices.length > 1 && <ChevronDown className="w-3 h-3" />}
+                  {audioDevices.length > 1 && <ChevronDownIcon className="w-3 h-3" />}
                 </button>
                 {showMicMenu && audioDevices.length > 1 && (
                   <motion.div
@@ -382,13 +379,13 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
                 }`}
                 title={micEnabled ? 'השתק' : 'הפעל מיקרופון'}
               >
-                {micEnabled ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+                {micEnabled ? <MicIcon className="w-4 h-4" /> : <MicOffIcon className="w-4 h-4" />}
               </button>
 
               <div className="flex-1" />
 
               <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Users className="w-3.5 h-3.5" />
+                <UsersIcon className="w-3.5 h-3.5" />
                 צופה עכשיו
               </span>
 
@@ -414,7 +411,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
               >
                 {/* Chat header */}
                 <div className="px-4 py-3 border-b border-border flex items-center gap-2 shrink-0">
-                  <MessageSquare className="w-4 h-4 text-primary" />
+                  <MessageIcon className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold text-foreground">צ'אט לייב</span>
                   <span className="text-xs text-muted-foreground mr-auto">{chatMessages.length}</span>
                 </div>
@@ -423,7 +420,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
                 <div className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-0">
                   {chatMessages.length === 0 && (
                     <div className="text-center py-6 text-muted-foreground">
-                      <MessageSquare className="w-8 h-8 opacity-20 mx-auto mb-2" />
+                      <MessageIcon className="w-8 h-8 opacity-20 mx-auto mb-2" />
                       <p className="text-xs">עוד לא נשלחו הודעות</p>
                     </div>
                   )}
@@ -460,7 +457,7 @@ export default function LiveViewer({ sessionId, mentorId, userId, userName, sess
                       disabled={!chatInput.trim() || isSendingMsg}
                       className="h-9 w-9 flex items-center justify-center bg-primary text-primary-foreground rounded-xl hover:opacity-90 transition-all disabled:opacity-40 shrink-0"
                     >
-                      <Send className="w-3.5 h-3.5" />
+                      <SendIcon solid className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>

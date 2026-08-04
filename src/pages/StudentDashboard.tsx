@@ -5,13 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import {
-  TrendingUp, BookOpen, Users, Video, Film, FileText,
-  LogOut, Clock, CheckCircle2, ChevronDown, Bell, MessageSquare,
-  MessageCircle, Send, Image, Wifi, Pin, ChevronLeft, ArrowRight,
-  User, Camera, X, Trash2, Mail, Lock, Settings, Eye, EyeOff, Radio, Paperclip,
-  CalendarDays, Filter, XCircle, MessageCircleQuestion, ClipboardList, LineChart, Calculator, RefreshCw,
-} from 'lucide-react';
+import { ArrowRightIcon, AttachIcon, BellIcon, CalculatorIcon, CalendarIcon, CameraIcon, CheckCircleIcon, ChevronDownIcon, ChevronLeftIcon, ClockIcon, CloseIcon, CommentIcon, EyeIcon, EyeOffIcon, FileIcon, FilmIcon, ImageIcon, JournalIcon, LiveIcon, LockIcon, LogoutIcon, MailIcon, MessageIcon, PinIcon, QuestionIcon, QuizIcon, RefreshIcon, SendIcon, SettingsIcon, TrashIcon, TrendIcon, UserIcon, UsersIcon, VideoIcon, WifiIcon, XCircleIcon, type IconComponent } from '@/components/icons';
 import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
 import { format, isWithinInterval, startOfDay, endOfDay, parseISO, startOfMonth, endOfMonth } from 'date-fns';
@@ -249,7 +243,7 @@ function LandingScreen({
         className="flex items-center gap-3 mb-10"
       >
         <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-          <TrendingUp className="w-5 h-5 text-primary-foreground" />
+          <TrendIcon solid className="w-5 h-5 text-primary-foreground" />
         </div>
         <span className="text-lg font-bold text-secondary-foreground">Caesar 0 DTE</span>
       </motion.div>
@@ -263,7 +257,7 @@ function LandingScreen({
         <div className="px-6 pt-6 pb-4 border-b border-border">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Users className="w-4 h-4 text-primary" />
+              <UsersIcon className="w-4 h-4 text-primary" />
             </div>
             <h2 className="text-base font-bold text-foreground">כניסה לקהילות שלי</h2>
           </div>
@@ -289,14 +283,14 @@ function LandingScreen({
                     <div className="font-semibold text-sm text-foreground">{m.mentorName}</div>
                     <div className="text-xs text-muted-foreground mt-0.5">קהילת מסחר</div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors rotate-180" />
+                  <ArrowRightIcon className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors rotate-180" />
                 </motion.button>
               ))}
 
               {hasInvites && (
                 <div className="mt-4 pt-4 border-t border-border">
                   <p className="text-xs font-semibold text-muted-foreground mb-2.5 flex items-center gap-1.5">
-                    <Bell className="w-3.5 h-3.5" />
+                    <BellIcon className="w-3.5 h-3.5" />
                     הזמנות ממתינות
                   </p>
                   <div className="space-y-2">
@@ -321,7 +315,7 @@ function LandingScreen({
                             className="h-7 w-7 flex items-center justify-center border border-border text-muted-foreground rounded-lg hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
                             title="מחק הזמנה"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <TrashIcon solid className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -365,7 +359,7 @@ function LandingScreen({
                       className="h-8 w-8 flex items-center justify-center border border-border text-muted-foreground rounded-lg hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all"
                       title="מחק הזמנה"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <TrashIcon solid className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </motion.div>
@@ -377,7 +371,7 @@ function LandingScreen({
           {!hasCommunities && !hasInvites && (
             <div className="text-center py-6">
               <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-                <Bell className="w-6 h-6 text-muted-foreground" />
+                <BellIcon className="w-6 h-6 text-muted-foreground" />
               </div>
               <p className="text-sm font-semibold text-foreground mb-1.5">טרם קיבלת הזמנה לקהילה</p>
               <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
@@ -392,7 +386,7 @@ function LandingScreen({
         onClick={onSignOut}
         className="mt-6 flex items-center gap-1.5 text-xs text-secondary-foreground/60 hover:text-destructive transition-colors"
       >
-        <LogOut className="w-3.5 h-3.5" />
+        <LogoutIcon className="w-3.5 h-3.5" />
         התנתק ({userEmail})
       </button>
     </div>
@@ -448,7 +442,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
     <div className="px-6 pb-4 mt-4">
       <div className={`flex items-center gap-4 p-4 rounded-xl aurora-alert ${hasSubmitted ? 'aurora-alert-emerald' : 'aurora-alert-gold'}`}>
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${hasSubmitted ? 'bg-accent/10' : 'bg-primary/10'}`}>
-          {hasSubmitted ? <CheckCircle2 className="w-5 h-5 text-accent" /> : <ClipboardList className="w-5 h-5 text-primary" />}
+          {hasSubmitted ? <CheckCircleIcon className="w-5 h-5 text-accent" /> : <QuizIcon className="w-5 h-5 text-primary" />}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground">מבחן: {quiz.title}</p>
@@ -471,7 +465,7 @@ function LessonQuizButton({ lessonId, mentorId, onTakeQuiz, studentId }: { lesso
           }`}
         >
           {hasSubmitted ? (
-            <><Eye className="w-4 h-4" />צפה בתוצאות</>
+            <><EyeIcon solid className="w-4 h-4" />צפה בתוצאות</>
           ) : (
             'התחל מבחן'
           )}
@@ -821,19 +815,19 @@ export default function StudentDashboard() {
   const selectedLessonData = lessons.find(l => l.id === selectedLesson);
 
   const typeIcon = (type: string) => {
-    if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-primary" />;
-    if (type === 'resource') return <FileText className="w-3.5 h-3.5 text-muted-foreground" />;
-    if (type === 'live') return <Radio className="w-3.5 h-3.5 text-destructive" />;
-    return <Video className="w-3.5 h-3.5 text-accent" />;
+    if (type === 'zoom_recording') return <FilmIcon className="w-3.5 h-3.5 text-primary" />;
+    if (type === 'resource') return <FileIcon className="w-3.5 h-3.5 text-muted-foreground" />;
+    if (type === 'live') return <LiveIcon solid className="w-3.5 h-3.5 text-destructive" />;
+    return <VideoIcon className="w-3.5 h-3.5 text-accent" />;
   };
 
   const postTypeLabel: Record<string, string> = { discussion: 'דיון', media: 'מדיה', live: 'לייב' };
   const postTypeBg: Record<string, string> = { discussion: 'bg-[rgba(226,181,78,0.10)]', media: 'bg-gold-500/10', live: 'bg-red-500/10' };
   const postTypeColor: Record<string, string> = { discussion: 'text-[#e2b54e]', media: 'text-gold-500', live: 'text-red-500' };
   const postTypeIcon = (type: string) => {
-    if (type === 'live') return <Wifi className="w-3.5 h-3.5" />;
-    if (type === 'media') return <Image className="w-3.5 h-3.5" />;
-    return <MessageCircle className="w-3.5 h-3.5" />;
+    if (type === 'live') return <WifiIcon className="w-3.5 h-3.5" />;
+    if (type === 'media') return <ImageIcon className="w-3.5 h-3.5" />;
+    return <CommentIcon className="w-3.5 h-3.5" />;
   };
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleString('he-IL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -902,11 +896,11 @@ export default function StudentDashboard() {
 
   // ── Full Dashboard ──
   const studentNavItems = [
-    { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
-    { key: 'community' as const, label: 'קהילה', icon: Users },
-    { key: 'zoom' as const, label: 'Zoom', icon: Video },
-    { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion },
-    { key: 'calculator' as const, label: 'מחשבון מסחר', icon: Calculator },
+    { key: 'lessons' as const, label: 'שיעורים', icon: JournalIcon },
+    { key: 'community' as const, label: 'קהילה', icon: UsersIcon },
+    { key: 'zoom' as const, label: 'Zoom', icon: VideoIcon },
+    { key: 'questions' as const, label: 'שאלות', icon: QuestionIcon },
+    { key: 'calculator' as const, label: 'מחשבון מסחר', icon: CalculatorIcon },
   ];
 
   return (
@@ -964,7 +958,7 @@ export default function StudentDashboard() {
             >
               <div className="shrink-0 flex items-center justify-between p-4 border-b border-border">
                 <button onClick={() => setProfileOpen(false)} className="text-muted-foreground hover:text-card-foreground">
-                  <X className="w-5 h-5" />
+                  <CloseIcon className="w-5 h-5" />
                 </button>
                 <span className="text-base font-bold text-card-foreground">הפרופיל שלי</span>
                 <div className="w-5" />
@@ -1022,12 +1016,12 @@ export default function StudentDashboard() {
                   onClick={() => { setLessonViewMode(null); setSelectedLesson(null); }}
                   className="flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity mb-3"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeftIcon className="w-4 h-4" />
                   חזור לתפריט הראשי
                 </button>
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <BookOpen className="w-3.5 h-3.5 text-primary" />
+                    <JournalIcon className="w-3.5 h-3.5 text-primary" />
                   </div>
                   <h3 className="text-sm font-bold text-sidebar-foreground truncate">{lessonViewMode.categoryTitle}</h3>
                 </div>
@@ -1053,7 +1047,7 @@ export default function StudentDashboard() {
                       >
                         <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">
                           {prog?.completed
-                            ? <CheckCircle2 className="w-5 h-5 text-accent" />
+                            ? <CheckCircleIcon className="w-5 h-5 text-accent" />
                             : <span className="text-xs font-bold text-muted-foreground">{idx + 1}</span>
                           }
                         </div>
@@ -1067,7 +1061,7 @@ export default function StudentDashboard() {
                             )}
                             {lesson.attachment_url && (
                               <span className="inline-flex items-center gap-0.5 text-[10px] text-primary/70">
-                                <Paperclip className="w-2.5 h-2.5" />צירוף
+                                <AttachIcon className="w-2.5 h-2.5" />צירוף
                               </span>
                             )}
                           </div>
@@ -1094,7 +1088,7 @@ export default function StudentDashboard() {
                     <div className="text-xs font-medium text-foreground truncate">{profile?.full_name || user?.email}</div>
                     <div className="text-[10px] text-muted-foreground">הגדרות פרופיל</div>
                   </div>
-                  <Settings className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                  <SettingsIcon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                 </button>
                 {profileOpen && <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />}
                 <AnimatePresence>
@@ -1118,7 +1112,7 @@ export default function StudentDashboard() {
                   className="flex items-center gap-3 w-full text-right hover:opacity-75 transition-opacity cursor-pointer"
                 >
                   <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-primary-foreground" />
+                    <TrendIcon solid className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <div>
                     <div className="font-bold text-sm text-sidebar-foreground">Caesar 0 DTE</div>
@@ -1140,7 +1134,7 @@ export default function StudentDashboard() {
                       <p className="text-xs text-muted-foreground leading-tight">קהילה נוכחית</p>
                       <p className="text-sm font-semibold text-sidebar-foreground truncate leading-tight mt-0.5">{mentorName}</p>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${communityDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDownIcon className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform duration-200 ${communityDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {communityDropdownOpen && (
@@ -1173,12 +1167,12 @@ export default function StudentDashboard() {
 
               <nav className="flex-1 p-3 space-y-1">
                 {([
-                  { key: 'lessons', label: 'שיעורים', icon: BookOpen },
-                  { key: 'community', label: 'קהילה', icon: Users },
-                  { key: 'zoom', label: 'Zoom', icon: Video },
-                  { key: 'questions', label: 'השאלות שלי', icon: MessageCircleQuestion },
-                  { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
-                ] as { key: SidebarTab; label: string; icon: typeof BookOpen; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
+                  { key: 'lessons', label: 'שיעורים', icon: JournalIcon },
+                  { key: 'community', label: 'קהילה', icon: UsersIcon },
+                  { key: 'zoom', label: 'Zoom', icon: VideoIcon },
+                  { key: 'questions', label: 'השאלות שלי', icon: QuestionIcon },
+                  { key: 'calculator', label: 'מחשבון מסחר', icon: CalculatorIcon },
+                ] as { key: SidebarTab; label: string; icon: IconComponent; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
                   href ? (
                     <Link
                       key={key}
@@ -1202,7 +1196,7 @@ export default function StudentDashboard() {
                   >
                     <Icon className="w-4 h-4" />
                     <span className="sidebar-tab-label">{label}</span>
-                    {disabled && <Lock className="w-3 h-3 text-muted-foreground/40" />}
+                    {disabled && <LockIcon className="w-3 h-3 text-muted-foreground/40" />}
                   </button>
                   )
                 ))}
@@ -1224,7 +1218,7 @@ export default function StudentDashboard() {
                     <div className="text-xs font-medium text-sidebar-foreground truncate">{profile?.full_name || user?.email}</div>
                     <div className="text-[10px] text-muted-foreground">הגדרות פרופיל</div>
                   </div>
-                  <Settings className="w-3.5 h-3.5 text-muted-foreground group-hover:text-sidebar-foreground transition-colors shrink-0" />
+                  <SettingsIcon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-sidebar-foreground transition-colors shrink-0" />
                 </button>
                 {profileOpen && <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />}
                 <AnimatePresence>
@@ -1250,7 +1244,7 @@ export default function StudentDashboard() {
                   onClick={() => { setLessonViewMode(null); setSelectedLesson(null); }}
                   className="flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity mb-4"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeftIcon className="w-4 h-4" />
                   חזור לרשימת השיעורים
                 </button>
               )}
@@ -1279,14 +1273,14 @@ export default function StudentDashboard() {
                         ) : selectedLessonData.lesson_type === 'live' ? (
                           <div className="text-center space-y-2">
                             <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto">
-                              <Radio className="w-6 h-6 text-destructive" />
+                              <LiveIcon solid className="w-6 h-6 text-destructive" />
                             </div>
                             <p className="text-sm font-medium text-foreground">שיעור לייב מוקלט</p>
                             <p className="text-xs text-muted-foreground">הקלטת הלייב תופיע כאן לאחר עיבוד</p>
                           </div>
                         ) : (
                           <div className="text-center">
-                            <Video className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />
+                            <VideoIcon className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />
                             <p className="text-sm text-muted-foreground">אין קובץ וידאו</p>
                           </div>
                         )}
@@ -1297,7 +1291,7 @@ export default function StudentDashboard() {
                           <div className="flex items-center gap-2 shrink-0">
                             {getProgress(selectedLessonData.id)?.completed && (
                               <div className="flex items-center gap-1.5 text-accent text-sm font-medium">
-                                <CheckCircle2 className="w-4 h-4" />הושלם
+                                <CheckCircleIcon className="w-4 h-4" />הושלם
                               </div>
                             )}
                           </div>
@@ -1307,7 +1301,7 @@ export default function StudentDashboard() {
                         )}
                         {selectedLessonData.duration_minutes && (
                           <div className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground">
-                            <Clock className="w-3.5 h-3.5" /><span>{selectedLessonData.duration_minutes} דקות</span>
+                            <ClockIcon className="w-3.5 h-3.5" /><span>{selectedLessonData.duration_minutes} דקות</span>
                           </div>
                         )}
                       </div>
@@ -1346,7 +1340,7 @@ export default function StudentDashboard() {
                               className="w-full flex items-center gap-3 p-3 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-right"
                             >
                               <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0">
-                                {prog?.completed ? <CheckCircle2 className="w-5 h-5 text-accent" /> : <span className="text-xs font-bold text-muted-foreground">{idx + 1}</span>}
+                                {prog?.completed ? <CheckCircleIcon className="w-5 h-5 text-accent" /> : <span className="text-xs font-bold text-muted-foreground">{idx + 1}</span>}
                               </div>
                               <span className="text-sm font-medium text-foreground flex-1 truncate">{lesson.title}</span>
                               {lesson.duration_minutes && <span className="text-[10px] text-muted-foreground">{lesson.duration_minutes} דק'</span>}
@@ -1357,7 +1351,7 @@ export default function StudentDashboard() {
                     </div>
                   ) : (
                     <div className="text-center py-24 text-muted-foreground">
-                      <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <JournalIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
                       <p className="font-medium">בחר שיעור מהרשימה</p>
                       <p className="text-sm mt-1">לחץ על שיעור בסרגל הצד כדי לצפות בו</p>
                     </div>
@@ -1408,11 +1402,11 @@ export default function StudentDashboard() {
                             className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                             onClick={() => toggleCat(cat.id)}
                           >
-                            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                            <ChevronDownIcon className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
                             <span className={`font-semibold flex-1 ${allCompleted ? 'text-emerald-400' : 'text-foreground'}`}>{cat.title}</span>
                             {allCompleted && (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold shrink-0">
-                                <CheckCircle2 className="w-3 h-3" />
+                                <CheckCircleIcon className="w-3 h-3" />
                                 כל השיעורים הושלמו
                               </span>
                             )}
@@ -1444,7 +1438,7 @@ export default function StudentDashboard() {
                                     <span className={`w-5 text-center text-sm font-bold shrink-0 tabular-nums ${lessonCompleted ? 'text-emerald-400/80' : 'text-muted-foreground/60'}`}>{idx + 1}</span>
                                     <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0">
                                       {lessonCompleted ? (
-                                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                        <CheckCircleIcon solid className="w-5 h-5 text-emerald-400" />
                                       ) : (
                                         typeIcon(lesson.lesson_type)
                                       )}
@@ -1460,7 +1454,7 @@ export default function StudentDashboard() {
                                     </span>
                                     {lessonCompleted && (
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold shrink-0">
-                                        <CheckCircle2 className="w-2.5 h-2.5" />
+                                        <CheckCircleIcon className="w-2.5 h-2.5" />
                                         הושלם
                                       </span>
                                     )}
@@ -1469,13 +1463,13 @@ export default function StudentDashboard() {
                                     </span>
                                     {lesson.lesson_type === 'live' && (
                                        <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
-                                         <Radio className="w-2.5 h-2.5" />
+                                         <LiveIcon solid className="w-2.5 h-2.5" />
                                          הוקלט בלייב
                                        </span>
                                      )}
                                     {lesson.attachment_url && (
                                       <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
-                                        <Paperclip className="w-2.5 h-2.5" />
+                                        <AttachIcon className="w-2.5 h-2.5" />
                                         צירוף
                                       </span>
                                     )}
@@ -1509,7 +1503,7 @@ export default function StudentDashboard() {
                     >
                       <span className={`w-5 text-center text-sm font-bold shrink-0 tabular-nums ${lessonCompleted ? 'text-emerald-400/80' : 'text-muted-foreground/60'}`}>{idx + 1}</span>
                       {lessonCompleted ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                        <CheckCircleIcon solid className="w-5 h-5 text-emerald-400 shrink-0" />
                       ) : (
                         typeIcon(lesson.lesson_type)
                       )}
@@ -1518,7 +1512,7 @@ export default function StudentDashboard() {
                       </span>
                       {lessonCompleted && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold shrink-0">
-                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          <CheckCircleIcon className="w-2.5 h-2.5" />
                           הושלם
                         </span>
                       )}
@@ -1534,7 +1528,7 @@ export default function StudentDashboard() {
 
                 {filteredLessons.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
-                    <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <JournalIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="font-medium">עדיין אין תכנים</p>
                     <p className="text-sm mt-1">המנטור שלך יעלה תכנים בקרוב.</p>
                   </div>
@@ -1567,7 +1561,7 @@ export default function StudentDashboard() {
                     className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all disabled:opacity-50"
                     title="רענן פיד ומדיה"
                   >
-                    <RefreshCw className={`w-3.5 h-3.5 ${refreshingFeed ? 'animate-spin' : ''}`} />
+                    <RefreshIcon className={`w-3.5 h-3.5 ${refreshingFeed ? 'animate-spin' : ''}`} />
                     רענן
                   </button>
                   <DateRangeFilter range={communityDateRange} onChange={setCommunityDateRange} />
@@ -1576,13 +1570,13 @@ export default function StudentDashboard() {
 
               {posts.length === 0 ? (
                 <div className="text-center py-16 text-muted-foreground">
-                  <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <MessageIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
                   <p className="font-medium">אין עדכונים עדיין</p>
                   <p className="text-sm mt-1">המנטור שלך יפרסם עדכונים בקרוב</p>
                 </div>
               ) : filteredPosts.length === 0 ? (
                 <div className="text-center py-16 text-muted-foreground">
-                  <CalendarDays className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <CalendarIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
                   <p className="font-medium">לא נמצאו פוסטים בתקופה שנבחרה</p>
                   <button
                     onClick={() => setCommunityDateRange(undefined)}
@@ -1667,7 +1661,7 @@ export default function StudentDashboard() {
 
           {activeTab === 'live' && !mentorId && (
             <motion.div key="live-no-mentor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 text-center text-muted-foreground">
-              <Radio className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <LiveIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">לא נבחרה קהילה</p>
             </motion.div>
           )}
@@ -1692,7 +1686,7 @@ export default function StudentDashboard() {
 
           {activeTab === 'questions' && !mentorId && (
             <motion.div key="questions-no-mentor" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="p-8 text-center text-muted-foreground">
-              <MessageCircleQuestion className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <QuestionIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">לא נבחרה קהילה</p>
             </motion.div>
           )}
@@ -1700,9 +1694,12 @@ export default function StudentDashboard() {
           {/* journal removed — now lives on /journal */}
 
           {/* ──────── TRADING CALCULATOR ──────── */}
+          {/* Live for students too. Swap back to <ComingSoonCard /> to re-gate. */}
           {activeTab === 'calculator' && (
             <motion.div key="calculator" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <TradingCalculator />
+              <div className="p-4 md:p-8 mx-auto max-w-6xl" dir="rtl">
+                <TradingCalculator />
+              </div>
             </motion.div>
           )}
 
@@ -1745,14 +1742,14 @@ function DateRangeFilter({ range, onChange }: { range: DateRange | undefined; on
           size="sm"
           className={`flex items-center gap-2 h-9 px-3 text-xs ${hasFilter ? 'border-primary text-primary bg-primary/5' : 'text-secondary-foreground'}`}
         >
-          <CalendarDays className="w-3.5 h-3.5" />
+          <CalendarIcon className="w-3.5 h-3.5" />
           {label}
           {hasFilter && (
             <span
               onClick={(e) => { e.stopPropagation(); onChange(undefined); }}
               className="hover:text-destructive transition-colors"
             >
-              <XCircle className="w-3.5 h-3.5" />
+              <XCircleIcon className="w-3.5 h-3.5" />
             </span>
           )}
         </Button>
@@ -1827,7 +1824,7 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
       <div className="p-5">
         {post.is_pinned && (
           <div className="flex items-center gap-1.5 text-xs text-primary font-medium mb-3">
-            <Pin className="w-3 h-3" />נעוץ
+            <PinIcon className="w-3 h-3" />נעוץ
           </div>
         )}
         <div className="flex items-center gap-3 mb-3">
@@ -1886,7 +1883,7 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
           onClick={onToggleComments}
           className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <MessageCircle className="w-3.5 h-3.5" />
+          <CommentIcon className="w-3.5 h-3.5" />
           {expanded ? 'הסתר תגובות' : `תגובות${comments.length > 0 ? ` (${comments.length})` : ''}`}
         </button>
       </div>
@@ -1930,7 +1927,7 @@ const StudentPostCard = React.forwardRef<HTMLDivElement, {
                   disabled={!commentText.trim()}
                   className="w-9 h-9 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-all disabled:opacity-40"
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <SendIcon solid className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -1967,7 +1964,7 @@ function ProfileContent({
           <div className="w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center overflow-hidden">
             {profile?.avatar_url
               ? <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-              : <User className="w-6 h-6 text-accent/40" />
+              : <UserIcon className="w-6 h-6 text-accent/40" />
             }
           </div>
           <button
@@ -1977,7 +1974,7 @@ function ProfileContent({
           >
             {isAvatarUploading
               ? <div className="w-2.5 h-2.5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-              : <Camera className="w-3 h-3" />
+              : <CameraIcon solid className="w-3 h-3" />
             }
           </button>
           <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
@@ -1992,14 +1989,14 @@ function ProfileContent({
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">פרטים אישיים</p>
         <div><label className="block text-xs text-muted-foreground mb-1">שם מלא</label>
           <div className="relative">
-            <User className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <UserIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input value={profileForm.full_name} onChange={e => setProfileForm(f => ({ ...f, full_name: e.target.value }))} placeholder="השם שלך"
               className="w-full h-9 pr-9 pl-3 aurora-field rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-right" />
           </div>
         </div>
         <div><label className="block text-xs text-muted-foreground mb-1">אימייל</label>
           <div className="relative">
-            <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <MailIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input value={user?.email ?? ''} disabled className="w-full h-9 pr-9 pl-3 bg-muted ring-1 ring-border rounded-lg text-xs text-muted-foreground cursor-not-allowed text-right" />
           </div>
         </div>
@@ -2011,11 +2008,11 @@ function ProfileContent({
       <div className="space-y-2.5 pt-1 border-t border-border">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-1">שינוי סיסמה</p>
         <div className="relative">
-          <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <LockIcon solid className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <input type={showPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="סיסמה חדשה (6+ תווים)"
             className="w-full h-9 pr-9 pl-9 aurora-field rounded-lg text-xs text-card-foreground placeholder:text-muted-foreground focus:outline-none transition-all text-right" />
           <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-            {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            {showPassword ? <EyeOffIcon className="w-3.5 h-3.5" /> : <EyeIcon className="w-3.5 h-3.5" />}
           </button>
         </div>
         <button onClick={() => savePassword.mutate()} disabled={savePassword.isPending || newPassword.length < 6}
@@ -2026,13 +2023,13 @@ function ProfileContent({
       <div className="space-y-2.5 pt-1 border-t border-border">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide pt-1">התראות ועדכונים</p>
         <div className="flex items-center justify-between py-1">
-          <div className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-xs text-foreground">אימייל</span></div>
+          <div className="flex items-center gap-2"><MailIcon className="w-3.5 h-3.5 text-muted-foreground" /><span className="text-xs text-foreground">אימייל</span></div>
           <Switch checked={notifyState.notify_email} onCheckedChange={(val) => saveNotifications.mutate({ notify_email: val })} disabled={saveNotifications.isPending} />
         </div>
       </div>
       <div className="pt-1 border-t border-border">
         <button onClick={signOut} className="w-full flex items-center justify-center gap-2 h-9 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-all">
-          <LogOut className="w-3.5 h-3.5" />התנתק
+          <LogoutIcon solid className="w-3.5 h-3.5" />התנתק
         </button>
       </div>
     </div>
@@ -2068,7 +2065,7 @@ function InlineProfilePopover({
     >
       <div className="shrink-0 flex items-center justify-between p-4 border-b border-border">
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-          <X className="w-4 h-4" />
+          <CloseIcon className="w-4 h-4" />
         </button>
         <span className="text-sm font-semibold text-foreground">הפרופיל שלי</span>
         <div className="w-4" />

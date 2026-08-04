@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertIcon, CheckCircleIcon, FileIcon, UploadIcon } from '@/components/icons';
 import { parseAny } from '@/lib/parsers/detect';
 import { dedupAgainstExisting, tradeFingerprint } from '@/lib/dedup';
 import { reconcileExpirations } from '@/lib/expiration-matcher';
@@ -94,7 +94,7 @@ export default function TradeImportModal({ open, onClose }: Props) {
 
         {!parsed ? (
           <label className="block border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:bg-accent/30">
-            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <UploadIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
             <div className="text-sm font-medium">גרור קובץ או לחץ לבחירה</div>
             <div className="text-xs text-muted-foreground mt-1">תומך: IBKR Flex Query, TD Ameritrade, NinjaTrader (CSV)</div>
             <input
@@ -105,7 +105,7 @@ export default function TradeImportModal({ open, onClose }: Props) {
         ) : (
           <div className="space-y-3">
             <Card className="p-3 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <FileIcon className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm flex-1 truncate">{fileName}</span>
               <Badge variant="outline">{parsed.broker.toUpperCase()}</Badge>
             </Card>
@@ -119,7 +119,7 @@ export default function TradeImportModal({ open, onClose }: Props) {
             {parsed.errors.length > 0 && (
               <Card className="p-3 max-h-40 overflow-auto">
                 <div className="flex items-center gap-1 text-xs font-medium mb-1 text-yellow-500">
-                  <AlertCircle className="h-3 w-3" /> {parsed.errors.length} אזהרות
+                  <AlertIcon className="h-3 w-3" /> {parsed.errors.length} אזהרות
                 </div>
                 {parsed.errors.slice(0, 10).map((e, i) => (
                   <div key={i} className="text-[11px] text-muted-foreground">שורה {e.row}: {e.message}</div>
@@ -128,7 +128,7 @@ export default function TradeImportModal({ open, onClose }: Props) {
             )}
 
             <div className="flex items-center gap-1 text-xs text-emerald-500">
-              <CheckCircle2 className="h-3 w-3" /> מוכן לאישור — לא תיווצרנה עסקאות מרשומות פגיות
+              <CheckCircleIcon className="h-3 w-3" /> מוכן לאישור — לא תיווצרנה עסקאות מרשומות פגיות
             </div>
           </div>
         )}

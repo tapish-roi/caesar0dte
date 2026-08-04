@@ -1,14 +1,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import {
-  Activity,
-  Calculator,
-  CalendarRange,
-  RefreshCw,
-  Loader2,
-} from 'lucide-react';
+import { CalculatorIcon, CalendarIcon, LoaderIcon, PlusIcon, PulseIcon, RefreshIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +12,6 @@ import TickerCard from './trading-calculator/TickerCard';
 import TickerInputTable from './trading-calculator/TickerInputTable';
 import EconomicCalendar from './trading-calculator/EconomicCalendar';
 import PositionCalculatorSection from './position-calculator/PositionCalculatorSection';
-import ComingSoonCard from './trading-calculator/ComingSoonCard';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Trading Calculator (מחשבון מסחר) — 3 sections via PageToggle:
@@ -28,9 +22,6 @@ import ComingSoonCard from './trading-calculator/ComingSoonCard';
 
 const DEFAULT_TICKERS = ['NFLX', 'ORCL', 'GOOG', 'PLTR', 'PANW', 'OKLO'];
 const TICKERS_KEY = 'atr-tickers';
-const LONGS_KEY = 'atr-longs';
-const SHORTS_KEY = 'atr-shorts';
-const SLOTS = 6;
 
 interface AtrRow {
   ticker: string;
@@ -39,7 +30,8 @@ interface AtrRow {
   data_date: string;
 }
 
-
+const normalizeTicker = (v: string) =>
+  v.trim().toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5);
 
 function readTickers(): string[] {
   try {
@@ -48,14 +40,9 @@ function readTickers(): string[] {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       const cleaned = parsed
-        .map((t) => String(t ?? '').trim().toUpperCase())
-        .filter((t) => /^[A-Z]{1,5}$/.test(t))
-        .slice(0, 6);
-      if (cleaned.length > 0) {
-        // Pad to 6
-        while (cleaned.length < 6) cleaned.push(DEFAULT_TICKERS[cleaned.length]);
-        return cleaned;
-      }
+        .map((t) => normalizeTicker(String(t ?? '')))
+        .filter(Boolean);
+      if (cleaned.length > 0) return cleaned;
     }
   } catch {
     /* noop */
@@ -70,7 +57,11 @@ export default function TradingCalculator() {
 
   // ── ATR section state ──────────────────────────────────────────────────────
   const [tickers, setTickers] = useState<string[]>(() => readTickers());
+  const [newTicker, setNewTicker] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Tickers whose Finviz data is currently being fetched — drives the per-card
+  // loading state so a just-changed ticker reads as "loading", not "no data".
+  const [pendingTickers, setPendingTickers] = useState<Set<string>>(() => new Set());
   const initialFetchRef = useRef(false);
 
   useEffect(() => {
@@ -123,6 +114,7 @@ export default function TradingCalculator() {
   );
 
   const handleRefresh = useCallback(async () => {
+    if (tickers.length === 0) return;
     setIsRefreshing(true);
     try {
       await invokeFinviz(tickers);
@@ -152,101 +144,88 @@ export default function TradingCalculator() {
     }
   }, [isLoading, atrRows.length, tickers.length, handleRefresh]);
 
-  const handleTickerChange = useCallback(
-    async (index: number, newTicker: string) => {
-      const v = newTicker.trim().toUpperCase();
-      if (!/^[A-Z]{1,5}$/.test(v)) return;
-      setTickers((prev) => {
-        const next = [...prev];
-        next[index] = v;
+  // Fetch a single ticker immediately, then let the query pick the row up.
+  const fetchOne = useCallback(
+    async (v: string) => {
+      setPendingTickers((prev) => {
+        const next = new Set(prev);
+        next.add(v);
         return next;
       });
       try {
         await invokeFinviz([v]);
-        queryClient.invalidateQueries({ queryKey: ['stock-atr-data'] });
+        await queryClient.invalidateQueries({ queryKey: ['stock-atr-data'] });
+        await refetch();
       } catch (err) {
         toast({
           title: 'שגיאה',
           description: err instanceof Error ? err.message : 'נכשל לטעון סימול',
           variant: 'destructive',
         });
-      }
-    },
-    [invokeFinviz, queryClient, toast],
-  );
-
-
-  const handleAddToList = useCallback(
-    (ticker: string, side: 'long' | 'short') => {
-      const key = side === 'long' ? LONGS_KEY : SHORTS_KEY;
-      const empty = Array.from({ length: SLOTS }, () => '');
-      let arr = empty;
-      try {
-        // One-time migration from sessionStorage → localStorage
-        const legacy = sessionStorage.getItem(key);
-        if (legacy && !localStorage.getItem(key)) {
-          localStorage.setItem(key, legacy);
-          sessionStorage.removeItem(key);
-        }
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length === SLOTS) {
-            arr = parsed.map((s) => String(s ?? ''));
-          }
-        }
-      } catch {
-        /* noop */
-      }
-      if (arr.includes(ticker)) {
-        toast({ title: 'כבר ברשימה', description: `${ticker} כבר נמצא ברשימת ${side === 'long' ? 'הלונגים' : 'השורטים'}` });
-        return;
-      }
-      const slot = arr.findIndex((s) => !s);
-      if (slot === -1) {
-        toast({
-          title: 'הרשימה מלאה',
-          description: `אין מקום פנוי ב${side === 'long' ? 'לונגים' : 'שורטים'}`,
-          variant: 'destructive',
+      } finally {
+        setPendingTickers((prev) => {
+          const next = new Set(prev);
+          next.delete(v);
+          return next;
         });
+      }
+    },
+    [invokeFinviz, queryClient, refetch, toast],
+  );
+
+  const handleTickerChange = useCallback(
+    async (index: number, newTicker: string) => {
+      const v = normalizeTicker(newTicker);
+      if (!v) return;
+      setTickers((prev) => {
+        if (prev[index] === v) return prev;
+        const next = [...prev];
+        next[index] = v;
+        return next;
+      });
+      await fetchOne(v);
+    },
+    [fetchOne],
+  );
+
+  const handleAddTicker = useCallback(
+    async (raw: string) => {
+      const v = normalizeTicker(raw);
+      if (!v) return;
+      if (tickers.includes(v)) {
+        toast({ title: 'כבר ברשימה', description: `${v} כבר נמצא ברשימת הסימולים` });
         return;
       }
-      arr[slot] = ticker;
-      localStorage.setItem(key, JSON.stringify(arr));
-      window.dispatchEvent(new Event('storage'));
-      toast({
-        title: 'נוסף',
-        description: `${ticker} נוסף ל${side === 'long' ? 'לונגים' : 'שורטים'}`,
-      });
+      setTickers((prev) => (prev.includes(v) ? prev : [...prev, v]));
+      await fetchOne(v);
     },
-    [toast],
+    [tickers, fetchOne, toast],
   );
+
+  const handleRemoveTicker = useCallback((index: number) => {
+    setTickers((prev) => {
+      const next = [...prev];
+      next.splice(index, 1);
+      return next;
+    });
+  }, []);
+
 
   // ── Position calculator state lives in PositionCalculatorSection ─────────
 
 
-  // ── Under construction ─────────────────────────────────────────────────────
-  // The מחשבון מסחר section is temporarily disabled while it's being rebuilt.
-  // Remove this early return to restore the full calculator.
   return (
-    <div className="p-4 md:p-8 mx-auto max-w-2xl" dir="rtl">
-      <ComingSoonCard />
-    </div>
-  );
-
-  // eslint-disable-next-line no-unreachable
-  return (
-    <div className={`p-4 md:p-8 mx-auto ${activeTab === 'position' ? 'max-w-7xl' : 'max-w-6xl'}`} dir="rtl">
+    <div className={`calc-typeface p-4 md:p-8 mx-auto ${activeTab === 'position' ? 'max-w-7xl' : 'max-w-6xl'}`} dir="rtl">
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="aurora-chip aurora-chip-cyan w-10 h-10 rounded-xl flex items-center justify-center">
             {activeTab === 'atr' ? (
-              <Activity className="w-5 h-5 text-primary" />
+              <PulseIcon className="w-5 h-5 text-[#e2b54e]" />
             ) : activeTab === 'position' ? (
-              <Calculator className="w-5 h-5 text-primary" />
+              <CalculatorIcon solid className="w-5 h-5 text-[#e2b54e]" />
             ) : (
-              <CalendarRange className="w-5 h-5 text-primary" />
+              <CalendarIcon solid className="w-5 h-5 text-[#e2b54e]" />
             )}
           </div>
           <div>
@@ -257,13 +236,11 @@ export default function TradingCalculator() {
                   ? 'מחשבון גודל פוזיציה'
                   : 'לוח אירועים כלכליים'}
             </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {activeTab === 'atr'
-                ? 'מחיר סגירה ו-ATR(14) לסימולים נבחרים, נתונים מ-Finviz'
-                : activeTab === 'position'
-                  ? 'חשב כמות מניות לפי גודל חשבון, סיכון ומרחק סטופ'
-                  : 'אירועים מאקרו-כלכליים מ-Investing.com'}
-            </p>
+            {activeTab === 'calendar' && (
+              <p className="text-sm text-muted-foreground mt-0.5">
+                אירועים מאקרו-כלכליים מ-Investing.com
+              </p>
+            )}
           </div>
         </div>
 
@@ -276,11 +253,34 @@ export default function TradingCalculator() {
                   נתונים מ-Finviz · {latestDate}
                 </span>
               )}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddTicker(newTicker);
+                  setNewTicker('');
+                }}
+                className="flex items-center gap-2"
+              >
+                <Input
+                  value={newTicker}
+                  onChange={(e) =>
+                    setNewTicker(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5))
+                  }
+                  maxLength={5}
+                  dir="ltr"
+                  placeholder="AAPL"
+                  className="aurora-mono uppercase tracking-wider w-28 h-9 rounded-xl text-center text-sm"
+                />
+                <Button type="submit" size="sm" variant="secondary" disabled={!newTicker}>
+                  <PlusIcon className="w-4 h-4" />
+                  הוסף
+                </Button>
+              </form>
               <Button onClick={handleRefresh} disabled={isRefreshing} size="sm">
                 {isRefreshing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <LoaderIcon className="w-4 h-4 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshIcon className="w-4 h-4" />
                 )}
                 רענון
               </Button>
@@ -296,8 +296,8 @@ export default function TradingCalculator() {
           <div className="space-y-4">
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {isLoading
-                ? Array.from({ length: 6 }).map((_, i) => (
-                    <Skeleton key={i} className="h-64 rounded-2xl" />
+                ? Array.from({ length: Math.max(tickers.length, 1) }).map((_, i) => (
+                    <Skeleton key={i} className="h-64 rounded-3xl" />
                   ))
                 : tickers.map((t, i) => {
                     const row = latestByTicker[t];
@@ -307,8 +307,9 @@ export default function TradingCalculator() {
                         ticker={t}
                         closePrice={row ? row.close_price : 0}
                         atr={row ? row.atr : 0}
+                        loading={pendingTickers.has(t) && !row}
                         onTickerChange={(newT) => handleTickerChange(i, newT)}
-                        onAddToList={handleAddToList}
+                        onRemove={() => handleRemoveTicker(i)}
                         animationDelay={i * 100}
                       />
                     );
@@ -320,7 +321,7 @@ export default function TradingCalculator() {
         </div>
 
         <div className={activeTab === 'position' ? 'block' : 'hidden'}>
-          <PositionCalculatorSection />
+          <PositionCalculatorSection atrTickers={tickers} />
         </div>
 
         <div className={activeTab === 'calendar' ? 'block' : 'hidden'}>

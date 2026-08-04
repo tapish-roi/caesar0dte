@@ -15,14 +15,7 @@ const SUPABASE_URL = "https://dnsguhzzgxvymtjrraok.supabase.co";
 // endpoint directly — storage-js exposes no upload progress events.
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuc2d1aHp6Z3h2eW10anJyYW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MTA2MjAsImV4cCI6MjA5MzI4NjYyMH0.5llm0eyAmfbHi19YHYnUc2nHDi1yITpXrw-ccKcEyms";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  TrendingUp, LayoutGrid, BookOpen, Users, Plus, Video, FileText,
-  ChevronDown, Trash2, Eye, EyeOff,
-  LogOut, Send, X, Check, Film, Upload, GraduationCap,
-  Image, MessageSquare, MessageCircle, Pin, PinOff,
-  ShieldCheck, Lock, Unlock, Paperclip, Pencil, GripVertical, Radio,
-  MessageCircleQuestion, ClipboardList, List, AlignLeft, LineChart, Calculator, RefreshCw,
-} from 'lucide-react';
+import { AlignLeftIcon, AttachIcon, CalculatorIcon, CheckIcon, ChevronDownIcon, ChevronLeftIcon, CloseIcon, CommentIcon, EditIcon, EyeIcon, EyeOffIcon, FileIcon, FilmIcon, GraduationIcon, GridIcon, GripIcon, ImageIcon, JournalIcon, LiveIcon, LockIcon, LogoutIcon, MessageIcon, PinIcon, PinOffIcon, PlusIcon, QuestionIcon, QuizIcon, RefreshIcon, SendIcon, ShieldIcon, TrashIcon, TrendIcon, UnlockIcon, UploadIcon, UsersIcon, VideoIcon, type IconComponent } from '@/components/icons';
 import { Link } from 'react-router-dom';
 import TradingCalculator from '@/components/TradingCalculator';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +26,7 @@ import LiveHubMentor from '@/components/LiveHubMentor';
 import ZoomHub from '@/components/ZoomHub';
 import MentorQuestionsHub from '@/components/MentorQuestionsHub';
 import MentorQuizzesHub from '@/components/MentorQuizzesHub';
+import StudentsTabTutorialButton from '@/components/StudentsTabTutorialButton';
 import LessonQA from '@/components/LessonQA';
 import LessonStudentProgress from '@/components/LessonStudentProgress';
 import MobileBottomNav from '@/components/MobileBottomNav';
@@ -40,7 +34,6 @@ import PlanetBackground, { type Planet } from '@/components/PlanetBackground';
 import MobileHeader from '@/components/MobileHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useLiquidGlass } from '@/hooks/use-liquid-glass';
-import { ChevronLeft } from 'lucide-react';
 
 // ── Raw PostgREST helpers that BYPASS the supabase-js auth lock ──────────────
 // Every supabase.from(...) call serialises behind the client's Web-Lock-backed
@@ -232,14 +225,14 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
 
   if (!quiz) return (
     <div className="w-full md:w-80 shrink-0 bg-card border border-border rounded-xl p-5 flex flex-col items-center justify-center gap-3 min-h-[200px] text-center" dir="rtl">
-      <ClipboardList className="w-8 h-8 text-muted-foreground opacity-30" />
+      <QuizIcon className="w-8 h-8 text-muted-foreground opacity-30" />
       <p className="text-sm font-medium text-foreground">אין מבחן לשיעור זה</p>
       <p className="text-xs text-muted-foreground">צור מבחן כדי לבחון את התלמידים</p>
       <button
         onClick={onCreateQuiz}
         className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-all mt-1"
       >
-        <Plus className="w-3.5 h-3.5" />צור מבחן
+        <PlusIcon solid className="w-3.5 h-3.5" />צור מבחן
       </button>
     </div>
   );
@@ -249,7 +242,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${quiz.is_published ? 'bg-accent/10' : 'bg-muted'}`}>
-          <ClipboardList className={`w-4 h-4 ${quiz.is_published ? 'text-accent' : 'text-muted-foreground'}`} />
+          <QuizIcon className={`w-4 h-4 ${quiz.is_published ? 'text-accent' : 'text-muted-foreground'}`} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground truncate">{quiz.title}</p>
@@ -278,7 +271,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
                           {String.fromCharCode(65 + oIdx)}
                         </span>
                         {opt.option_text}
-                        {opt.is_correct && <Check className="w-3 h-3 ms-auto shrink-0" />}
+                        {opt.is_correct && <CheckIcon className="w-3 h-3 ms-auto shrink-0" />}
                       </div>
                       {opt.explanation && (
                         <p className="text-[10px] text-muted-foreground/70 me-6 px-2 leading-snug">💬 {opt.explanation}</p>
@@ -289,7 +282,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
               ) : (
                 <div className="me-7 space-y-1">
                   <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <AlignLeft className="w-3 h-3 shrink-0" />שאלה פתוחה
+                    <AlignLeftIcon className="w-3 h-3 shrink-0" />שאלה פתוחה
                   </div>
                   {q.expected_answer && (
                     <p className="text-[10px] text-accent/80 px-2 leading-snug">✅ תשובה רצויה: {q.expected_answer}</p>
@@ -309,7 +302,7 @@ function LessonQuizPanel({ lessonId, mentorId, onCreateQuiz }: { lessonId: strin
           onClick={onCreateQuiz}
           className="w-full flex items-center justify-center gap-2 h-8 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-all"
         >
-          <ClipboardList className="w-3.5 h-3.5" />נהל מבחנים
+          <QuizIcon className="w-3.5 h-3.5" />נהל מבחנים
         </button>
       </div>
     </div>
@@ -1108,10 +1101,10 @@ export default function MentorDashboard() {
   };
 
   const typeIcon = (type: string) => {
-    if (type === 'zoom_recording') return <Film className="w-3.5 h-3.5 text-primary" />;
-    if (type === 'presentation') return <FileText className="w-3.5 h-3.5 text-accent" />;
-    if (type === 'live') return <Radio className="w-3.5 h-3.5 text-destructive" />;
-    return <Video className="w-3.5 h-3.5 text-accent" />;
+    if (type === 'zoom_recording') return <FilmIcon className="w-3.5 h-3.5 text-primary" />;
+    if (type === 'presentation') return <FileIcon className="w-3.5 h-3.5 text-accent" />;
+    if (type === 'live') return <LiveIcon solid className="w-3.5 h-3.5 text-destructive" />;
+    return <VideoIcon className="w-3.5 h-3.5 text-accent" />;
   };
 
   const typeLabel = (type: string) => {
@@ -1122,22 +1115,22 @@ export default function MentorDashboard() {
   };
 
   const lessonTypes = [
-    { key: 'recorded_lesson', label: 'שיעור מוקלט', icon: Video },
-    { key: 'zoom_recording', label: 'הקלטת זום', icon: Film },
-    { key: 'presentation', label: 'מצגות', icon: FileText },
+    { key: 'recorded_lesson', label: 'שיעור מוקלט', icon: VideoIcon },
+    { key: 'zoom_recording', label: 'הקלטת זום', icon: FilmIcon },
+    { key: 'presentation', label: 'מצגות', icon: FileIcon },
   ];
 
-  const postTypeOptions: { key: PostType; label: string; icon: typeof MessageSquare }[] = [
-    { key: 'discussion', label: 'דיון', icon: MessageSquare },
-    { key: 'media', label: 'תמונה/וידאו', icon: Image },
+  const postTypeOptions: { key: PostType; label: string; icon: typeof MessageIcon }[] = [
+    { key: 'discussion', label: 'דיון', icon: MessageIcon },
+    { key: 'media', label: 'תמונה/וידאו', icon: ImageIcon },
   ];
 
   const postTypeBg: Record<string, string> = { discussion: 'bg-primary/10', media: 'bg-accent/10' };
   const postTypeColor: Record<string, string> = { discussion: 'text-primary', media: 'text-accent' };
   const postTypeLabel: Record<string, string> = { discussion: 'דיון', media: 'מדיה' };
   const postTypeIcon = (type: string) => {
-    if (type === 'media') return <Image className="w-3.5 h-3.5" />;
-    return <MessageCircle className="w-3.5 h-3.5" />;
+    if (type === 'media') return <ImageIcon className="w-3.5 h-3.5" />;
+    return <CommentIcon className="w-3.5 h-3.5" />;
   };
 
   const formatDate = (iso: string) =>
@@ -1202,13 +1195,13 @@ export default function MentorDashboard() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   const mentorNavItems = [
-    { key: 'lessons' as const, label: 'שיעורים', icon: BookOpen },
-    { key: 'community' as const, label: 'קהילה', icon: Users },
-    { key: 'students' as const, label: 'תלמידים', icon: GraduationCap },
-    { key: 'zoom' as const, label: 'Zoom', icon: Video },
-    { key: 'questions' as const, label: 'שאלות', icon: MessageCircleQuestion, badge: unansweredCount },
-    { key: 'quizzes' as const, label: 'מבחנים', icon: ClipboardList },
-    { key: 'calculator' as const, label: 'מחשבון מסחר', icon: Calculator },
+    { key: 'lessons' as const, label: 'שיעורים', icon: JournalIcon },
+    { key: 'community' as const, label: 'קהילה', icon: UsersIcon },
+    { key: 'students' as const, label: 'תלמידים', icon: GraduationIcon },
+    { key: 'zoom' as const, label: 'Zoom', icon: VideoIcon },
+    { key: 'questions' as const, label: 'שאלות', icon: QuestionIcon, badge: unansweredCount },
+    { key: 'quizzes' as const, label: 'מבחנים', icon: QuizIcon },
+    { key: 'calculator' as const, label: 'מחשבון מסחר', icon: CalculatorIcon },
   ];
 
   return (
@@ -1291,12 +1284,12 @@ export default function MentorDashboard() {
                   onClick={() => { setLessonViewMode(null); setSelectedLesson(null); }}
                   className="flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity mb-3"
                 >
-                  <ChevronDown className="w-4 h-4 rotate-90" />
+                  <ChevronDownIcon className="w-4 h-4 rotate-90" />
                   חזור לתפריט הראשי
                 </button>
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <BookOpen className="w-3.5 h-3.5 text-primary" />
+                    <JournalIcon className="w-3.5 h-3.5 text-primary" />
                   </div>
                   <h3 className="text-sm font-bold text-sidebar-foreground truncate">{lessonViewMode.categoryTitle}</h3>
                 </div>
@@ -1318,7 +1311,7 @@ export default function MentorDashboard() {
                           <p className={`text-xs font-medium leading-tight truncate ${isSelected ? 'text-primary' : 'text-sidebar-foreground'}`}>{lesson.title}</p>
                           <div className="flex items-center gap-1.5 mt-1">
                             {lesson.duration_minutes && <span className="text-[10px] text-muted-foreground">{lesson.duration_minutes} דק'</span>}
-                            {lesson.attachment_url && <span className="inline-flex items-center gap-0.5 text-[10px] text-primary/70"><Paperclip className="w-2.5 h-2.5" />צירוף</span>}
+                            {lesson.attachment_url && <span className="inline-flex items-center gap-0.5 text-[10px] text-primary/70"><AttachIcon className="w-2.5 h-2.5" />צירוף</span>}
                             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${lesson.is_published ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>{lesson.is_published ? 'פורסם' : 'טיוטה'}</span>
                           </div>
                         </div>
@@ -1331,7 +1324,7 @@ export default function MentorDashboard() {
                 <div className="flex items-center gap-3 px-2 py-2">
                   <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">{user?.email?.[0]?.toUpperCase()}</div>
                   <div className="flex-1 min-w-0"><div className="text-xs font-medium text-sidebar-foreground truncate">{mentorProfile?.full_name || user?.email}</div></div>
-                  <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors"><LogOut className="w-4 h-4" /></button>
+                  <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors"><LogoutIcon className="w-4 h-4" /></button>
                 </div>
               </div>
             </motion.div>
@@ -1344,7 +1337,7 @@ export default function MentorDashboard() {
                   className="flex items-center gap-3 w-full text-right hover:opacity-75 transition-opacity cursor-pointer"
                 >
                   <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-primary-foreground" />
+                    <TrendIcon solid className="w-5 h-5 text-primary-foreground" />
                   </div>
                   <div>
                     <div className="font-bold text-sm text-sidebar-foreground">Caesar 0 DTE</div>
@@ -1355,14 +1348,14 @@ export default function MentorDashboard() {
 
               <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
                {([
-                   { key: 'lessons', label: 'שיעורים', icon: BookOpen },
-                   { key: 'community', label: 'קהילה', icon: Users },
-                   { key: 'students', label: 'תלמידים', icon: GraduationCap },
-                   { key: 'zoom', label: 'Zoom', icon: Video },
-                   { key: 'questions', label: 'שאלות', icon: MessageCircleQuestion },
-                   { key: 'quizzes', label: 'מבחנים', icon: ClipboardList },
-                   { key: 'calculator', label: 'מחשבון מסחר', icon: Calculator },
-                 ] as { key: SidebarTab | 'journal'; label: string; icon: typeof BookOpen; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
+                   { key: 'lessons', label: 'שיעורים', icon: JournalIcon },
+                   { key: 'community', label: 'קהילה', icon: UsersIcon },
+                   { key: 'students', label: 'תלמידים', icon: GraduationIcon },
+                   { key: 'zoom', label: 'Zoom', icon: VideoIcon },
+                   { key: 'questions', label: 'שאלות', icon: QuestionIcon },
+                   { key: 'quizzes', label: 'מבחנים', icon: QuizIcon },
+                   { key: 'calculator', label: 'מחשבון מסחר', icon: CalculatorIcon },
+                 ] as { key: SidebarTab | 'journal'; label: string; icon: IconComponent; disabled?: boolean; href?: string }[]).map(({ key, label, icon: Icon, disabled, href }) => (
                    href ? (
                      <Link
                        key={key}
@@ -1386,7 +1379,7 @@ export default function MentorDashboard() {
                    >
                      <Icon className="w-4 h-4" />
                      <span className="sidebar-tab-label flex-1 text-right">{label}</span>
-                     {disabled && <Lock className="w-3 h-3 text-muted-foreground/40" />}
+                     {disabled && <LockIcon className="w-3 h-3 text-muted-foreground/40" />}
                      {key === 'questions' && unansweredCount > 0 && (
                        <span className="min-w-[20px] h-5 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
                          {unansweredCount > 99 ? '99+' : unansweredCount}
@@ -1406,7 +1399,7 @@ export default function MentorDashboard() {
                     <div className="text-xs font-medium text-sidebar-foreground truncate">{user?.email}</div>
                   </div>
                   <button onClick={signOut} className="text-muted-foreground hover:text-destructive transition-colors">
-                    <LogOut className="w-4 h-4" />
+                    <LogoutIcon className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -1429,7 +1422,7 @@ export default function MentorDashboard() {
                   onClick={() => { setLessonViewMode(null); setSelectedLesson(null); }}
                   className="flex items-center gap-2 text-sm font-medium text-primary hover:opacity-80 transition-opacity mb-4"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeftIcon className="w-4 h-4" />
                   חזור לרשימת השיעורים
                 </button>
               )}
@@ -1450,7 +1443,7 @@ export default function MentorDashboard() {
                               <video src={lesson.video_url} className="w-full h-full" controls controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
                             ) : (
                               <div className="text-center">
-                                <Video className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />
+                                <VideoIcon className="w-12 h-12 mx-auto mb-2 text-muted-foreground opacity-40" />
                                 <p className="text-sm text-muted-foreground">אין קובץ וידאו</p>
                               </div>
                             )}
@@ -1459,9 +1452,9 @@ export default function MentorDashboard() {
                             {/* Publish status banner */}
                             <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg mb-4 text-sm font-medium ${lesson.is_published ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-red-500/10 text-red-600 border border-red-500/20'}`}>
                               {lesson.is_published ? (
-                                <><Eye className="w-4 h-4 shrink-0" />השיעור פורסם לתלמידים</>
+                                <><EyeIcon className="w-4 h-4 shrink-0" />השיעור פורסם לתלמידים</>
                               ) : (
-                                <><EyeOff className="w-4 h-4 shrink-0" />השיעור טרם פורסם לתלמידים</>
+                                <><EyeOffIcon className="w-4 h-4 shrink-0" />השיעור טרם פורסם לתלמידים</>
                               )}
                             </div>
                             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1471,7 +1464,7 @@ export default function MentorDashboard() {
                                   onClick={() => { setEditLesson(lesson); setEditForm({ title: lesson.title, description: lesson.description ?? '', video_url: lesson.video_url ?? '', duration_minutes: lesson.duration_minutes?.toString() ?? '', attachment_url: lesson.attachment_url ?? '', attachment_name: lesson.attachment_name ?? '', category_id: lesson.category_id ?? '' }); }}
                                   className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-foreground hover:bg-muted transition-all"
                                 >
-                                  <Pencil className="w-3.5 h-3.5" />ערוך
+                                  <EditIcon className="w-3.5 h-3.5" />ערוך
                                 </button>
                               </div>
                             </div>
@@ -1500,7 +1493,7 @@ export default function MentorDashboard() {
                           <div className="px-6 pb-6">
                             <div className="border border-border rounded-xl p-4">
                               <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                                <Eye className="w-4 h-4 text-primary" />
+                                <EyeIcon className="w-4 h-4 text-primary" />
                                 התקדמות צפייה של תלמידים
                               </h3>
                               <LessonStudentProgress lessonId={lesson.id} mentorId={user?.id} durationMinutes={lesson.duration_minutes} />
@@ -1536,7 +1529,7 @@ export default function MentorDashboard() {
                     </div>
                   ) : (
                     <div className="text-center py-24 text-muted-foreground">
-                      <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <JournalIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
                       <p className="font-medium">בחר שיעור מהרשימה</p>
                       <p className="text-sm mt-1">לחץ על שיעור בסרגל הצד כדי לצפות בו</p>
                     </div>
@@ -1555,13 +1548,13 @@ export default function MentorDashboard() {
                     onClick={() => setShowCategoryForm(true)}
                     className="flex items-center gap-1.5 md:gap-2 h-8 md:h-9 px-2.5 md:px-4 rounded-lg border border-border text-xs md:text-sm font-medium text-foreground hover:bg-muted transition-all"
                   >
-                    <LayoutGrid className="w-3.5 h-3.5 md:w-4 md:h-4" />קטגוריה חדשה
+                    <GridIcon className="w-3.5 h-3.5 md:w-4 md:h-4" />קטגוריה חדשה
                   </button>
                   <button
                     onClick={() => { setSelectedCategoryId(null); setShowLessonPanel(true); }}
                     className="flex items-center gap-1.5 md:gap-2 h-8 md:h-9 px-2.5 md:px-4 rounded-lg bg-primary text-primary-foreground text-xs md:text-sm font-medium hover:opacity-90 transition-all"
                   >
-                    <Plus className="w-3.5 h-3.5 md:w-4 md:h-4" />צור שיעור חדש
+                    <PlusIcon solid className="w-3.5 h-3.5 md:w-4 md:h-4" />צור שיעור חדש
                   </button>
                 </div>
               </div>
@@ -1577,10 +1570,10 @@ export default function MentorDashboard() {
                         onKeyDown={e => e.key === 'Enter' && newCatTitle.trim() && createCategory.mutate(newCatTitle)}
                       />
                       <button onClick={() => newCatTitle.trim() && createCategory.mutate(newCatTitle)} className="h-10 px-4 bg-accent text-accent-foreground rounded-lg text-sm font-medium hover:opacity-90">
-                        <Check className="w-4 h-4" />
+                        <CheckIcon className="w-4 h-4" />
                       </button>
                       <button onClick={() => { setShowCategoryForm(false); setNewCatTitle(''); }} className="h-10 px-3 rounded-lg text-muted-foreground hover:text-foreground">
-                        <X className="w-4 h-4" />
+                        <CloseIcon className="w-4 h-4" />
                       </button>
                     </div>
                   </motion.div>
@@ -1607,14 +1600,14 @@ export default function MentorDashboard() {
                       className={`bg-card rounded-xl card-shadow overflow-hidden transition-shadow ${isMoveTarget ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''}`}
                     >
                       <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors" onClick={() => toggleCat(cat.id)}>
-                        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                        <ChevronDownIcon className={`w-4 h-4 text-muted-foreground transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
                         <span className="font-semibold text-foreground flex-1">{cat.title}</span>
                         <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{catLessons.length} שיעורים</span>
                         <button onClick={e => { e.stopPropagation(); setSelectedCategoryId(cat.id); setShowLessonPanel(true); }} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-accent/10 text-accent transition-colors">
-                          <Plus className="w-4 h-4" />
+                          <PlusIcon className="w-4 h-4" />
                         </button>
                         <button onClick={e => { e.stopPropagation(); setDeleteCatConfirm({ id: cat.id, title: cat.title, lessonCount: catLessons.length }); }} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <TrashIcon className="w-3.5 h-3.5" />
                         </button>
                       </div>
                       <AnimatePresence>
@@ -1686,7 +1679,7 @@ export default function MentorDashboard() {
 
                 {categories.length === 0 && lessons.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
-                    <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <JournalIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="font-medium">אין שיעורים עדיין</p>
                     <p className="text-sm mt-1">צור קטגוריה ושיעורים ראשונים</p>
                   </div>
@@ -1716,7 +1709,7 @@ export default function MentorDashboard() {
                   className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 transition-all disabled:opacity-50"
                   title="רענן פיד ומדיה"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${refreshingFeed ? 'animate-spin' : ''}`} />
+                  <RefreshIcon className={`w-3.5 h-3.5 ${refreshingFeed ? 'animate-spin' : ''}`} />
                   רענן
                 </button>
               </div>
@@ -1774,7 +1767,7 @@ export default function MentorDashboard() {
                           onClick={() => { setPostMediaUrl(''); setPostMediaType(''); if (postFileInputRef.current) postFileInputRef.current.value = ''; }}
                           className="absolute top-2 left-2 w-7 h-7 bg-foreground/60 rounded-full flex items-center justify-center text-background hover:bg-foreground/80"
                         >
-                          <X className="w-4 h-4" />
+                          <CloseIcon className="w-4 h-4" />
                         </button>
                       </div>
                     ) : (
@@ -1784,7 +1777,7 @@ export default function MentorDashboard() {
                       >
                         {isPostUploading
                           ? <><div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" /><span>מעלה...</span></>
-                          : <><Upload className="w-4 h-4" /><span>העלה תמונה או וידאו</span></>
+                          : <><UploadIcon className="w-4 h-4" /><span>העלה תמונה או וידאו</span></>
                         }
                       </button>
                     )}
@@ -1797,7 +1790,7 @@ export default function MentorDashboard() {
                     disabled={!postContent.trim() || createPost.isPending || isPostUploading}
                     className="flex items-center gap-2 h-9 px-5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50"
                   >
-                    <Send className="w-4 h-4" />{createPost.isPending ? 'מפרסם...' : 'פרסם'}
+                    <SendIcon solid className="w-4 h-4" />{createPost.isPending ? 'מפרסם...' : 'פרסם'}
                   </button>
                 </div>
               </div>
@@ -1806,7 +1799,7 @@ export default function MentorDashboard() {
               <div className="space-y-4">
                 {posts.length === 0 ? (
                   <div className="text-center py-16 text-muted-foreground">
-                    <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <MessageIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="font-medium">אין פוסטים עדיין</p>
                     <p className="text-sm mt-1">פרסם את הפוסט הראשון שלך לקהילה</p>
                   </div>
@@ -1849,6 +1842,9 @@ export default function MentorDashboard() {
                   <h1 className="text-2xl font-bold text-foreground">תלמידים</h1>
                   <p className="text-sm text-muted-foreground mt-1">{members.length} תלמידים רשומים</p>
                 </div>
+                {/* Animated walkthrough of this tab. Rendered from code, not a
+                    video file — costs nothing in storage or bandwidth. */}
+                <StudentsTabTutorialButton className="mt-1" />
               </div>
 
               <div className="bg-card rounded-xl card-shadow p-6 mb-6">
@@ -1867,7 +1863,7 @@ export default function MentorDashboard() {
                     disabled={!inviteContact.trim() || sendInvite.isPending}
                     className="h-11 px-6 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 w-full md:w-auto"
                   >
-                    <Send className="w-4 h-4" />שלח הזמנה
+                    <SendIcon solid className="w-4 h-4" />שלח הזמנה
                   </button>
                 </div>
               </div>
@@ -1879,7 +1875,7 @@ export default function MentorDashboard() {
                     {invites.map((inv: { id: string; contact: string; created_at: string }) => (
                       <div key={inv.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-muted/30 transition-colors group">
                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <Send className="w-3.5 h-3.5 text-primary" />
+                          <SendIcon className="w-3.5 h-3.5 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className="text-sm text-foreground block truncate">{inv.contact}</span>
@@ -1895,7 +1891,7 @@ export default function MentorDashboard() {
                           className="h-7 px-2.5 flex items-center gap-1.5 rounded-md text-xs font-medium text-primary hover:bg-primary/10 transition-all disabled:opacity-50 shrink-0"
                           title="שלח שוב את מייל ההזמנה"
                         >
-                          <RefreshCw className={`w-3.5 h-3.5 ${resendInvite.isPending && resendInvite.variables?.id === inv.id ? 'animate-spin' : ''}`} />
+                          <RefreshIcon className={`w-3.5 h-3.5 ${resendInvite.isPending && resendInvite.variables?.id === inv.id ? 'animate-spin' : ''}`} />
                           <span className="hidden sm:inline">
                             {resendInvite.isPending && resendInvite.variables?.id === inv.id ? 'שולח…' : 'שלח שוב'}
                           </span>
@@ -1905,7 +1901,7 @@ export default function MentorDashboard() {
                           className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
                           title="בטל הזמנה"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <TrashIcon className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
@@ -1917,7 +1913,7 @@ export default function MentorDashboard() {
                 <h2 className="font-semibold text-foreground mb-3">תלמידים בקהילה</h2>
                 {members.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    <GraduationCap className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <GraduationIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="font-medium">אין תלמידים עדיין</p>
                     <p className="text-sm mt-1">הזמן תלמידים באמצעות הטופס למעלה</p>
                   </div>
@@ -1949,10 +1945,10 @@ export default function MentorDashboard() {
                                   placeholder={m.profiles?.full_name || 'כינוי'}
                                 />
                                 <button type="submit" className="w-6 h-6 flex items-center justify-center rounded text-accent hover:bg-accent/10 shrink-0">
-                                  <Check className="w-3.5 h-3.5" />
+                                  <CheckIcon className="w-3.5 h-3.5" />
                                 </button>
                                 <button type="button" onClick={() => setEditingNickname(null)} className="w-6 h-6 flex items-center justify-center rounded text-muted-foreground hover:bg-muted shrink-0">
-                                  <X className="w-3.5 h-3.5" />
+                                  <CloseIcon className="w-3.5 h-3.5" />
                                 </button>
                               </form>
                             ) : (
@@ -1966,7 +1962,7 @@ export default function MentorDashboard() {
                                   className="md:opacity-0 md:group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-primary transition-all shrink-0"
                                   title="ערוך כינוי"
                                 >
-                                  <Pencil className="w-3 h-3" />
+                                  <EditIcon className="w-3 h-3" />
                                 </button>
                               </div>
                             )}
@@ -1983,14 +1979,14 @@ export default function MentorDashboard() {
                             className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-md text-primary/60 hover:text-primary hover:bg-primary/10 transition-all shrink-0"
                             title="נהל הרשאות קטגוריות"
                           >
-                            <ShieldCheck className="w-4 h-4" />
+                            <ShieldIcon className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setRemoveConfirm({ studentId: m.student_id, name: displayName })}
                             className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all shrink-0"
                             title="הסר מהקהילה"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <TrashIcon className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -2033,9 +2029,14 @@ export default function MentorDashboard() {
           {/* journal removed — now lives on /journal */}
 
           {/* ──────── TRADING CALCULATOR ──────── */}
+          {/* Live for mentors — the calculator lives in
+              src/components/TradingCalculator.tsx. Swap back to <ComingSoonCard />
+              to re-gate it. */}
           {activeTab === 'calculator' && (
             <motion.div key="calculator" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <TradingCalculator />
+              <div className="p-4 md:p-8 mx-auto max-w-6xl" dir="rtl">
+                <TradingCalculator />
+              </div>
             </motion.div>
           )}
 
@@ -2055,7 +2056,7 @@ export default function MentorDashboard() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-1">
                   <button onClick={() => setAccessStudentId(null)} className="text-muted-foreground hover:text-foreground transition-colors">
-                    <X className="w-5 h-5" />
+                    <CloseIcon className="w-5 h-5" />
                   </button>
                   <h2 className="text-lg font-bold text-foreground">הרשאות קטגוריות</h2>
                   <div />
@@ -2066,7 +2067,7 @@ export default function MentorDashboard() {
 
                 {/* All-access note */}
                 <div className="bg-primary/5 border border-primary/15 rounded-xl p-3 mb-5 flex items-start gap-2.5">
-                  <ShieldCheck className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <ShieldIcon className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     ללא הרשאות ספציפיות — התלמיד רואה את כל הקטגוריות הפומביות. הגדר כאן הרשאות להגבלת גישה לקטגוריות נבחרות בלבד.
                   </p>
@@ -2074,7 +2075,7 @@ export default function MentorDashboard() {
 
                 {categories.length === 0 ? (
                   <div className="text-center py-10 text-muted-foreground">
-                    <LayoutGrid className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <GridIcon className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">אין קטגוריות עדיין</p>
                   </div>
                 ) : (
@@ -2095,8 +2096,8 @@ export default function MentorDashboard() {
                             hasAccess ? 'bg-primary/10' : 'bg-muted'
                           }`}>
                             {hasAccess
-                              ? <Unlock className="w-4 h-4 text-primary" />
-                              : <Lock className="w-4 h-4 text-muted-foreground" />
+                              ? <UnlockIcon className="w-4 h-4 text-primary" />
+                              : <LockIcon className="w-4 h-4 text-muted-foreground" />
                             }
                           </div>
                           <div className="flex-1 min-w-0">
@@ -2148,7 +2149,7 @@ export default function MentorDashboard() {
             >
               <div className="bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-sm" dir="rtl">
                 <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-                  <Trash2 className="w-5 h-5 text-destructive" />
+                  <TrashIcon solid className="w-5 h-5 text-destructive" />
                 </div>
                 <h3 className="text-base font-bold text-foreground text-center mb-1">הסרת תלמיד</h3>
                 <p className="text-sm text-muted-foreground text-center mb-6">
@@ -2189,7 +2190,7 @@ export default function MentorDashboard() {
             >
               <div className="bg-card border border-border rounded-2xl shadow-2xl p-6 w-full max-w-sm" dir="rtl">
                 <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
-                  <Trash2 className="w-5 h-5 text-destructive" />
+                  <TrashIcon solid className="w-5 h-5 text-destructive" />
                 </div>
                 <h3 className="text-base font-bold text-foreground text-center mb-1">מחיקת קטגוריה</h3>
                 <p className="text-sm text-muted-foreground text-center mb-6">
@@ -2236,7 +2237,7 @@ export default function MentorDashboard() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-foreground">שיעור חדש</h2>
-                  <button onClick={() => setShowLessonPanel(false)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+                  <button onClick={() => setShowLessonPanel(false)} className="text-muted-foreground hover:text-foreground"><CloseIcon className="w-5 h-5" /></button>
                 </div>
 
                 <div className="space-y-4">
@@ -2283,10 +2284,10 @@ export default function MentorDashboard() {
                     />
                     {lessonForm.video_url ? (
                       <div className="flex items-center gap-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
-                        <Check className="w-4 h-4 text-accent shrink-0" />
+                        <CheckIcon className="w-4 h-4 text-accent shrink-0" />
                         <span className="text-xs text-accent flex-1 truncate">הקובץ הועלה בהצלחה</span>
                         <button onClick={() => { setLessonForm(f => ({ ...f, video_url: '' })); if (fileInputRef.current) fileInputRef.current.value = ''; }} className="text-muted-foreground hover:text-destructive">
-                          <X className="w-4 h-4" />
+                          <CloseIcon className="w-4 h-4" />
                         </button>
                       </div>
                     ) : (
@@ -2304,7 +2305,7 @@ export default function MentorDashboard() {
                             )}
                           </>
                           : <>
-                            <Upload className="w-5 h-5" />
+                            <UploadIcon className="w-5 h-5" />
                             <span className="text-xs font-medium">{isPresentation ? 'לחץ להעלאת מצגת או וידאו' : 'לחץ להעלאת וידאו'}</span>
                             <span className="text-xs opacity-60">{isPresentation ? 'MP4, PDF, PPT, PPTX' : 'MP4, MOV, AVI'} · עד {formatBytes(MAX_UPLOAD_BYTES)}</span>
                           </>
@@ -2317,7 +2318,7 @@ export default function MentorDashboard() {
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">
                       <span className="flex items-center gap-1.5">
-                        <Paperclip className="w-4 h-4 text-muted-foreground" />
+                        <AttachIcon className="w-4 h-4 text-muted-foreground" />
                         קובץ מצורף (אופציונלי)
                       </span>
                     </label>
@@ -2338,13 +2339,13 @@ export default function MentorDashboard() {
                     />
                     {lessonForm.attachment_url ? (
                       <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                        <Paperclip className="w-4 h-4 text-primary shrink-0" />
+                        <AttachIcon className="w-4 h-4 text-primary shrink-0" />
                         <span className="text-xs text-primary flex-1 truncate">{lessonForm.attachment_name}</span>
                         <button
                           onClick={() => { setLessonForm(f => ({ ...f, attachment_url: '', attachment_name: '' })); if (attachmentInputRef.current) attachmentInputRef.current.value = ''; }}
                           className="text-muted-foreground hover:text-destructive"
                         >
-                          <X className="w-4 h-4" />
+                          <CloseIcon className="w-4 h-4" />
                         </button>
                       </div>
                     ) : (
@@ -2353,7 +2354,7 @@ export default function MentorDashboard() {
                       >
                         {isAttachmentUploading
                           ? <><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">מעלה...</span></>
-                          : <><Paperclip className="w-4 h-4" /><span className="text-xs font-medium">PDF, PPT, DOC, תמונה, ZIP...</span></>
+                          : <><AttachIcon className="w-4 h-4" /><span className="text-xs font-medium">PDF, PPT, DOC, תמונה, ZIP...</span></>
                         }
                       </button>
                     )}
@@ -2419,7 +2420,7 @@ export default function MentorDashboard() {
                     }}
                     className="w-full h-11 border border-primary/30 bg-primary/5 text-primary rounded-lg font-medium hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
                   >
-                    <ClipboardList className="w-4 h-4" />צור מבחן לשיעור זה
+                    <QuizIcon className="w-4 h-4" />צור מבחן לשיעור זה
                   </button>
                 </div>
               </div>
@@ -2443,7 +2444,7 @@ export default function MentorDashboard() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-foreground">עריכת פוסט</h2>
-                  <button onClick={() => setEditPost(null)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+                  <button onClick={() => setEditPost(null)} className="text-muted-foreground hover:text-foreground"><CloseIcon className="w-5 h-5" /></button>
                 </div>
 
                 <div className="space-y-4">
@@ -2484,13 +2485,13 @@ export default function MentorDashboard() {
                               disabled={isEditPostUploading}
                               className="h-7 px-2 bg-foreground/60 rounded-full text-background text-xs hover:bg-foreground/80 flex items-center gap-1"
                             >
-                              {isEditPostUploading ? <div className="w-3 h-3 border border-background border-t-transparent rounded-full animate-spin" /> : <><Upload className="w-3 h-3" />החלף</>}
+                              {isEditPostUploading ? <div className="w-3 h-3 border border-background border-t-transparent rounded-full animate-spin" /> : <><UploadIcon className="w-3 h-3" />החלף</>}
                             </button>
                             <button
                               onClick={() => { setEditPostMediaUrl(''); setEditPostMediaType(''); }}
                               className="w-7 h-7 bg-foreground/60 rounded-full flex items-center justify-center text-background hover:bg-foreground/80"
                             >
-                              <X className="w-4 h-4" />
+                              <CloseIcon className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
@@ -2502,7 +2503,7 @@ export default function MentorDashboard() {
                         >
                           {isEditPostUploading
                             ? <><div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" /><span>מעלה...</span></>
-                            : <><Upload className="w-4 h-4" /><span>העלה תמונה או וידאו</span></>
+                            : <><UploadIcon className="w-4 h-4" /><span>העלה תמונה או וידאו</span></>
                           }
                         </button>
                       )}
@@ -2536,7 +2537,7 @@ export default function MentorDashboard() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-bold text-foreground">עריכת שיעור</h2>
-                  <button onClick={() => setEditLesson(null)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+                  <button onClick={() => setEditLesson(null)} className="text-muted-foreground hover:text-foreground"><CloseIcon className="w-5 h-5" /></button>
                 </div>
 
                 <div className="space-y-4">
@@ -2589,7 +2590,7 @@ export default function MentorDashboard() {
                     />
                     {editForm.video_url ? (
                       <div className="flex items-center gap-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
-                        <Check className="w-4 h-4 text-accent shrink-0" />
+                        <CheckIcon className="w-4 h-4 text-accent shrink-0" />
                         <span className="text-xs text-accent flex-1 truncate">יש קובץ וידאו</span>
                         <button
                           onClick={() => editVideoInputRef.current?.click()}
@@ -2599,7 +2600,7 @@ export default function MentorDashboard() {
                           {isEditVideoUploading ? 'מעלה...' : 'החלף'}
                         </button>
                         <button onClick={() => setEditForm(f => ({ ...f, video_url: '' }))} className="text-muted-foreground hover:text-destructive">
-                          <X className="w-4 h-4" />
+                          <CloseIcon className="w-4 h-4" />
                         </button>
                       </div>
                     ) : (
@@ -2608,7 +2609,7 @@ export default function MentorDashboard() {
                       >
                         {isEditVideoUploading
                           ? <><div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" /><span className="text-xs">מעלה...</span></>
-                          : <><Upload className="w-5 h-5" /><span className="text-xs font-medium">העלה וידאו חדש</span></>
+                          : <><UploadIcon className="w-5 h-5" /><span className="text-xs font-medium">העלה וידאו חדש</span></>
                         }
                       </button>
                     )}
@@ -2617,7 +2618,7 @@ export default function MentorDashboard() {
                   {/* Attachment replacement */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-1.5">
-                      <span className="flex items-center gap-1.5"><Paperclip className="w-4 h-4 text-muted-foreground" />קובץ מצורף</span>
+                      <span className="flex items-center gap-1.5"><AttachIcon className="w-4 h-4 text-muted-foreground" />קובץ מצורף</span>
                     </label>
                     <input ref={editAttachmentInputRef} type="file"
                       accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.zip"
@@ -2634,7 +2635,7 @@ export default function MentorDashboard() {
                     />
                     {editForm.attachment_url ? (
                       <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                        <Paperclip className="w-4 h-4 text-primary shrink-0" />
+                        <AttachIcon className="w-4 h-4 text-primary shrink-0" />
                         <span className="text-xs text-primary flex-1 truncate">{editForm.attachment_name || 'קובץ מצורף'}</span>
                         <button
                           onClick={() => editAttachmentInputRef.current?.click()}
@@ -2644,7 +2645,7 @@ export default function MentorDashboard() {
                           {isEditAttachmentUploading ? 'מעלה...' : 'החלף'}
                         </button>
                         <button onClick={() => setEditForm(f => ({ ...f, attachment_url: '', attachment_name: '' }))} className="text-muted-foreground hover:text-destructive">
-                          <X className="w-4 h-4" />
+                          <CloseIcon className="w-4 h-4" />
                         </button>
                       </div>
                     ) : (
@@ -2653,7 +2654,7 @@ export default function MentorDashboard() {
                       >
                         {isEditAttachmentUploading
                           ? <><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /><span className="text-xs">מעלה...</span></>
-                          : <><Paperclip className="w-4 h-4" /><span className="text-xs font-medium">הוסף / החלף קובץ מצורף</span></>
+                          : <><AttachIcon className="w-4 h-4" /><span className="text-xs font-medium">הוסף / החלף קובץ מצורף</span></>
                         }
                       </button>
                     )}
@@ -2690,7 +2691,7 @@ export default function MentorDashboard() {
                     }}
                     className="w-full h-11 border border-primary/30 bg-primary/5 text-primary rounded-lg font-medium hover:bg-primary/10 transition-all flex items-center justify-center gap-2"
                   >
-                    <ClipboardList className="w-4 h-4" />צור מבחן לשיעור זה
+                    <QuizIcon className="w-4 h-4" />צור מבחן לשיעור זה
                   </button>
                 </div>
               </div>
@@ -2743,7 +2744,7 @@ function LessonRow({
           onMouseDown={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
         >
-          <GripVertical className="w-3.5 h-3.5" />
+          <GripIcon className="w-3.5 h-3.5" />
         </div>
         {index !== undefined && (
           <span className="w-5 h-5 flex items-center justify-center text-xs font-bold text-muted-foreground">
@@ -2762,16 +2763,16 @@ function LessonRow({
               ? 'bg-green-500/10 border border-green-500/20 text-green-500' 
               : 'bg-red-500/10 border border-red-500/20 text-red-500'
           }`}>
-            {lesson.is_published ? <><Eye className="w-2.5 h-2.5" />פורסם</> : <><EyeOff className="w-2.5 h-2.5" />טרם פורסם</>}
+            {lesson.is_published ? <><EyeIcon className="w-2.5 h-2.5" />פורסם</> : <><EyeOffIcon className="w-2.5 h-2.5" />טרם פורסם</>}
           </span>
           {lesson.lesson_type === 'live' && (
             <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold shrink-0 tracking-wide">
-              <Radio className="w-2.5 h-2.5" />הוקלט בלייב
+              <LiveIcon solid className="w-2.5 h-2.5" />הוקלט בלייב
             </span>
           )}
           {lesson.attachment_url && (
             <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-medium shrink-0">
-              <Paperclip className="w-2.5 h-2.5" />צירוף
+              <AttachIcon className="w-2.5 h-2.5" />צירוף
             </span>
           )}
         </div>
@@ -2782,16 +2783,16 @@ function LessonRow({
       )}
       <button onClick={e => { e.stopPropagation(); onEdit(); }}
         className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all" title="ערוך שיעור">
-        <Pencil className="w-3.5 h-3.5" />
+        <EditIcon className="w-3.5 h-3.5" />
       </button>
       <button onClick={e => { e.stopPropagation(); onTogglePublish(); }}
         className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${lesson.is_published ? 'text-accent hover:bg-accent/10' : 'text-muted-foreground hover:bg-muted'}`}
         title={lesson.is_published ? 'הסתר שיעור' : 'פרסם שיעור'}>
-        {lesson.is_published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+        {lesson.is_published ? <EyeIcon className="w-4 h-4" /> : <EyeOffIcon className="w-4 h-4" />}
       </button>
       <button onClick={e => { e.stopPropagation(); onDelete(); }}
         className="md:opacity-0 md:group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
-        <Trash2 className="w-3.5 h-3.5" />
+        <TrashIcon className="w-3.5 h-3.5" />
       </button>
     </div>
   );
@@ -2839,7 +2840,7 @@ function MentorPostCard({
       <div className="p-5">
         {post.is_pinned && (
           <div className="flex items-center gap-1.5 text-xs text-primary font-medium mb-2">
-            <Pin className="w-3 h-3" />נעוץ
+            <PinIcon className="w-3 h-3" />נעוץ
           </div>
         )}
 
@@ -2858,13 +2859,13 @@ function MentorPostCard({
               className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${post.is_pinned ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:bg-muted'}`}
               title={post.is_pinned ? 'הסר נעיצה' : 'נעץ פוסט'}
             >
-              {post.is_pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+              {post.is_pinned ? <PinOffIcon className="w-3.5 h-3.5" /> : <PinIcon className="w-3.5 h-3.5" />}
             </button>
             <button onClick={onEdit} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" title="ערוך פוסט">
-              <Pencil className="w-3.5 h-3.5" />
+              <EditIcon className="w-3.5 h-3.5" />
             </button>
             <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
-              <Trash2 className="w-3.5 h-3.5" />
+              <TrashIcon className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -2887,7 +2888,7 @@ function MentorPostCard({
           onClick={onToggleComments}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
-          <MessageCircle className="w-3.5 h-3.5" />
+          <CommentIcon className="w-3.5 h-3.5" />
           {expanded ? 'הסתר תגובות' : `הצג תגובות${comments.length > 0 ? ` (${comments.length})` : ''}`}
         </button>
       </div>
@@ -2925,7 +2926,7 @@ function MentorPostCard({
                   disabled={!commentText.trim()}
                   className="h-9 w-9 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-40 transition-all"
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <SendIcon solid className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>

@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  MessageCircleQuestion, Lock, BookOpen, Clock, Check, ChevronDown, Reply, ArrowLeft, Pencil,
-} from 'lucide-react';
+import { ArrowLeftIcon, CheckIcon, ChevronDownIcon, ClockIcon, EditIcon, JournalIcon, LockIcon, QuestionIcon, ReplyIcon } from '@/components/icons';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -94,7 +92,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-          <MessageCircleQuestion className="w-5 h-5 text-primary" />
+          <QuestionIcon className="w-5 h-5 text-primary" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">השאלות שלי</h1>
@@ -114,7 +112,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
       <div className="flex-1 overflow-y-auto space-y-3">
         {questions.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
-            <Lock className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            <LockIcon className="w-10 h-10 mx-auto mb-3 opacity-20" />
             <p className="font-medium">עדיין לא שאלת שאלות פרטיות</p>
             <p className="text-sm mt-1">בכל שיעור תוכל לשלוח שאלה פרטית למנטור</p>
           </div>
@@ -139,8 +137,8 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                   hasAnswer ? 'bg-accent/10' : 'bg-primary/10'
                 }`}>
                   {hasAnswer
-                    ? <Check className="w-4 h-4 text-accent" />
-                    : <Lock className="w-4 h-4 text-primary" />
+                    ? <CheckIcon className="w-4 h-4 text-accent" />
+                    : <LockIcon className="w-4 h-4 text-primary" />
                   }
                 </div>
 
@@ -152,28 +150,28 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] transition-all ${onGoToLesson && q.lesson_id ? 'bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer' : 'bg-muted text-muted-foreground'}`}
                         title={onGoToLesson && q.lesson_id ? 'עבור לשיעור' : undefined}
                       >
-                        <BookOpen className="w-2.5 h-2.5" />{q.lessonTitle}
-                        {onGoToLesson && q.lesson_id && <ArrowLeft className="w-2.5 h-2.5" />}
+                        <JournalIcon className="w-2.5 h-2.5" />{q.lessonTitle}
+                        {onGoToLesson && q.lesson_id && <ArrowLeftIcon className="w-2.5 h-2.5" />}
                       </button>
                     )}
                     {hasAnswer ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[10px] font-medium">
-                        <Check className="w-2.5 h-2.5" />נענה
+                        <CheckIcon className="w-2.5 h-2.5" />נענה
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-medium">
-                        <Clock className="w-2.5 h-2.5 animate-pulse" />ממתין לתשובה
+                        <ClockIcon className="w-2.5 h-2.5 animate-pulse" />ממתין לתשובה
                       </span>
                     )}
                   </div>
                   <p className="text-sm text-foreground mt-1 leading-relaxed line-clamp-2">{q.question}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Clock className="w-2.5 h-2.5" />{fmt(q.created_at)}
+                      <ClockIcon className="w-2.5 h-2.5" />{fmt(q.created_at)}
                     </span>
                     {qEdited && (
                       <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                        <Pencil className="w-2 h-2" />נערך
+                        <EditIcon className="w-2 h-2" />נערך
                       </span>
                     )}
                     {/* Only allow edit if not yet answered */}
@@ -187,12 +185,12 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                         }}
                         className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary transition-colors"
                       >
-                        <Pencil className="w-2.5 h-2.5" />ערוך שאלה
+                        <EditIcon className="w-2.5 h-2.5" />ערוך שאלה
                       </button>
                     )}
                   </div>
                 </div>
-                <ChevronDown className={`w-4 h-4 text-muted-foreground shrink-0 mt-1 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+                <ChevronDownIcon className={`w-4 h-4 text-muted-foreground shrink-0 mt-1 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
               </button>
 
               <AnimatePresence>
@@ -212,7 +210,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                               onClick={() => { setEditingQuestion(q.id); setEditingText(q.question); }}
                               className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
                             >
-                              <Pencil className="w-2.5 h-2.5" />ערוך
+                              <EditIcon className="w-2.5 h-2.5" />ערוך
                             </button>
                           )}
                           <p className="text-xs font-medium text-muted-foreground mr-auto">שאלתך:</p>
@@ -240,7 +238,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                                 disabled={!editingText.trim() || editQuestion.isPending}
                                 className="h-7 px-3 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-1.5"
                               >
-                                <Check className="w-3 h-3" />שמור
+                                <CheckIcon solid className="w-3 h-3" />שמור
                               </button>
                             </div>
                           </div>
@@ -254,7 +252,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                         <div className="aurora-alert aurora-alert-emerald rounded-lg p-3">
                           <div className="flex items-center gap-2 mb-2">
                             <div className="w-5 h-5 rounded-full bg-accent flex items-center justify-center shrink-0">
-                              <Reply className="w-2.5 h-2.5 text-accent-foreground" />
+                              <ReplyIcon className="w-2.5 h-2.5 text-accent-foreground" />
                             </div>
                             <span className="text-xs font-semibold text-accent">תשובת המנטור</span>
                             {q.answered_at && (
@@ -265,7 +263,7 @@ export default function StudentMyQuestions({ studentId, mentorId, onGoToLesson }
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
-                          <Clock className="w-3.5 h-3.5 text-muted-foreground animate-pulse shrink-0" />
+                          <ClockIcon className="w-3.5 h-3.5 text-muted-foreground animate-pulse shrink-0" />
                           <p className="text-xs text-muted-foreground">המנטור טרם ענה לשאלה זו. תקבל עדכון ברגע שיתשובה.</p>
                         </div>
                       )}

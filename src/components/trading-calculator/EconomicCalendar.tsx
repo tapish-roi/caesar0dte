@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, RefreshCw, AlertCircle, Check, ChevronDown, Globe2, X } from 'lucide-react';
+import { AlertIcon, CheckIcon, ChevronDownIcon, CloseIcon, GlobeIcon, LoaderIcon, RefreshIcon } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -133,7 +135,7 @@ function formatCountdown(ms: number): string {
 
 function ImportanceBulls({ level }: { level: 1 | 2 | 3 }) {
   const color =
-    level === 3 ? 'text-red-400' : level === 2 ? 'text-amber-400' : 'text-muted-foreground/60';
+    level === 3 ? 'text-[#fda4af]' : level === 2 ? 'text-[#e2b54e]' : 'text-muted-foreground/60';
   return (
     <div className="flex items-center gap-0.5" title={`חשיבות ${level}/3`}>
       {[1, 2, 3].map((i) => (
@@ -172,8 +174,8 @@ function valueClass(actual: string | null, forecast: string | null) {
   const a = parseFloat(actual.replace(/[^\d.\-]/g, ''));
   const f = parseFloat(forecast.replace(/[^\d.\-]/g, ''));
   if (isNaN(a) || isNaN(f)) return 'text-foreground';
-  if (a > f) return 'text-emerald-400';
-  if (a < f) return 'text-red-400';
+  if (a > f) return 'text-[#6ee7b7]';
+  if (a < f) return 'text-[#fda4af]';
   return 'text-foreground';
 }
 
@@ -193,6 +195,27 @@ function eventRowKey(event: EconomicEvent): string {
     event.countryCode,
     event.currency,
     event.event,
+  ].join('|');
+}
+
+// Identity alone isn't unique — the feed can hand back two rows that agree on
+// every identity field but carry different values. Position within the day
+// group disambiguates them, so this is what both the React key and the
+// "next event" highlight are keyed on.
+function eventRenderKey(event: EconomicEvent, indexInDay: number): string {
+  return `${eventRowKey(event)}#${indexInDay}`;
+}
+
+// The feed sometimes repeats a row verbatim. Identity for de-duplication covers
+// every field, so only truly identical rows collapse — two rows that share an
+// identity but differ in their values are both kept.
+function eventContentKey(event: EconomicEvent): string {
+  return [
+    eventRowKey(event),
+    event.importance,
+    event.actual,
+    event.forecast,
+    event.previous,
   ].join('|');
 }
 
@@ -314,8 +337,15 @@ export default function EconomicCalendar() {
 
   const grouped = useMemo(() => {
     const map = new Map<string, EconomicEvent[]>();
+    const seen = new Set<string>();
 
     for (const ev of filtered) {
+      // Drop rows the feed repeated verbatim — they'd render as identical
+      // duplicate lines.
+      const contentKey = eventContentKey(ev);
+      if (seen.has(contentKey)) continue;
+      seen.add(contentKey);
+
       // Group by the event's date in the USER's timezone, not the source date.
       // This ensures events that cross midnight (e.g. NY events shown to a TLV
       // user, or TLV events viewed from the US) appear under the correct day.
@@ -333,17 +363,22 @@ export default function EconomicCalendar() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [filtered]);
 
-  // Find the closest upcoming event (in the future) among the filtered list.
+  // Find the closest upcoming event (in the future) among the rows actually
+  // rendered. Walking the grouped rows rather than `filtered` gives the winner a
+  // position, so a single row lights up even when two share an identity — and it
+  // can't land on a row that de-duplication dropped.
   const nextEvent = useMemo(() => {
-    let best: { ev: EconomicEvent; ts: number } | null = null;
-    for (const ev of filtered) {
-      const ts = eventTimestamp(ev);
-      if (!Number.isFinite(ts) || ts <= now) continue;
-      if (!best || ts < best.ts) best = { ev, ts };
+    let best: { key: string; ts: number } | null = null;
+    for (const [, events] of grouped) {
+      for (let i = 0; i < events.length; i++) {
+        const ts = eventTimestamp(events[i]);
+        if (!Number.isFinite(ts) || ts <= now) continue;
+        if (!best || ts < best.ts) best = { key: eventRenderKey(events[i], i), ts };
+      }
     }
     return best;
-  }, [filtered, now]);
-  const nextEventKey = nextEvent ? eventRowKey(nextEvent.ev) : null;
+  }, [grouped, now]);
+  const nextEventKey = nextEvent ? nextEvent.key : null;
   const countdownMs = nextEvent ? nextEvent.ts - now : 0;
 
   const toggleImportance = (lvl: ImportanceLevel) => {
@@ -367,8 +402,8 @@ export default function EconomicCalendar() {
 
   const importanceOptions: { v: ImportanceLevel; label: string; color: string }[] = [
     { v: 1, label: '★', color: 'text-muted-foreground' },
-    { v: 2, label: '★★', color: 'text-amber-400' },
-    { v: 3, label: '★★★', color: 'text-red-400' },
+    { v: 2, label: '★★', color: 'text-[#e2b54e]' },
+    { v: 3, label: '★★★', color: 'text-[#fda4af]' },
   ];
 
   const countryButtonLabel =
@@ -383,31 +418,33 @@ export default function EconomicCalendar() {
         : `${selectedCountries.size} מדינות`;
 
   return (
-    <div className="bg-card rounded-2xl card-shadow border border-border overflow-hidden">
+    <Card className="glass-flat rounded-2xl overflow-hidden p-0">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border bg-muted/20">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-[var(--lg-border)]">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Importance multi-select chips */}
-          <div className="flex items-center gap-1.5 ps-1">
-            <span className="text-xs text-muted-foreground">חשיבות:</span>
-            {importanceOptions.map((opt) => {
-              const active = importanceLevels.has(opt.v);
-              return (
-                <button
-                  key={opt.v}
-                  onClick={() => toggleImportance(opt.v)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-lg text-xs font-medium transition-all border',
-                    active
-                      ? 'bg-primary/15 border-primary/40 text-foreground shadow-sm'
-                      : 'bg-secondary/30 border-transparent text-muted-foreground/60 hover:bg-secondary/60',
-                  )}
-                  title={`חשיבות ${opt.v}/3`}
-                >
-                  <span className={cn(active ? opt.color : 'opacity-60')}>{opt.label}</span>
-                </button>
-              );
-            })}
+          {/* Importance multi-select chips, on the shared tab-rail trough */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground pe-1">חשיבות:</span>
+            <div className="aurora-tabs inline-flex items-center gap-1 rounded-xl p-1">
+              {importanceOptions.map((opt) => {
+                const active = importanceLevels.has(opt.v);
+                return (
+                  <button
+                    key={opt.v}
+                    onClick={() => toggleImportance(opt.v)}
+                    className={cn(
+                      'px-2.5 py-1 rounded-lg text-xs font-medium transition-all',
+                      active
+                        ? 'aurora-chip aurora-chip-cyan text-foreground'
+                        : 'text-muted-foreground/60 hover:text-foreground',
+                    )}
+                    title={`חשיבות ${opt.v}/3`}
+                  >
+                    <span className={cn(active ? opt.color : 'opacity-60')}>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Country multi-select popover */}
@@ -419,13 +456,13 @@ export default function EconomicCalendar() {
                 className="h-8 gap-1.5 text-xs"
                 disabled={countryOptions.length === 0}
               >
-                <Globe2 className="w-3.5 h-3.5" />
+                <GlobeIcon className="w-3.5 h-3.5" />
                 <span>{countryButtonLabel}</span>
-                <ChevronDown className="w-3 h-3 opacity-60" />
+                <ChevronDownIcon className="w-3 h-3 opacity-60" />
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-72 p-0" dir="rtl">
-              <div className="p-2 border-b border-border flex items-center gap-2">
+              <div className="p-2 border-b border-[var(--lg-border)] flex items-center gap-2">
                 <Input
                   value={countrySearch}
                   onChange={(e) => setCountrySearch(e.target.value)}
@@ -440,7 +477,7 @@ export default function EconomicCalendar() {
                     onClick={() => setSelectedCountries(new Set())}
                     title="נקה בחירה"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <CloseIcon className="w-3.5 h-3.5" />
                   </Button>
                 )}
               </div>
@@ -455,15 +492,15 @@ export default function EconomicCalendar() {
                         key={c.code}
                         onClick={() => toggleCountry(c.code)}
                         className={cn(
-                          'w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors',
-                          checked && 'bg-primary/10',
+                          'w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-[rgba(90,200,230,0.08)]',
+                          checked && 'bg-[rgba(226,181,78,0.10)]',
                         )}
                       >
                         <Checkbox checked={checked} className="pointer-events-none" />
                         <span className="text-base leading-none">{flagEmoji(c.code)}</span>
                         <span className="flex-1 text-start truncate text-foreground">{c.name}</span>
-                        <span className="text-[10px] text-muted-foreground/70 tabular-nums">{c.count}</span>
-                        {checked && <Check className="w-3 h-3 text-primary" />}
+                        <span className="text-[10px] text-muted-foreground/70 aurora-mono">{c.count}</span>
+                        {checked && <CheckIcon className="w-3 h-3 text-[#e2b54e]" />}
                       </button>
                     );
                   })
@@ -496,14 +533,14 @@ export default function EconomicCalendar() {
             </span>
           )}
           <Button onClick={() => refetch()} size="sm" variant="outline" disabled={isFetching}>
-            {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            {isFetching ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <RefreshIcon className="w-4 h-4" />}
             רענון
           </Button>
         </div>
       </div>
 
       {/* Body */}
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-[var(--lg-border)]">
         {isLoading && (
           <div className="p-4 space-y-2">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -514,7 +551,7 @@ export default function EconomicCalendar() {
 
         {isError && (
           <div className="p-8 text-center">
-            <AlertCircle className="w-8 h-8 mx-auto text-red-400 mb-2" />
+            <AlertIcon className="w-8 h-8 mx-auto text-[#fda4af] mb-2" />
             <p className="text-sm text-foreground mb-1">שגיאה בטעינת הנתונים</p>
             <p className="text-xs text-muted-foreground">
               {error instanceof Error ? error.message : 'נסה שוב'}
@@ -535,25 +572,25 @@ export default function EconomicCalendar() {
           <section key={date}>
             <header
               className={cn(
-                'px-4 py-2 border-b sticky top-0 backdrop-blur-sm z-[1] flex items-center justify-between gap-2',
+                'px-4 py-2 border-b sticky top-0 backdrop-blur-md z-[1] flex items-center justify-between gap-2',
                 isToday
-                  ? 'bg-emerald-500/15 border-emerald-500/40'
-                  : 'bg-muted/30 border-border',
+                  ? 'bg-[rgba(13,26,26,0.9)] border-[rgba(52,211,153,0.45)]'
+                  : 'bg-[rgba(13,23,33,0.85)] border-[var(--lg-border)]',
               )}
             >
-              <h3 className={cn('text-sm font-semibold', isToday ? 'text-emerald-300' : 'text-foreground')}>
+              <h3 className={cn('text-sm font-semibold flex items-center gap-2', isToday ? 'text-[#6ee7b7]' : 'text-foreground')}>
                 {formatDateHeader(date)}
-                {isToday && <span className="ms-2 text-[10px] uppercase tracking-wider bg-emerald-500/30 text-emerald-100 rounded px-1.5 py-0.5">היום</span>}
+                {isToday && <Badge variant="success" className="text-[10px] uppercase tracking-wider">היום</Badge>}
               </h3>
               {isToday && (
-                <span className="text-[11px] font-mono text-emerald-200/90 tabular-nums">
+                <span className="text-[11px] aurora-mono text-[#a7f3d0]/90">
                   עכשיו · {currentTimeStr}
                 </span>
               )}
             </header>
 
             {/* Column headers (desktop only) */}
-            <div className="hidden lg:grid grid-cols-[56px_72px_minmax(0,1fr)_70px_70px_70px] gap-3 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-border/50 bg-background/40">
+            <div className="hidden lg:grid grid-cols-[56px_72px_minmax(0,1fr)_70px_70px_70px] gap-3 px-4 py-2 text-[10px] uppercase tracking-wider text-muted-foreground border-b border-[var(--lg-border)] bg-[rgba(7,13,22,0.4)]">
               <span>שעה</span>
               <span>מדינה</span>
               <span>אירוע</span>
@@ -562,9 +599,9 @@ export default function EconomicCalendar() {
               <span className="text-end">קודם</span>
             </div>
 
-            <ul className="divide-y divide-border/50">
-              {events.map((ev) => {
-                const rowKey = eventRowKey(ev);
+            <ul className="divide-y divide-[var(--lg-border)]">
+              {events.map((ev, i) => {
+                const rowKey = eventRenderKey(ev, i);
                 const isNext = rowKey === nextEventKey;
                 return (
                 <li
@@ -572,16 +609,16 @@ export default function EconomicCalendar() {
                   className={cn(
                     'px-4 py-2.5 transition-colors',
                     isNext
-                      ? 'bg-emerald-500/15 border-r-2 border-emerald-400 hover:bg-emerald-500/20'
-                      : 'hover:bg-muted/20',
+                      ? 'bg-[rgba(52,211,153,0.12)] border-r-2 border-[#34d399] hover:bg-[rgba(52,211,153,0.18)]'
+                      : 'hover:bg-[rgba(90,200,230,0.06)]',
                   )}
                 >
                   {/* Desktop row */}
                   <div className="hidden lg:grid grid-cols-[56px_72px_minmax(0,1fr)_70px_70px_70px] gap-3 items-center text-sm">
                     <div className="flex flex-col items-start gap-0.5">
-                      <span className={cn('text-xs font-mono', isNext ? 'text-emerald-300 font-semibold' : 'text-muted-foreground')}>{ev.time ? formatLocalTime(eventTimestamp(ev)) : '—'}</span>
+                      <span className={cn('text-xs aurora-mono', isNext ? 'text-[#6ee7b7] font-semibold' : 'text-muted-foreground')}>{ev.time ? formatLocalTime(eventTimestamp(ev)) : '—'}</span>
                       {isNext && (
-                        <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 rounded px-1 tabular-nums animate-pulse">
+                        <span className="aurora-chip aurora-chip-emerald text-[10px] aurora-mono text-[#6ee7b7] rounded px-1 animate-pulse">
                           {formatCountdown(countdownMs)}
                         </span>
                       )}
@@ -589,37 +626,37 @@ export default function EconomicCalendar() {
                     <CountryFlag code={ev.countryCode} name={ev.country} />
                     <div className="flex items-center gap-2 min-w-0">
                       <ImportanceBulls level={ev.importance} />
-                      <span className={cn('truncate', isNext ? 'text-emerald-100 font-semibold' : 'text-foreground')} title={ev.event}>{ev.event}</span>
+                      <span className={cn('truncate', isNext ? 'text-[#a7f3d0] font-semibold' : 'text-foreground')} title={ev.event}>{ev.event}</span>
                       {isNext && (
-                        <span className="text-[9px] uppercase tracking-wider bg-emerald-500/30 text-emerald-100 rounded px-1.5 py-0.5 shrink-0">הבא</span>
+                        <span className="aurora-chip aurora-chip-emerald text-[9px] uppercase tracking-wider text-[#6ee7b7] rounded px-1.5 py-0.5 shrink-0">הבא</span>
                       )}
                     </div>
-                    <span className={cn('text-end font-mono text-sm truncate', valueClass(ev.actual, ev.forecast))} title={ev.actual ?? undefined}>
+                    <span className={cn('text-end aurora-mono text-sm truncate', valueClass(ev.actual, ev.forecast))} title={ev.actual ?? undefined}>
                       {ev.actual ?? '—'}
                     </span>
-                    <span className="text-end font-mono text-sm text-muted-foreground truncate" title={ev.forecast ?? undefined}>{ev.forecast ?? '—'}</span>
-                    <span className="text-end font-mono text-sm text-muted-foreground truncate" title={ev.previous ?? undefined}>{ev.previous ?? '—'}</span>
+                    <span className="text-end aurora-mono text-sm text-muted-foreground truncate" title={ev.forecast ?? undefined}>{ev.forecast ?? '—'}</span>
+                    <span className="text-end aurora-mono text-sm text-muted-foreground truncate" title={ev.previous ?? undefined}>{ev.previous ?? '—'}</span>
                   </div>
 
                   {/* Mobile row */}
                   <div className="lg:hidden flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                        <span className={cn('text-xs font-mono', isNext ? 'text-emerald-300 font-semibold' : 'text-muted-foreground')}>{ev.time ? formatLocalTime(eventTimestamp(ev)) : '—'}</span>
+                        <span className={cn('text-xs aurora-mono', isNext ? 'text-[#6ee7b7] font-semibold' : 'text-muted-foreground')}>{ev.time ? formatLocalTime(eventTimestamp(ev)) : '—'}</span>
                         {isNext && (
-                          <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 rounded px-1 tabular-nums animate-pulse">
+                          <span className="aurora-chip aurora-chip-emerald text-[10px] aurora-mono text-[#6ee7b7] rounded px-1 animate-pulse">
                             {formatCountdown(countdownMs)}
                           </span>
                         )}
                         <CountryFlag code={ev.countryCode} name={ev.country} />
                         <ImportanceBulls level={ev.importance} />
                         {isNext && (
-                          <span className="text-[9px] uppercase tracking-wider bg-emerald-500/30 text-emerald-100 rounded px-1.5 py-0.5">הבא</span>
+                          <span className="aurora-chip aurora-chip-emerald text-[9px] uppercase tracking-wider text-[#6ee7b7] rounded px-1.5 py-0.5">הבא</span>
                         )}
                       </div>
                     </div>
                     <p className="text-sm text-foreground leading-snug break-words">{ev.event}</p>
-                    <div className="flex items-center justify-between text-[11px] font-mono pt-1 border-t border-border/30">
+                    <div className="flex items-center justify-between text-[11px] aurora-mono pt-1 border-t border-[var(--lg-border)]">
                       <div className="flex flex-col items-start">
                         <span className="text-[9px] uppercase text-muted-foreground">בפועל</span>
                         <span className={valueClass(ev.actual, ev.forecast)}>{ev.actual ?? '—'}</span>
@@ -643,9 +680,9 @@ export default function EconomicCalendar() {
         })}
       </div>
 
-      <div className="px-4 py-2 text-[10px] text-muted-foreground text-center border-t border-border">
+      <div className="px-4 py-2 text-[10px] text-muted-foreground text-center border-t border-[var(--lg-border)]">
         נתונים מ-Investing.com
       </div>
-    </div>
+    </Card>
   );
 }

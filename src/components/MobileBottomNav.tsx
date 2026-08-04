@@ -1,11 +1,14 @@
-import { type LucideIcon, Lock } from 'lucide-react';
+import { LockIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+
+// Accepts both the custom icon set and any remaining lucide icons.
+type NavIcon = React.ComponentType<{ className?: string; solid?: boolean }>;
 
 interface NavItem {
   key: string;
   label: string;
-  icon: LucideIcon;
+  icon: NavIcon;
   badge?: number;
   disabled?: boolean;
 }
@@ -43,7 +46,7 @@ export default function MobileBottomNav({ items, activeTab, onTabChange }: Mobil
             )}
           >
             <div className="mobile-nav-icon-wrap relative">
-              {disabled ? <Lock className="w-4 h-4" /> : <Icon className="w-5 h-5" />}
+              {disabled ? <LockIcon className="w-4 h-4" /> : <Icon className="w-5 h-5" />}
               {badge != null && badge > 0 && (
                 <span className="absolute -top-0.5 -end-0.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center shadow-[0_0_8px_hsl(var(--primary)/0.6)]">
                   {badge > 99 ? '99+' : badge}

@@ -1,159 +1,201 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Position-size calculator — pure math only. No React. Fully unit-testable.
-// Every output number traces back to one of the formulas in §3 of the spec.
+//
+// Direction is INFERRED from entry vs stop (entry > stop → long). There is no
+// user-facing long/short toggle anywhere in this module.
 // ──────────────────────────────────────────────────────────────────────────────
 
-export type Side = 'long' | 'short';
+export interface CalculatorBox {
+  id: string;
+  /** Only used to look up this symbol's ATR for the one-click stop. */
+  ticker: string;
+  entryPrice: string;
+  stopLoss: string;
+  riskAmount: string;      // dollars risked on this trade
+  accountSize: string;
+  currentPrice: string;
+  addOnPrice: string;
+  newStopLoss: string;
+  currentPriceAddOn: string;
+}
 
-export interface PositionInputs {
+/** Hard cap on what a single trade may risk: 3% of the account. */
+export const MAX_RISK_PCT = 0.03;
+
+export const R_LEVELS = [0.8, 1, 1.2, 2] as const;
+export const ADD_ON_R_LEVELS = [1, 2, 3] as const;
+
+const uuid = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+export const emptyBox = (
+  overrides: Partial<CalculatorBox> = {},
+): CalculatorBox => ({
+  id: uuid(),
+  ticker: '',
+  entryPrice: '',
+  stopLoss: '',
+  riskAmount: '',
+  accountSize: '',
+  currentPrice: '',
+  addOnPrice: '',
+  newStopLoss: '',
+  currentPriceAddOn: '',
+  ...overrides,
+});
+
+/** Every field on a box is a raw input string. Anything unparseable is 0. */
+export const num = (v: string | undefined): number => parseFloat(v ?? '') || 0;
+
+/** Division is only ever performed with a positive denominator. */
+const div = (n: number, d: number): number => (d > 0 ? n / d : 0);
+
+/** An input is "empty" only when the user has typed nothing — "0" is a value. */
+const isBlank = (v: string | undefined): boolean => (v ?? '').trim() === '';
+
+// ── Base calculations ───────────────────────────────────────────────────────
+
+export interface BaseCalc {
+  isLong: boolean;
+  entry: number;
+  stop: number;
+  risk: number;
   accountSize: number;
-  riskAmount: number;
-  side: Side;
-  entryPrice: number;
-  stopPrice: number;
-  targetPrice?: number;
-  currentPrice?: number;
-  commissionPerShare?: number;
-  maxPositionPct?: number; // 0–100
-}
-
-export interface PositionResult {
-  isValid: boolean;
-  errors: string[];
-  riskPerShare: number;
-  rawShares: number;
+  stopSize: number;
   shares: number;
-  positionSize: number;
-  positionPctOfAccount: number;
-  totalRiskDollars: number;
-  riskPctOfAccount: number;
-  rewardPerShare: number;
-  rewardDollars: number;
-  rrRatio: number;
-  breakevenPrice: number;
-  commissionTotal: number;
-  liveRMultiple: number;
-  stopDistancePct: number;
-  targetDistancePct: number;
-  cappedByMaxPosition: boolean;
+  /** 3% of the account — the most this trade is allowed to risk. */
+  maxRisk: number;
+  /** Share count that 3% of the account would buy at this stop distance. */
+  maxSize: number;
+  /** True when the requested risk exceeds the 3% account cap. */
+  exceedsMaxRisk: boolean;
+  positionCost: number;
+  totalRisk: number;
+  /** null while currentPrice is untouched — the UI must not render 0. */
+  currentR: number | null;
+  target: (r: number) => number;
 }
 
-const ZEROS: Omit<PositionResult, 'isValid' | 'errors'> = {
-  riskPerShare: 0,
-  rawShares: 0,
-  shares: 0,
-  positionSize: 0,
-  positionPctOfAccount: 0,
-  totalRiskDollars: 0,
-  riskPctOfAccount: 0,
-  rewardPerShare: 0,
-  rewardDollars: 0,
-  rrRatio: 0,
-  breakevenPrice: 0,
-  commissionTotal: 0,
-  liveRMultiple: 0,
-  stopDistancePct: 0,
-  targetDistancePct: 0,
-  cappedByMaxPosition: false,
-};
+export function calcBase(box: CalculatorBox): BaseCalc | null {
+  const entry = num(box.entryPrice);
+  const stop = num(box.stopLoss);
+  const risk = num(box.riskAmount);
+  const accountSize = num(box.accountSize);
 
-// §3.1 — side-aware validation
-export function validate(i: PositionInputs): string[] {
-  const e: string[] = [];
-  if (!Number.isFinite(i.accountSize) || i.accountSize <= 0) e.push('גודל חשבון חייב להיות גדול מאפס');
-  if (!Number.isFinite(i.riskAmount) || i.riskAmount <= 0) e.push('סיכון לעסקה חייב להיות גדול מאפס');
-  if (i.riskAmount > i.accountSize) e.push('הסיכון לעסקה לא יכול לחרוג מגודל החשבון');
-  if (i.entryPrice && (!Number.isFinite(i.entryPrice) || i.entryPrice < 0)) e.push('מחיר כניסה לא תקין');
-  if (i.stopPrice && (!Number.isFinite(i.stopPrice) || i.stopPrice < 0)) e.push('מחיר סטופ לא תקין');
-  if (!i.entryPrice || !i.stopPrice) return e; // silent until both filled
-  if (i.entryPrice && i.stopPrice && i.entryPrice === i.stopPrice) e.push('הכניסה והסטופ חייבים להיות שונים');
-  if (i.side === 'long' && i.stopPrice && i.entryPrice && i.stopPrice >= i.entryPrice)
-    e.push('בלונג: הסטופ חייב להיות מתחת למחיר הכניסה');
-  if (i.side === 'short' && i.stopPrice && i.entryPrice && i.stopPrice <= i.entryPrice)
-    e.push('בשורט: הסטופ חייב להיות מעל מחיר הכניסה');
-  if (
-    i.targetPrice && i.targetPrice > 0 && i.entryPrice &&
-    i.side === 'long' && i.targetPrice <= i.entryPrice
-  )
-    e.push('בלונג: היעד חייב להיות מעל מחיר הכניסה');
-  if (
-    i.targetPrice && i.targetPrice > 0 && i.entryPrice &&
-    i.side === 'short' && i.targetPrice >= i.entryPrice
-  )
-    e.push('בשורט: היעד חייב להיות מתחת למחיר הכניסה');
-  return e;
-}
+  // Empty state until the three inputs sizing depends on are all present.
+  if (!entry || !stop || !risk) return null;
 
-// §3.10 — orchestrator. Runs §3.2 → §3.9 in order.
-export function calculatePosition(i: PositionInputs): PositionResult {
-  const errors = validate(i);
-  if (errors.length) return { isValid: false, errors, ...ZEROS };
+  const isLong = entry > stop;
+  const stopSize = Math.abs(entry - stop);
+  const shares = Math.floor(div(risk, stopSize));
+  const maxRisk = accountSize * MAX_RISK_PCT;
+  const maxSize = Math.floor(div(maxRisk, stopSize));
 
-  // §3.2 risk per share
-  const riskPerShare = Math.abs(i.entryPrice - i.stopPrice);
-  if (riskPerShare <= 0) return { isValid: false, errors: ['מרחק סטופ אפס'], ...ZEROS };
-
-  // §3.3 raw shares — ALWAYS floor; sizing is based only on the user-defined risk budget
-  const rawShares = Math.floor(i.riskAmount / riskPerShare);
-
-  // §3.4 final shares
-  // Account size is informational for exposure/risk percentages, but it must not cap sizing.
-  const shares = Math.max(0, rawShares);
-  const cappedByMaxPosition = false;
-
-  // §3.5 commission round-trip (open + close)
-  const cps = i.commissionPerShare ?? 0;
-  const commissionTotal = shares * cps * 2;
-  const breakevenPrice = i.side === 'long'
-    ? i.entryPrice + cps * 2
-    : i.entryPrice - cps * 2;
-
-  // §3.6 total risk in $ (true risk including commissions)
-  const totalRiskDollars = shares * riskPerShare + commissionTotal;
-  const riskPctOfAccount = (totalRiskDollars / i.accountSize) * 100;
-
-  // §3.7 position size & exposure
-  const positionSize = shares * i.entryPrice;
-  const positionPctOfAccount = (positionSize / i.accountSize) * 100;
-
-  // §3.8 reward & R-multiple (only if target provided)
-  const hasTarget = !!(i.targetPrice && i.targetPrice > 0);
-  const rewardPerShare = hasTarget ? Math.abs((i.targetPrice as number) - i.entryPrice) : 0;
-  const rewardDollars = shares * rewardPerShare;
-  const rrRatio = riskPerShare > 0 ? rewardPerShare / riskPerShare : 0;
-  const targetDistancePct = i.entryPrice > 0 ? (rewardPerShare / i.entryPrice) * 100 : 0;
-  const stopDistancePct = i.entryPrice > 0 ? (riskPerShare / i.entryPrice) * 100 : 0;
-
-  // §3.9 live R-multiple (signed by side)
-  const liveRMultiple = i.currentPrice && i.currentPrice > 0 && riskPerShare > 0
-    ? (i.side === 'long'
-        ? (i.currentPrice - i.entryPrice) / riskPerShare
-        : (i.entryPrice - i.currentPrice) / riskPerShare)
-    : 0;
+  const current = num(box.currentPrice);
+  const currentR = isBlank(box.currentPrice)
+    ? null
+    : div(isLong ? current - entry : entry - current, stopSize);
 
   return {
-    isValid: true,
-    errors: [],
-    riskPerShare,
-    rawShares,
+    isLong,
+    entry,
+    stop,
+    risk,
+    accountSize,
+    stopSize,
     shares,
-    positionSize,
-    positionPctOfAccount,
-    totalRiskDollars,
-    riskPctOfAccount,
-    rewardPerShare,
-    rewardDollars,
-    rrRatio,
-    breakevenPrice,
-    commissionTotal,
-    liveRMultiple,
-    stopDistancePct,
-    targetDistancePct,
-    cappedByMaxPosition,
+    maxRisk,
+    maxSize,
+    exceedsMaxRisk: maxRisk > 0 && risk > maxRisk,
+    positionCost: shares * entry,
+    totalRisk: shares * stopSize,
+    currentR,
+    target: (r: number) => (isLong ? entry + stopSize * r : entry - stopSize * r),
   };
 }
 
-// §4 add-on helpers
-export function rPriceAt(n: number, side: Side, entryPrice: number, riskPerShare: number): number {
-  return side === 'long' ? entryPrice + n * riskPerShare : entryPrice - n * riskPerShare;
+// ── Add-on calculations ─────────────────────────────────────────────────────
+//
+// Raising the stop on the original position reduces the risk that position
+// still consumes; the freed-up budget is what funds the add-on.
+
+export interface AddOnCalc {
+  addOnStop: number;
+  newRiskOnOriginal: number;
+  freedUpRisk: number;
+  addOnSize: number;
+  totalShares: number;
+  avgPrice: number;
+  newStopDistance: number;
+  /** null while currentPriceAddOn is untouched. */
+  currentRAddOn: number | null;
+  newTarget: (r: number) => number;
 }
+
+export function calcAddOn(
+  box: CalculatorBox,
+  base: BaseCalc | null,
+): AddOnCalc | null {
+  if (!base) return null;
+
+  const addOnPrice = num(box.addOnPrice);
+  const newStop = num(box.newStopLoss);
+  if (!addOnPrice || !newStop) return null;
+
+  const addOnStop = Math.abs(addOnPrice - newStop);
+  const newRiskOnOriginal = base.shares * Math.abs(base.entry - newStop);
+  const freedUpRisk = Math.max(0, base.risk - newRiskOnOriginal);
+  const addOnSize = Math.floor(div(freedUpRisk, addOnStop));
+
+  const totalShares = base.shares + addOnSize;
+  const avgPrice = div(
+    base.shares * base.entry + addOnSize * addOnPrice,
+    totalShares,
+  );
+  const newStopDistance = Math.abs(avgPrice - newStop);
+
+  const currentAddOn = num(box.currentPriceAddOn);
+  const currentRAddOn = isBlank(box.currentPriceAddOn)
+    ? null
+    : div(
+        base.isLong ? currentAddOn - avgPrice : avgPrice - currentAddOn,
+        newStopDistance,
+      );
+
+  return {
+    addOnStop,
+    newRiskOnOriginal,
+    freedUpRisk,
+    addOnSize,
+    totalShares,
+    avgPrice,
+    newStopDistance,
+    currentRAddOn,
+    newTarget: (r: number) =>
+      base.isLong
+        ? avgPrice + newStopDistance * r
+        : avgPrice - newStopDistance * r,
+  };
+}
+
+// ── Formatting ──────────────────────────────────────────────────────────────
+
+const currencyFmt = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+});
+
+export const formatCurrency = (n: number): string =>
+  currencyFmt.format(Number.isFinite(n) ? n : 0);
+
+export const formatInt = (n: number): string =>
+  (Number.isFinite(n) ? n : 0).toLocaleString('en-US');
+
+/** R multiples always carry an explicit sign: "+1.20" / "-0.35". */
+export const formatR = (n: number): string => {
+  const v = Number.isFinite(n) ? n : 0;
+  return `${v >= 0 ? '+' : ''}${v.toFixed(2)}`;
+};

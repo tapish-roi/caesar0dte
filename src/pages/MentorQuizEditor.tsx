@@ -5,10 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import {
-  ChevronRight, Check, X, Plus, List, AlignLeft,
-  Send, ClipboardList, Lightbulb, Trash2,
-} from 'lucide-react';
+import { AlignLeftIcon, CheckIcon, ChevronRightIcon, CloseIcon, HintIcon, ListIcon, PlusIcon, QuizIcon, SendIcon, TrashIcon } from '@/components/icons';
 
 type QuestionType = 'multiple_choice' | 'free_text';
 
@@ -268,7 +265,7 @@ export default function MentorQuizEditor() {
       <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-sidebar-border">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-secondary-foreground/70 hover:text-secondary-foreground transition-colors">
-            <ChevronRight className="w-4 h-4" />חזרה
+            <ChevronRightIcon className="w-4 h-4" />חזרה
           </button>
           <div className="flex-1 text-center">
             <span className="text-sm font-semibold text-secondary-foreground">
@@ -298,7 +295,7 @@ export default function MentorQuizEditor() {
           onClick={() => setShowMeta(prev => !prev)}
           className="w-full flex items-center gap-2 mb-4 px-4 py-2.5 rounded-xl bg-secondary/50 border border-sidebar-border text-sm text-secondary-foreground hover:bg-secondary/70 transition-all"
         >
-          <ClipboardList className="w-4 h-4 text-primary" />
+          <QuizIcon className="w-4 h-4 text-primary" />
           <span className="font-medium">{title || 'הגדרות מבחן'}</span>
           <span className="mr-auto text-xs text-secondary-foreground/50">
             {showMeta ? 'סגור' : 'ערוך'}
@@ -388,7 +385,7 @@ export default function MentorQuizEditor() {
                     currentQuestion.type === 'multiple_choice' ? 'bg-primary/10 text-primary' : 'text-secondary-foreground/50 hover:text-secondary-foreground'
                   }`}
                 >
-                  <List className="w-3 h-3" />אמריקאית
+                  <ListIcon className="w-3 h-3" />אמריקאית
                 </button>
                 <button
                   onClick={() => updateQuestion(currentQuestion.id, { type: 'free_text', options: [] })}
@@ -396,7 +393,7 @@ export default function MentorQuizEditor() {
                     currentQuestion.type === 'free_text' ? 'bg-primary/10 text-primary' : 'text-secondary-foreground/50 hover:text-secondary-foreground'
                   }`}
                 >
-                  <AlignLeft className="w-3 h-3" />פתוחה
+                  <AlignLeftIcon className="w-3 h-3" />פתוחה
                 </button>
                 <div className="flex-1" />
                 {questions.length > 1 && (
@@ -404,7 +401,7 @@ export default function MentorQuizEditor() {
                     onClick={removeCurrentQuestion}
                     className="flex items-center gap-1 text-xs text-secondary-foreground/40 hover:text-red-400 transition-colors"
                   >
-                    <Trash2 className="w-3 h-3" />מחק שאלה
+                    <TrashIcon className="w-3 h-3" />מחק שאלה
                   </button>
                 )}
               </div>
@@ -434,7 +431,7 @@ export default function MentorQuizEditor() {
                               opt.isCorrect ? 'bg-green-500 text-white' : 'bg-sidebar-accent text-secondary-foreground/70'
                             }`}
                           >
-                            {opt.isCorrect ? <Check className="w-4 h-4" /> : letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}
+                            {opt.isCorrect ? <CheckIcon className="w-4 h-4" /> : letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}
                           </button>
                           <input
                             value={opt.text}
@@ -444,7 +441,7 @@ export default function MentorQuizEditor() {
                           />
                           {currentQuestion.options.length > 2 && (
                             <button onClick={() => removeOption(currentQuestion.id, opt.id)} className="text-secondary-foreground/30 hover:text-red-400 transition-colors">
-                              <X className="w-3.5 h-3.5" />
+                              <CloseIcon className="w-3.5 h-3.5" />
                             </button>
                           )}
                         </div>
@@ -464,7 +461,7 @@ export default function MentorQuizEditor() {
                       onClick={() => addOption(currentQuestion.id)}
                       className="flex items-center gap-1.5 text-xs text-secondary-foreground/50 hover:text-primary transition-colors"
                     >
-                      <Plus className="w-3 h-3" />הוסף אפשרות
+                      <PlusIcon className="w-3 h-3" />הוסף אפשרות
                     </button>
                   )}
                 </div>
@@ -474,7 +471,7 @@ export default function MentorQuizEditor() {
               {currentQuestion.type === 'free_text' && (
                 <div className="mb-5 space-y-3">
                   <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-xl">
-                    <AlignLeft className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <AlignLeftIcon className="w-3.5 h-3.5 text-primary shrink-0" />
                     <p className="text-xs text-secondary-foreground/70">שאלה פתוחה — התלמיד יכתוב תשובה חופשית. לא ינתן ציון אוטומטי.</p>
                   </div>
                   <div>
@@ -493,7 +490,7 @@ export default function MentorQuizEditor() {
               {/* Hint editor */}
               <div className="mb-5">
                 <div className="flex items-center gap-2 mb-2">
-                  <Lightbulb className="w-4 h-4 text-primary" />
+                  <HintIcon className="w-4 h-4 text-primary" />
                   <label className="text-xs font-medium text-secondary-foreground/70">רמז לתלמיד (אופציונלי)</label>
                 </div>
                 <textarea
@@ -527,13 +524,13 @@ export default function MentorQuizEditor() {
               onClick={() => addQuestion('multiple_choice')}
               className="flex items-center gap-1 text-xs text-secondary-foreground/50 hover:text-primary transition-colors px-2 py-1 rounded-lg hover:bg-primary/5"
             >
-              <Plus className="w-3 h-3" />אמריקאית
+              <PlusIcon className="w-3 h-3" />אמריקאית
             </button>
             <button
               onClick={() => addQuestion('free_text')}
               className="flex items-center gap-1 text-xs text-secondary-foreground/50 hover:text-primary transition-colors px-2 py-1 rounded-lg hover:bg-primary/5"
             >
-              <Plus className="w-3 h-3" />פתוחה
+              <PlusIcon className="w-3 h-3" />פתוחה
             </button>
           </div>
 
@@ -554,7 +551,7 @@ export default function MentorQuizEditor() {
                 {isSaving ? (
                   <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />שומר...</>
                 ) : (
-                  <><Send className="w-4 h-4" />פרסם</>
+                  <><SendIcon solid className="w-4 h-4" />פרסם</>
                 )}
               </button>
             </div>

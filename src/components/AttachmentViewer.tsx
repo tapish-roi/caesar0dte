@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, MonitorPlay, ExternalLink, RefreshCw } from 'lucide-react';
+import { ExternalLinkIcon, FileIcon, RefreshIcon, ScreenPlayIcon } from '@/components/icons';
 
 interface AttachmentViewerProps {
   url: string;
@@ -32,9 +32,9 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
       <div className="flex items-center justify-between px-6 py-3 bg-primary/5">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
           {isPpt ? (
-            <MonitorPlay className="w-4 h-4 text-primary" />
+            <ScreenPlayIcon className="w-4 h-4 text-primary" />
           ) : (
-            <FileText className="w-4 h-4 text-primary" />
+            <FileIcon className="w-4 h-4 text-primary" />
           )}
           <span>{displayName}</span>
         </div>
@@ -45,7 +45,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
               className="flex items-center gap-1.5 h-8 px-3 rounded-lg aurora-control text-xs text-muted-foreground hover:text-primary transition-all"
               title="רענן תצוגה מקדימה"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshIcon className="w-3.5 h-3.5" />
               רענן
             </button>
           )}
@@ -56,7 +56,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
             className="flex items-center gap-1.5 h-8 px-3 rounded-lg aurora-control text-xs text-muted-foreground hover:text-primary transition-all"
             onClick={e => e.stopPropagation()}
           >
-            <ExternalLink className="w-3.5 h-3.5" />
+            <ExternalLinkIcon className="w-3.5 h-3.5" />
             פתח בחלון
           </a>
         </div>
@@ -90,7 +90,7 @@ export default function AttachmentViewer({ url, name }: AttachmentViewerProps) {
       {!isViewable && (
         <div className="px-6 pb-5 pt-2 flex items-center gap-3 bg-muted/20">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <FileText className="w-5 h-5 text-primary" />
+            <FileIcon className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-foreground">{displayName}</p>

@@ -11,10 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
 import { he } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import {
-  CalendarDays, Plus, Radio, Video, Clock, Trash2,
-  Pencil, X, Check, Upload, Play, ChevronLeft, Link2, Copy,
-} from 'lucide-react';
+import { CalendarIcon, CheckIcon, ChevronLeftIcon, ClockIcon, CloseIcon, CopyIcon, EditIcon, LinkIcon, LiveIcon, PlayIcon, PlusIcon, TrashIcon, UploadIcon, VideoIcon, type IconComponent } from '@/components/icons';
 import LiveRoom from '@/components/LiveRoom';
 import ZoomHub from '@/components/ZoomHub';
 
@@ -251,11 +248,11 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
     }
   };
 
-  const tabs: { key: SubTab; label: string; icon: typeof Radio }[] = [
-    { key: 'live', label: 'שידור חי', icon: Radio },
-    { key: 'zoom', label: 'Zoom', icon: Video },
-    { key: 'scheduled', label: 'לוח מודעות', icon: CalendarDays },
-    { key: 'recordings', label: 'לייבים מוקלטים', icon: Video },
+  const tabs: { key: SubTab; label: string; icon: IconComponent }[] = [
+    { key: 'live', label: 'שידור חי', icon: LiveIcon },
+    { key: 'zoom', label: 'Zoom', icon: VideoIcon },
+    { key: 'scheduled', label: 'לוח מודעות', icon: CalendarIcon },
+    { key: 'recordings', label: 'לייבים מוקלטים', icon: VideoIcon },
   ];
 
   const openSchedEdit = (item: ScheduledLive) => {
@@ -326,7 +323,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                     disabled={!newLiveTitle.trim() || startLiveSession.isPending}
                     className="w-full sm:w-auto min-h-11 sm:h-11 px-5 py-2 bg-destructive text-destructive-foreground rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 sm:shrink-0 text-center break-words"
                   >
-                    <Radio className="w-4 h-4 shrink-0" />
+                    <LiveIcon solid className="w-4 h-4 shrink-0" />
                     <span className="break-words">{startLiveSession.isPending ? 'מתחיל...' : 'התחל שידור'}</span>
                   </button>
                 </div>
@@ -345,7 +342,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
 
                       {/* Shareable link */}
                       <div className="flex items-center gap-2 mb-4 bg-muted/40 rounded-lg px-3 py-2 min-w-0">
-                        <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <LinkIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                         <span className="text-xs text-muted-foreground truncate flex-1 min-w-0 select-all font-mono" dir="ltr">{shareLink}</span>
                         <button
                           onClick={() => {
@@ -354,7 +351,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                           }}
                           className="shrink-0 h-7 px-2.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all flex items-center gap-1"
                         >
-                          <Copy className="w-3 h-3" />העתק
+                          <CopyIcon className="w-3 h-3" />העתק
                         </button>
                       </div>
 
@@ -363,7 +360,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                           onClick={() => setActiveSession(session)}
                           className="w-full sm:flex-1 min-h-10 sm:h-10 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
                         >
-                          <Radio className="w-4 h-4 shrink-0" /><span className="break-words">פתח שידור</span>
+                          <LiveIcon solid className="w-4 h-4 shrink-0" /><span className="break-words">פתח שידור</span>
                         </button>
                         <button
                           onClick={() => endLiveSession(session.id)}
@@ -389,7 +386,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                 onClick={() => { setEditScheduled(null); setSchedForm({ title: '', description: '', scheduled_at: '' }); setShowScheduleForm(true); }}
                 className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
               >
-                <Plus className="w-4 h-4" />הוסף לייב
+                <PlusIcon solid className="w-4 h-4" />הוסף לייב
               </button>
             </div>
 
@@ -438,7 +435,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
 
             {scheduled.length === 0 ? (
               <div className="bg-card rounded-2xl card-shadow p-8 text-center">
-                <CalendarDays className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-3" />
+                <CalendarIcon className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-3" />
                 <p className="font-semibold text-foreground mb-1">לוח מודעות ריק</p>
                 <p className="text-sm text-muted-foreground">הוסף תאריכי לייב כדי שהתלמידים יוכלו לתכנן מראש</p>
               </div>
@@ -456,16 +453,16 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                         <p className="font-semibold text-sm text-foreground">{item.title}</p>
                         {item.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.description}</p>}
                         <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
+                          <ClockIcon className="w-3 h-3" />
                           {format(dt, "HH:mm | EEEE", { locale: he })}
                         </p>
                       </div>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => openSchedEdit(item)} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all">
-                          <Pencil className="w-3.5 h-3.5" />
+                          <EditIcon className="w-3.5 h-3.5" />
                         </button>
                         <button onClick={() => deleteScheduled.mutate(item.id)} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <TrashIcon className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -483,13 +480,13 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
               <div className="bg-card rounded-2xl card-shadow overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
                   <button onClick={() => setPlayingRecording(null)} className="flex items-center gap-1.5 text-sm text-primary hover:opacity-80">
-                    <ChevronLeft className="w-4 h-4" />חזור להקלטות
+                    <ChevronLeftIcon className="w-4 h-4" />חזור להקלטות
                   </button>
                 </div>
                 <div className="aspect-video bg-black">
                   {playingRecording.recording_url
                     ? <video src={playingRecording.recording_url} className="w-full h-full" controls autoPlay controlsList="nodownload" onContextMenu={e => e.preventDefault()} />
-                    : <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Video className="w-12 h-12 opacity-30" /></div>
+                    : <div className="w-full h-full flex items-center justify-center text-muted-foreground"><VideoIcon className="w-12 h-12 opacity-30" /></div>
                   }
                 </div>
                 <div className="p-5 flex items-start justify-between gap-3">
@@ -501,7 +498,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                     onClick={() => { setPlayingRecording(null); openRecEdit(playingRecording); }}
                     className="flex items-center gap-1.5 h-8 px-3 rounded-lg border border-border text-xs text-foreground hover:bg-muted transition-all shrink-0"
                   >
-                    <Pencil className="w-3.5 h-3.5" />ערוך
+                    <EditIcon className="w-3.5 h-3.5" />ערוך
                   </button>
                 </div>
               </div>
@@ -513,7 +510,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                     onClick={() => { setEditRecording(null); setRecForm({ title: '', description: '', recording_url: '', duration_minutes: '' }); setShowRecForm(true); }}
                     className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
                   >
-                    <Plus className="w-4 h-4" />הוסף הקלטה
+                    <PlusIcon solid className="w-4 h-4" />הוסף הקלטה
                   </button>
                 </div>
 
@@ -550,9 +547,9 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                           />
                           {recForm.recording_url ? (
                             <div className="flex items-center gap-2 p-3 bg-accent/5 border border-accent/20 rounded-lg">
-                              <Check className="w-4 h-4 text-accent" />
+                              <CheckIcon className="w-4 h-4 text-accent" />
                               <span className="text-xs text-accent flex-1 truncate">הסרטון הועלה</span>
-                              <button onClick={() => setRecForm(f => ({ ...f, recording_url: '' }))} className="text-muted-foreground hover:text-destructive"><X className="w-4 h-4" /></button>
+                              <button onClick={() => setRecForm(f => ({ ...f, recording_url: '' }))} className="text-muted-foreground hover:text-destructive"><CloseIcon className="w-4 h-4" /></button>
                             </div>
                           ) : (
                             <button onClick={() => fileInputRef.current?.click()} disabled={isUploading}
@@ -560,7 +557,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                             >
                               {isUploading
                                 ? <><div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" /><span className="text-xs">מעלה...</span></>
-                                : <><Upload className="w-5 h-5" /><span className="text-xs font-medium">העלה קובץ הקלטה</span></>
+                                : <><UploadIcon className="w-5 h-5" /><span className="text-xs font-medium">העלה קובץ הקלטה</span></>
                               }
                             </button>
                           )}
@@ -587,7 +584,7 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
 
                 {recordings.length === 0 ? (
                   <div className="bg-card rounded-2xl card-shadow p-8 text-center">
-                    <Video className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-3" />
+                    <VideoIcon className="w-12 h-12 text-muted-foreground opacity-30 mx-auto mb-3" />
                     <p className="font-semibold text-foreground mb-1">אין הקלטות עדיין</p>
                     <p className="text-sm text-muted-foreground">העלה הקלטות לייב שתלמידים יוכלו לצפות בהן</p>
                   </div>
@@ -596,22 +593,22 @@ export default function LiveHubMentor({ mentorId, userId, userName }: Props) {
                     {recordings.map(rec => (
                       <div key={rec.id} className="bg-card rounded-xl card-shadow p-4 flex items-center gap-4 group">
                         <button onClick={() => setPlayingRecording(rec)} className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 hover:bg-primary/20 transition-all">
-                          <Play className="w-6 h-6 text-primary" />
+                          <PlayIcon className="w-6 h-6 text-primary" />
                         </button>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-sm text-foreground">{rec.title}</p>
                           {rec.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{rec.description}</p>}
                           <div className="flex items-center gap-3 mt-1">
                             <span className="text-xs text-muted-foreground">{format(parseISO(rec.created_at), 'dd.MM.yyyy', { locale: he })}</span>
-                            {rec.duration_minutes && <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{rec.duration_minutes} דק'</span>}
+                            {rec.duration_minutes && <span className="text-xs text-muted-foreground flex items-center gap-1"><ClockIcon className="w-3 h-3" />{rec.duration_minutes} דק'</span>}
                           </div>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => openRecEdit(rec)} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all">
-                            <Pencil className="w-3.5 h-3.5" />
+                            <EditIcon className="w-3.5 h-3.5" />
                           </button>
                           <button onClick={() => deleteRecording.mutate(rec.id)} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all">
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <TrashIcon className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>

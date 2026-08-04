@@ -6,9 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  ArrowUpDown, ChevronLeft, ChevronRight, Trash2, Tag, Upload,
-} from 'lucide-react';
+import { ChevronLeftIcon, ChevronRightIcon, SortIcon, TagIcon, TrashIcon, UploadIcon } from '@/components/icons';
 import type { TradeRow } from '@/contexts/TradesContext';
 import type { Strategy } from '@/contexts/StrategiesContext';
 
@@ -78,7 +76,7 @@ export default function AdvancedTradesTable({ trades, strategies, isReadOnly, on
         <div className="text-muted-foreground mb-4">אין עסקאות עדיין</div>
         {!isReadOnly && (
           <Button onClick={onOpenImport} className="gap-2">
-            <Upload className="h-4 w-4" /> ייבא קובץ ברוקר
+            <UploadIcon className="h-4 w-4" /> ייבא קובץ ברוקר
           </Button>
         )}
       </Card>
@@ -87,7 +85,7 @@ export default function AdvancedTradesTable({ trades, strategies, isReadOnly, on
 
   const SortHeader = ({ label, k }: { label: string; k: SortKey }) => (
     <button onClick={() => toggleSort(k)} className="flex items-center gap-1 hover:text-foreground">
-      {label}<ArrowUpDown className="h-3 w-3 opacity-60" />
+      {label}<SortIcon className="h-3 w-3 opacity-60" />
     </button>
   );
 
@@ -98,7 +96,7 @@ export default function AdvancedTradesTable({ trades, strategies, isReadOnly, on
           <span className="text-xs">{selectedIds.length} נבחרו</span>
           <Popover>
             <PopoverTrigger asChild>
-              <Button size="sm" variant="outline" className="gap-1"><Tag className="h-3 w-3" /> הוסף תגיות</Button>
+              <Button size="sm" variant="outline" className="gap-1"><TagIcon className="h-3 w-3" /> הוסף תגיות</Button>
             </PopoverTrigger>
             <PopoverContent className="w-64" align="end">
               <Input value={tagInput} onChange={(e) => setTagInput(e.target.value)} placeholder="tag1, tag2" dir="auto" />
@@ -117,7 +115,7 @@ export default function AdvancedTradesTable({ trades, strategies, isReadOnly, on
           <Button
             size="sm" variant="destructive" className="gap-1 ms-auto"
             onClick={() => { onBulkDelete(selectedIds); setSelected(new Set()); }}
-          ><Trash2 className="h-3 w-3" /> מחק נבחרים</Button>
+          ><TrashIcon solid className="h-3 w-3" /> מחק נבחרים</Button>
         </div>
       )}
 
@@ -208,10 +206,10 @@ export default function AdvancedTradesTable({ trades, strategies, isReadOnly, on
         <span className="text-muted-foreground">{sorted.length} עסקאות · עמוד {currentPage + 1}/{totalPages}</span>
         <div className="flex items-center gap-1">
           <Button size="sm" variant="outline" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={currentPage === 0}>
-            <ChevronRight className="h-3 w-3" />
+            <ChevronRightIcon className="h-3 w-3" />
           </Button>
           <Button size="sm" variant="outline" onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={currentPage >= totalPages - 1}>
-            <ChevronLeft className="h-3 w-3" />
+            <ChevronLeftIcon className="h-3 w-3" />
           </Button>
         </div>
       </div>

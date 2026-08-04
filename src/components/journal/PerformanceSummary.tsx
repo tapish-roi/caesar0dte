@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import type { TradeRow } from '@/contexts/TradesContext';
-import { TrendingUp, TrendingDown, Trophy, Activity, Target, Hash, Clock, Award } from 'lucide-react';
+import { AwardIcon, ClockIcon, HashIcon, PulseIcon, TargetIcon, TrendDownIcon, TrendIcon, TrophyIcon, type IconComponent } from '@/components/icons';
 
 const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
@@ -69,17 +69,19 @@ export default function PerformanceSummary({ trades, showDemo }: Props) {
     return `${h}h ${m}m`;
   };
 
-  const items = [
-    { label: 'סה״כ עסקאות', value: String(stats.total), icon: Hash, tone: 'text-foreground' },
-    { label: 'אחוז הצלחה', value: pct(stats.winRate), icon: Target, tone: stats.winRate >= 0.5 ? 'text-emerald-500' : 'text-destructive' },
-    { label: 'P&L נטו', value: fmt(stats.totalPnl), icon: TrendingUp, tone: stats.totalPnl >= 0 ? 'text-emerald-500' : 'text-destructive' },
-    { label: 'רווח ממוצע', value: fmt(stats.avgWin), icon: TrendingUp, tone: 'text-emerald-500' },
-    { label: 'הפסד ממוצע', value: fmt(stats.avgLoss), icon: TrendingDown, tone: 'text-destructive' },
-    { label: 'Profit Factor', value: stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2), icon: Activity, tone: 'text-foreground' },
-    { label: 'עסקה הטובה ביותר', value: fmt(Number(stats.best)), icon: Trophy, tone: 'text-emerald-500' },
-    { label: 'עסקה הגרועה ביותר', value: fmt(Number(stats.worst)), icon: TrendingDown, tone: 'text-destructive' },
-    { label: 'אסטרטגיה מובילה', value: fmt(stats.bestStratPnl), icon: Award, tone: stats.bestStratPnl >= 0 ? 'text-emerald-500' : 'text-destructive' },
-    { label: 'זמן ממוצע בעסקה', value: fmtDuration(stats.avgMs), icon: Clock, tone: 'text-foreground' },
+  // `solid` marks the custom icons: their tone class is the point, so they run in
+  // current-color mode instead of the gold gradient. Lucide icons leave it unset.
+  const items: { label: string; value: string; icon: IconComponent; tone: string; solid?: boolean }[] = [
+    { label: 'סה״כ עסקאות', value: String(stats.total), icon: HashIcon, tone: 'text-foreground' },
+    { label: 'אחוז הצלחה', value: pct(stats.winRate), icon: TargetIcon, tone: stats.winRate >= 0.5 ? 'text-emerald-500' : 'text-destructive' },
+    { label: 'P&L נטו', value: fmt(stats.totalPnl), icon: TrendIcon, tone: stats.totalPnl >= 0 ? 'text-emerald-500' : 'text-destructive', solid: true },
+    { label: 'רווח ממוצע', value: fmt(stats.avgWin), icon: TrendIcon, tone: 'text-emerald-500', solid: true },
+    { label: 'הפסד ממוצע', value: fmt(stats.avgLoss), icon: TrendDownIcon, tone: 'text-destructive', solid: true },
+    { label: 'Profit Factor', value: stats.profitFactor === Infinity ? '∞' : stats.profitFactor.toFixed(2), icon: PulseIcon, tone: 'text-foreground' },
+    { label: 'עסקה הטובה ביותר', value: fmt(Number(stats.best)), icon: TrophyIcon, tone: 'text-emerald-500' },
+    { label: 'עסקה הגרועה ביותר', value: fmt(Number(stats.worst)), icon: TrendDownIcon, tone: 'text-destructive', solid: true },
+    { label: 'אסטרטגיה מובילה', value: fmt(stats.bestStratPnl), icon: AwardIcon, tone: stats.bestStratPnl >= 0 ? 'text-emerald-500' : 'text-destructive' },
+    { label: 'זמן ממוצע בעסקה', value: fmtDuration(stats.avgMs), icon: ClockIcon, tone: 'text-foreground' },
   ];
 
   return (
@@ -88,7 +90,7 @@ export default function PerformanceSummary({ trades, showDemo }: Props) {
         <Card key={it.label} className="p-4 bg-card/60 backdrop-blur border-border/60">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground">{it.label}</span>
-            <it.icon className={`h-4 w-4 ${it.tone}`} />
+            <it.icon className={`h-4 w-4 ${it.tone}`} solid={it.solid} />
           </div>
           <div className={`text-lg font-semibold ${it.tone}`}>{it.value}</div>
         </Card>

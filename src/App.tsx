@@ -8,6 +8,7 @@ import { LayoutGroup, AnimatePresence, motion } from "framer-motion";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import DashboardReveal from "@/components/DashboardReveal";
 import LightspeedTransition from "@/components/LightspeedTransition";
+import { IconDefs } from "@/components/icons";
 // AuthPage stays eager — it's the first paint for logged-out users
 import AuthPage from "./pages/AuthPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -329,6 +330,8 @@ function AppRoutes() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    {/* Gradient defs for the custom icon set — must mount before any route paints */}
+    <IconDefs />
     <AuthProvider>
       <TooltipProvider>
         <Toaster />

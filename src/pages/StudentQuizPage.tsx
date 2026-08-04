@@ -5,10 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import {
-  ClipboardList, ChevronRight, Check, AlignLeft, List,
-  Send, TrendingUp, CheckCircle2, X, Eye, Lightbulb,
-} from 'lucide-react';
+import { CheckCircleIcon, CheckIcon, ChevronRightIcon, CloseIcon, EyeIcon, HintIcon, QuizIcon, SendIcon } from '@/components/icons';
 
 interface QuizQuestion {
   id: string;
@@ -223,10 +220,10 @@ export default function StudentQuizPage() {
   if (!quiz || !quiz.is_published) {
     return (
       <div className="min-h-screen bg-background text-secondary-foreground flex flex-col items-center justify-center gap-4" dir="rtl">
-        <ClipboardList className="w-12 h-12 text-secondary-foreground/30" />
+        <QuizIcon className="w-12 h-12 text-secondary-foreground/30" />
         <p className="text-lg font-semibold text-secondary-foreground">המבחן אינו זמין</p>
         <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity">
-          <ChevronRight className="w-4 h-4" />חזרה
+          <ChevronRightIcon className="w-4 h-4" />חזרה
         </button>
       </div>
     );
@@ -239,7 +236,7 @@ export default function StudentQuizPage() {
         <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-sidebar-border">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-secondary-foreground/60 hover:text-secondary-foreground transition-colors">
-              <ChevronRight className="w-4 h-4" />חזרה
+              <ChevronRightIcon className="w-4 h-4" />חזרה
             </button>
             <span className="text-sm font-semibold text-secondary-foreground flex-1 text-center">סקירת תשובות</span>
           </div>
@@ -266,7 +263,7 @@ export default function StudentQuizPage() {
                     rv?.is_correct ? 'bg-accent text-accent-foreground' : 'bg-destructive text-destructive-foreground'
                   }`}>
                     {q.question_type === 'free_text' ? idx + 1 :
-                     rv?.is_correct ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                     rv?.is_correct ? <CheckIcon className="w-3 h-3" /> : <CloseIcon className="w-3 h-3" />}
                   </span>
                   <p className="text-sm font-semibold text-secondary-foreground flex-1 text-right">{q.question_text}</p>
                   {q.question_type !== 'free_text' && (
@@ -294,8 +291,8 @@ export default function StudentQuizPage() {
                                 isStudentAnswer ? 'border-red-500 bg-red-500 text-white' :
                                 'border-sidebar-border text-secondary-foreground/50'
                               }`}>
-                                {isCorrectAnswer ? <Check className="w-3.5 h-3.5" /> :
-                                 isStudentAnswer ? <X className="w-3.5 h-3.5" /> :
+                                {isCorrectAnswer ? <CheckIcon className="w-3.5 h-3.5" /> :
+                                 isStudentAnswer ? <CloseIcon className="w-3.5 h-3.5" /> :
                                  String.fromCharCode(65 + oIdx)}
                               </span>
                               <span className="text-sm flex-1">{opt.option_text}</span>
@@ -353,15 +350,15 @@ export default function StudentQuizPage() {
       <div className="min-h-screen bg-background text-secondary-foreground" dir="rtl">
         <div className="max-w-2xl mx-auto px-4 py-8">
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-secondary-foreground/60 hover:text-secondary-foreground transition-colors mb-6">
-            <ChevronRight className="w-4 h-4" />חזרה לשיעור
+            <ChevronRightIcon className="w-4 h-4" />חזרה לשיעור
           </button>
           <div className="bg-card rounded-2xl p-8 text-center">
             <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
               pct == null ? 'bg-primary/10' : pct >= 70 ? 'bg-green-500/10' : 'bg-red-500/10'
             }`}>
               {pct == null || pct >= 70
-                ? <CheckCircle2 className={`w-8 h-8 ${pct == null ? 'text-primary' : 'text-green-400'}`} />
-                : <X className="w-8 h-8 text-red-400" />}
+                ? <CheckCircleIcon solid className={`w-8 h-8 ${pct == null ? 'text-primary' : 'text-green-400'}`} />
+                : <CloseIcon solid className="w-8 h-8 text-red-400" />}
             </div>
             <h2 className="text-xl font-bold text-secondary-foreground mb-2">כבר הגשת מבחן זה</h2>
             {pct != null ? (
@@ -385,7 +382,7 @@ export default function StudentQuizPage() {
                 onClick={() => setShowReview(true)}
                 className="flex-1 h-10 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2"
               >
-                <Eye className="w-4 h-4" />צפה בתשובות
+                <EyeIcon solid className="w-4 h-4" />צפה בתשובות
               </button>
             </div>
           </div>
@@ -408,11 +405,11 @@ export default function StudentQuizPage() {
             pct == null ? 'bg-primary/10' : pct >= 70 ? 'bg-green-500/10' : 'bg-red-500/10'
           }`}>
             {pct == null ? (
-              <CheckCircle2 className="w-10 h-10 text-primary" />
+              <CheckCircleIcon className="w-10 h-10 text-primary" />
             ) : pct >= 70 ? (
-              <CheckCircle2 className="w-10 h-10 text-green-400" />
+              <CheckCircleIcon solid className="w-10 h-10 text-green-400" />
             ) : (
-              <X className="w-10 h-10 text-red-400" />
+              <CloseIcon solid className="w-10 h-10 text-red-400" />
             )}
           </div>
           <h2 className="text-2xl font-bold text-secondary-foreground mb-1">המבחן הוגש!</h2>
@@ -480,7 +477,7 @@ export default function StudentQuizPage() {
       <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm border-b border-sidebar-border">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-secondary-foreground/70 hover:text-secondary-foreground transition-colors">
-            <ChevronRight className="w-4 h-4" />חזרה
+            <ChevronRightIcon className="w-4 h-4" />חזרה
           </button>
           <div className="flex-1 text-center">
             <span className="text-sm font-semibold text-secondary-foreground">{quiz.title}</span>
@@ -548,7 +545,7 @@ export default function StudentQuizPage() {
                         letterBg = 'bg-green-500 text-white';
                         badgeEl = (
                           <span className="flex items-center gap-1 text-xs font-medium text-green-400">
-                            <CheckCircle2 className="w-3.5 h-3.5" />התשובה הנכונה
+                            <CheckCircleIcon className="w-3.5 h-3.5" />התשובה הנכונה
                           </span>
                         );
                       } else if (isSelected && !isCorrectOption) {
@@ -558,7 +555,7 @@ export default function StudentQuizPage() {
                         letterBg = 'bg-red-500 text-white';
                         badgeEl = (
                           <span className="flex items-center gap-1 text-xs font-medium text-red-400">
-                            <X className="w-3.5 h-3.5" />לא בדיוק
+                            <CloseIcon className="w-3.5 h-3.5" />לא בדיוק
                           </span>
                         );
                       } else {
@@ -578,8 +575,8 @@ export default function StudentQuizPage() {
                         }`}
                       >
                         <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm font-bold transition-all ${letterBg}`}>
-                          {hasFeedback && isCorrectOption ? <Check className="w-4 h-4" /> :
-                           hasFeedback && isSelected && !isCorrectOption ? <X className="w-4 h-4" /> :
+                          {hasFeedback && isCorrectOption ? <CheckIcon className="w-4 h-4" /> :
+                           hasFeedback && isSelected && !isCorrectOption ? <CloseIcon className="w-4 h-4" /> :
                            letterLabels[oIdx] || String.fromCharCode(65 + oIdx)}
                         </span>
                         <span className={`text-sm flex-1 ${hasFeedback && !isCorrectOption && !isSelected ? 'text-secondary-foreground/40' : 'text-secondary-foreground'}`}>
@@ -634,7 +631,7 @@ export default function StudentQuizPage() {
                       onClick={() => setRevealedHints(prev => ({ ...prev, [currentQuestion.id]: true }))}
                       className="flex items-center gap-2 text-sm text-primary hover:opacity-80 transition-opacity"
                     >
-                      <Lightbulb className="w-4 h-4" />
+                      <HintIcon className="w-4 h-4" />
                       הצג רמז
                     </button>
                   ) : (
@@ -644,7 +641,7 @@ export default function StudentQuizPage() {
                       className="p-4 rounded-xl bg-primary/5 border border-primary/20"
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <Lightbulb className="w-4 h-4 text-primary" />
+                        <HintIcon className="w-4 h-4 text-primary" />
                         <span className="text-xs font-medium text-primary">רמז</span>
                       </div>
                       <p className="text-sm text-secondary-foreground/80">{currentQuestion.hint}</p>
@@ -682,7 +679,7 @@ export default function StudentQuizPage() {
                 {isSubmitting ? (
                   <><div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />מגיש...</>
                 ) : (
-                  <><Send className="w-4 h-4" />הגש מבחן</>
+                  <><SendIcon className="w-4 h-4" />הגש מבחן</>
                 )}
               </button>
             ) : (

@@ -15,11 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Video, VideoOff, Users, ExternalLink, Copy,
-  Plus, PhoneOff, Loader2, RefreshCw, Link2, ChevronDown,
-  CalendarClock, Clock, Trash2, CalendarPlus,
-} from 'lucide-react';
+import { CalendarClockIcon, CalendarPlusIcon, ChevronDownIcon, ClockIcon, CopyIcon, ExternalLinkIcon, HangUpIcon, LinkIcon, LoaderIcon, PlusIcon, RefreshIcon, TrashIcon, UsersIcon, VideoIcon, VideoOffIcon } from '@/components/icons';
 
 interface ZoomSession {
   id: string;
@@ -299,7 +295,6 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-foreground">Zoom</h1>
-          <p className="text-sm text-muted-foreground mt-1">פגישות חיות ומתוזמנות</p>
         </div>
         <button
           onClick={() => refetch()}
@@ -307,7 +302,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
           className="shrink-0 h-9 w-9 rounded-lg bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all"
           title="רענן"
         >
-          <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+          <RefreshIcon className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
@@ -316,7 +311,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
         <div className="bg-card rounded-2xl card-shadow p-5 mb-6 border border-border">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-[rgba(226,181,78,0.10)] flex items-center justify-center shrink-0">
-              <Video className="w-5 h-5 text-[#e2b54e]" />
+              <VideoIcon className="w-5 h-5 text-[#e2b54e]" />
             </div>
             <div>
               <h2 className="font-semibold text-foreground text-sm">פתח פגישת Zoom חדשה</h2>
@@ -340,8 +335,8 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
               className="w-full h-11 aurora-gold rounded-lg font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {createMeeting.isPending
-                ? <><Loader2 className="w-4 h-4 animate-spin" />יוצר פגישה...</>
-                : <><Plus className="w-4 h-4" />צור פגישה עכשיו</>}
+                ? <><LoaderIcon className="w-4 h-4 animate-spin" />יוצר פגישה...</>
+                : <><PlusIcon solid className="w-4 h-4" />צור פגישה עכשיו</>}
             </button>
 
             {/* Schedule toggle */}
@@ -349,8 +344,8 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
               onClick={() => setShowSchedule(v => !v)}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto pt-1"
             >
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showSchedule ? 'rotate-180' : ''}`} />
-              <CalendarClock className="w-3.5 h-3.5" />
+              <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${showSchedule ? 'rotate-180' : ''}`} />
+              <CalendarClockIcon className="w-3.5 h-3.5" />
               תזמן פגישה עתידית
             </button>
 
@@ -394,8 +389,8 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                       className="w-full h-10 aurora-control text-foreground rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {scheduleMeeting.isPending
-                        ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />מתזמן...</>
-                        : <><CalendarClock className="w-3.5 h-3.5" />תזמן פגישה</>}
+                        ? <><LoaderIcon className="w-3.5 h-3.5 animate-spin" />מתזמן...</>
+                        : <><CalendarClockIcon className="w-3.5 h-3.5" />תזמן פגישה</>}
                     </button>
                   </div>
                 </motion.div>
@@ -407,7 +402,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
               onClick={() => setShowManual(v => !v)}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto pt-0"
             >
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showManual ? 'rotate-180' : ''}`} />
+              <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform ${showManual ? 'rotate-180' : ''}`} />
               הדבק קישור Zoom ידנית
             </button>
 
@@ -434,8 +429,8 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                       className="w-full h-10 border border-[rgba(226,181,78,0.4)] text-[#e2b54e] hover:bg-[rgba(226,181,78,0.08)] rounded-lg text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {postManual.isPending
-                        ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />שומר...</>
-                        : <><Link2 className="w-3.5 h-3.5" />שתף קישור</>}
+                        ? <><LoaderIcon className="w-3.5 h-3.5 animate-spin" />שומר...</>
+                        : <><LinkIcon className="w-3.5 h-3.5" />שתף קישור</>}
                     </button>
                   </div>
                 </motion.div>
@@ -449,7 +444,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
       {scheduled.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <CalendarClock className="w-4 h-4 text-[#e2b54e]" />
+            <CalendarClockIcon className="w-4 h-4 text-[#e2b54e]" />
             פגישות מתוזמנות
             <span className="text-xs font-normal text-muted-foreground">({scheduled.length})</span>
           </h2>
@@ -475,12 +470,12 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                   </div>
 
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                    <Users className="w-3.5 h-3.5 shrink-0" />
+                    <UsersIcon className="w-3.5 h-3.5 shrink-0" />
                     <span>מארח: {s.host_name}</span>
                   </div>
 
                   <div className="flex items-center gap-2 text-xs mb-3">
-                    <Clock className="w-3.5 h-3.5 text-[#e2b54e] shrink-0" />
+                    <ClockIcon className="w-3.5 h-3.5 text-[#e2b54e] shrink-0" />
                     <span className="text-muted-foreground">{formatScheduledTime(s.scheduled_at)}</span>
                     <span className="mx-1 text-border">·</span>
                     <CountdownBadge scheduledAt={s.scheduled_at} />
@@ -493,7 +488,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                       rel="noopener noreferrer"
                       className="flex-1 h-9 aurora-control text-foreground rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ExternalLinkIcon className="w-3.5 h-3.5" />
                       {isPast ? 'הצטרף' : 'הצטרף מוקדם'}
                     </a>
                     <button
@@ -501,14 +496,14 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                       className="h-9 px-3 rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500/20 text-xs flex items-center gap-1.5 transition-all"
                       title="הוסף ל-Google Calendar"
                     >
-                      <CalendarPlus className="w-3.5 h-3.5" />
+                      <CalendarPlusIcon className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">יומן</span>
                     </button>
                     <button
                       onClick={() => copyLink(s.zoom_url)}
                       className="h-9 px-3 rounded-xl bg-muted text-muted-foreground hover:text-foreground text-xs flex items-center gap-1 transition-all"
                     >
-                      <Copy className="w-3 h-3" />
+                      <CopyIcon className="w-3 h-3" />
                     </button>
                     {isHost && (
                       <button
@@ -516,7 +511,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                         disabled={cancelScheduled.isPending}
                         className="h-9 px-3 border border-destructive/30 text-destructive rounded-xl text-sm hover:bg-destructive/10 transition-all flex items-center gap-1 disabled:opacity-50"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <TrashIcon solid className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
@@ -547,7 +542,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
               className="bg-card rounded-2xl card-shadow p-10 text-center border border-border/50"
             >
               <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-                <VideoOff className="w-8 h-8 text-muted-foreground opacity-40" />
+                <VideoOffIcon className="w-8 h-8 text-muted-foreground opacity-40" />
               </div>
               <p className="font-semibold text-foreground mb-1">אין פגישות Zoom פעילות</p>
               <p className="text-sm text-muted-foreground">
@@ -575,12 +570,12 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                   </div>
 
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-                    <Users className="w-3.5 h-3.5" />
+                    <UsersIcon className="w-3.5 h-3.5" />
                     <span>מארח: {session.host_name}</span>
                   </div>
 
                   <div className="flex items-center gap-2 mb-3 bg-muted/40 rounded-lg px-3 py-2 min-w-0">
-                    <Link2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <LinkIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     <span className="text-xs text-muted-foreground truncate flex-1 min-w-0 font-mono select-all" dir="ltr">
                       {session.zoom_url}
                     </span>
@@ -588,7 +583,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                       onClick={() => copyLink(session.zoom_url)}
                       className="shrink-0 h-7 px-2.5 rounded-md bg-[rgba(226,181,78,0.10)] text-[#e2b54e] text-xs font-medium hover:bg-[rgba(226,181,78,0.20)] transition-all flex items-center gap-1"
                     >
-                      <Copy className="w-3 h-3" />העתק
+                      <CopyIcon className="w-3 h-3" />העתק
                     </button>
                   </div>
 
@@ -599,7 +594,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                       rel="noopener noreferrer"
                       className="flex-1 h-10 aurora-gold rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2"
                     >
-                      <ExternalLink className="w-4 h-4" />
+                      <ExternalLinkIcon className="w-4 h-4" />
                       הצטרף ב-Zoom
                     </a>
                     {isHost && (
@@ -608,7 +603,7 @@ export default function ZoomHub({ userId, userName, isMentor = false }: Props) {
                         disabled={endSession.isPending}
                         className="h-10 px-4 border border-destructive/30 text-destructive rounded-xl text-sm font-medium hover:bg-destructive/10 transition-all flex items-center gap-1.5 disabled:opacity-50"
                       >
-                        <PhoneOff className="w-4 h-4" />סיים
+                        <HangUpIcon className="w-4 h-4" />סיים
                       </button>
                     )}
                   </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { TrendingUp, User, GraduationCap, Eye, EyeOff, Info, Loader2, ArrowRight, CheckCircle } from 'lucide-react';
+import { ArrowRightIcon, CheckCircleIcon, EyeIcon, EyeOffIcon, GraduationIcon, InfoIcon, LoaderIcon, TrendIcon, UserIcon } from '@/components/icons';
 import PlanetBackground from '@/components/PlanetBackground';
 
 type Tab = 'mentor' | 'student';
@@ -170,7 +170,7 @@ export default function AuthPage() {
           transition={{ duration: 0.3, ease: premiumEase }}
         >
           <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-            <TrendingUp className="w-6 h-6 text-primary-foreground" />
+            <TrendIcon solid className="w-6 h-6 text-primary-foreground" />
           </div>
           <h1 className="text-2xl font-bold text-secondary-foreground">Caesar 0 DTE</h1>
           <p className="text-sm text-secondary-foreground/60">פלטפורמת מנטורינג למסחר מקצועי</p>
@@ -186,9 +186,9 @@ export default function AuthPage() {
           {/* Role tabs */}
           <div className="flex border-b border-border">
             {([
-              { key: 'student', label: 'כניסת תלמיד', icon: GraduationCap },
-              { key: 'mentor', label: 'כניסת מנטור', icon: User },
-            ] as { key: Tab; label: string; icon: typeof User }[]).map(({ key, label, icon: Icon }) => (
+              { key: 'student', label: 'כניסת תלמיד', icon: GraduationIcon },
+              { key: 'mentor', label: 'כניסת מנטור', icon: UserIcon },
+            ] as { key: Tab; label: string; icon: typeof UserIcon }[]).map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
@@ -216,13 +216,13 @@ export default function AuthPage() {
                   onClick={closeForgot}
                   className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
                 >
-                  <ArrowRight className="w-4 h-4" /> חזרה
+                  <ArrowRightIcon className="w-4 h-4" /> חזרה
                 </button>
 
                 {forgotSent ? (
                   <div className="text-center py-6 space-y-4">
                     <div className="w-14 h-14 rounded-full bg-accent/15 flex items-center justify-center mx-auto">
-                      <CheckCircle className="w-7 h-7 text-accent" />
+                      <CheckCircleIcon className="w-7 h-7 text-accent" />
                     </div>
                     <h2 className="text-xl font-bold text-foreground">קישור נשלח</h2>
                     <p className="text-sm text-muted-foreground">
@@ -254,7 +254,7 @@ export default function AuthPage() {
                         disabled={forgotLoading}
                         className="w-full h-[46px] aurora-gold rounded-2xl font-bold transition-all disabled:cursor-not-allowed mt-2"
                       >
-                        {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'שלח קישור איפוס'}
+                        {forgotLoading ? <LoaderIcon className="w-4 h-4 animate-spin mx-auto" /> : 'שלח קישור איפוס'}
                       </button>
                     </form>
                   </>
@@ -277,7 +277,7 @@ export default function AuthPage() {
 
                   {/* Info banner */}
                   <div className="flex items-start gap-3 aurora-alert aurora-alert-gold rounded-2xl px-4 py-3 mb-6">
-                    <Info className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                    <InfoIcon className="w-4 h-4 text-accent mt-0.5 shrink-0" />
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       <span className="font-semibold text-foreground">תלמידים מצטרפים רק דרך הזמנה מהמנטור.</span>
                       {' '}לאחר שהמנטור שולח לך הזמנה, תקבל/י מייל עם פרטי הכניסה ותוכל/י להתחבר כאן.
@@ -314,7 +314,7 @@ export default function AuthPage() {
                           onClick={() => setShowPass(v => !v)}
                           className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                         >
-                          {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showPass ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                         </button>
                       </div>
                     </div>
@@ -323,7 +323,7 @@ export default function AuthPage() {
                       disabled={loading}
                       className="w-full h-[46px] aurora-gold rounded-2xl font-bold transition-all disabled:cursor-not-allowed mt-2"
                     >
-                      {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'כניסה'}
+                      {loading ? <LoaderIcon className="w-4 h-4 animate-spin mx-auto" /> : 'כניסה'}
                     </button>
                   </form>
                   <div className="text-center mt-4">
@@ -439,7 +439,7 @@ export default function AuthPage() {
                           onClick={() => setShowPass(v => !v)}
                           className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                         >
-                          {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showPass ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
                         </button>
                       </div>
                     </div>
@@ -449,7 +449,7 @@ export default function AuthPage() {
                       disabled={loading}
                       className="w-full h-[46px] aurora-gold rounded-2xl font-bold transition-all disabled:cursor-not-allowed mt-2"
                     >
-                      {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : mentorMode === 'login' ? 'כניסה' : 'צור חשבון'}
+                      {loading ? <LoaderIcon className="w-4 h-4 animate-spin mx-auto" /> : mentorMode === 'login' ? 'כניסה' : 'צור חשבון'}
                     </button>
                   </form>
 
