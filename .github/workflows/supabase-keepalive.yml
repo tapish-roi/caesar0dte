@@ -1,0 +1,51 @@
+name: Supabase keep-alive
+
+# Free-tier Supabase projects are auto-paused after ~7 days without API traffic,
+# which takes the whole backend offline (every call in the app fails with
+# "Failed to fetch"). This pings the project daily so it never looks idle.
+# Daily rather than weekly because scheduled runs can be delayed or skipped by
+# GitHub under load; a single missed run still leaves days of margin.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: https://dnsguhzzgxvymtjrraok.supabase.co
+      # Public anon key — the same one shipped in the site bundle (client.ts).
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuc2d1aHp6Z3h2eW10anJyYW9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MTA2MjAsImV4cCI6MjA5MzI4NjYyMH0.5llm0eyAmfbHi19YHYnUc2nHDi1yITpXrw-ccKcEyms
+    steps:
+      - name: Ping database (REST query)
+        run: |
+          # A real table query goes through PostgREST into Postgres, which is
+          # what counts as project activity. Retries cover a cold-start blip.
+          for i in 1 2 3; do
+            code=$(curl -s -m 30 -o /dev/null -w '%{http_code}' \
+              "$SUPABASE_URL/rest/v1/categories?select=id&limit=1" \
+              -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+            echo "attempt $i: HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 20
+          done
+          echo "::error::Supabase did not answer — the project may already be paused. Restore it at https://supabase.com/dashboard/project/dnsguhzzgxvymtjrraok"
+          exit 1
+
+      - name: Ping auth
+        run: |
+          curl -sf -m 30 -o /dev/null "$SUPABASE_URL/auth/v1/health" -H "apikey: $SUPABASE_ANON_KEY"
+
+      # GitHub disables scheduled workflows in repos with no commits for 60 days.
+      # Re-enabling this workflow through the API resets that timer, so the
+      # keep-alive keeps itself alive even if nobody touches the repo.
+      - name: Keep this schedule from being auto-disabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/supabase-keepalive.yml/enable"
