@@ -70,13 +70,36 @@ Deno.serve(async (req) => {
     // stale shell so the invite path below runs and the student gets a proper
     // signup invite. Guarded tightly: only ever removes a never-used account, and
     // if the delete fails we keep the existing user and fall back to recovery.
+    //
+    // community_invites.student_id references auth.users ON DELETE CASCADE, and the
+    // first send already pointed this invite at the stale account. Deleting that
+    // account would therefore delete the invite row itself: the pending invite
+    // vanished from the mentor's list and the student's dashboard fallback was gone.
+    // Detach every invite row from the stale account first, then re-attach them to
+    // the new account below.
+    const detachedInviteIds: string[] = [];
     if (existingUser && !existingUser.last_sign_in_at && !existingUser.email_confirmed_at) {
-      const { error: delErr } = await adminClient.auth.admin.deleteUser(existingUser.id);
-      if (delErr) {
-        console.warn('Could not delete stale invite account, will send recovery instead:', delErr.message);
+      const { data: detached, error: detachErr } = await adminClient
+        .from('community_invites')
+        .update({ student_id: null })
+        .eq('student_id', existingUser.id)
+        .select('id');
+      if (detachErr) {
+        console.warn('Could not detach invites from stale account, will send recovery instead:', detachErr.message);
       } else {
-        console.log('Removed never-activated account to re-send a clean invite:', email);
-        existingUser = undefined;
+        detachedInviteIds.push(...(detached ?? []).map((r: { id: string }) => r.id));
+        const { error: delErr } = await adminClient.auth.admin.deleteUser(existingUser.id);
+        if (delErr) {
+          console.warn('Could not delete stale invite account, will send recovery instead:', delErr.message);
+          if (detachedInviteIds.length) {
+            await adminClient.from('community_invites')
+              .update({ student_id: existingUser.id }).in('id', detachedInviteIds);
+          }
+          detachedInviteIds.length = 0;
+        } else {
+          console.log('Removed never-activated account to re-send a clean invite:', email);
+          existingUser = undefined;
+        }
       }
     }
 
@@ -135,11 +158,13 @@ Deno.serve(async (req) => {
       { onConflict: 'user_id,role' }
     );
 
-    // Update invite record with student_id
-    await adminClient
+    // Point this invite (and any rows detached from a deleted stale account) at
+    // the student's current account.
+    const { error: linkErr } = await adminClient
       .from('community_invites')
       .update({ student_id: studentId })
-      .eq('id', inviteId);
+      .in('id', Array.from(new Set([inviteId, ...detachedInviteIds])));
+    if (linkErr) console.error('Failed to link invite to student:', linkErr.message);
 
     return new Response(JSON.stringify({ success: true, studentId, emailType }), {
       status: 200,

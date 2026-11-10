@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { getStoredAccessToken } from '@/lib/authToken';
+import { initialHashParam } from '@/lib/initialHash';
 import { CheckCircleIcon, EyeIcon, EyeOffIcon, GraduationIcon, TrendIcon } from '@/components/icons';
 
 // Public project identifiers (same values as integrations/supabase/client.ts).
@@ -18,8 +19,16 @@ const AUTH_STORAGE_KEY = 'sb-dnsguhzzgxvymtjrraok-auth-token';
 function recoveryToken(): string | null {
   const m = (window.location.hash || '').match(/access_token=([^&]+)/);
   if (m) return decodeURIComponent(m[1]);
+  const fromLoad = initialHashParam('access_token');
+  if (fromLoad) return fromLoad;
   return getStoredAccessToken()?.token ?? null;
 }
+
+// When the one-time link was already used or expired — including when a mail
+// security scanner opened it before the student did — Supabase redirects here
+// with #error=...&error_code=otp_expired and no token. Detect that on load so
+// the student sees why and what to do, instead of a form that fails on submit.
+const LINK_ERROR = initialHashParam('error_code') || initialHashParam('error');
 
 // Read the `sub` (user id) claim from a JWT without verifying it — RLS re-checks
 // it server-side, so this is only to fill student_id on the membership row.
@@ -156,7 +165,17 @@ export default function AcceptInvitePage() {
 
         <div className="bg-card rounded-2xl card-shadow overflow-hidden">
           <div className="p-8">
-            {done ? (
+            {LINK_ERROR && !done ? (
+              <div className="text-center py-6 space-y-3">
+                <h2 className="text-xl font-bold text-foreground">קישור ההזמנה אינו בתוקף</h2>
+                <p className="text-sm text-muted-foreground">
+                  הקישור כבר נוצל או שפג תוקפו. בקש/י מ{mentorName} לשלוח את ההזמנה שוב, ופתח/י את הקישור מהמייל החדש ביותר.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  אם כבר קבעת סיסמה — <a href={import.meta.env.BASE_URL} className="underline">התחבר/י כאן</a>.
+                </p>
+              </div>
+            ) : done ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
